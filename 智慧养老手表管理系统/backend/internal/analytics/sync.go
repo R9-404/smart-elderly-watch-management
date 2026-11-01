@@ -129,31 +129,7 @@ func Run(ctx context.Context, primary *db.Database, url string, state *State) {
 				}
 			}
 			if pg != nil {
-				ready = pg.Ping(cycle) == nil
-				for n := 0; ready && n < maxBatchesPerTick; n++ {
-					copied, err := SyncBatch(cycle, primary, pg, defaultBatchSize)
-					if err != nil {
-						ready = false
-						break
-					}
-					if copied == 0 {
-						break
-					}
-					if pending != nil {
-						estimate := max(int64(0), *pending-int64(copied))
-						pending = &estimate
-					}
-					now := time.Now().UTC()
-					state.mu.Lock()
-					state.value.LastSyncedAt = &now
-					state.mu.Unlock()
-					if copied < defaultBatchSize {
-						break
-					}
-					if n == maxBatchesPerTick-1 {
-						saturated = true
-					}
-				}
+				ready, saturated, pending = drainProjection(cycle, primary, pg, pending, state)
 				if !ready {
 					pg.Close()
 					pg = nil
@@ -202,4 +178,34 @@ func Migrate(ctx context.Context, pg *pgxpool.Pool) error {
 		return err
 	}
 	return tx.Commit(ctx)
+}
+
+func drainProjection(ctx context.Context, primary *db.Database, pg *pgxpool.Pool, pending *int64, state *State) (bool, bool, *int64) {
+	saturated := false
+	ready := pg.Ping(ctx) == nil
+	for n := 0; ready && n < maxBatchesPerTick; n++ {
+		copied, err := SyncBatch(ctx, primary, pg, defaultBatchSize)
+		if err != nil {
+			ready = false
+			break
+		}
+		if copied == 0 {
+			break
+		}
+		if pending != nil {
+			estimate := max(int64(0), *pending-int64(copied))
+			pending = &estimate
+		}
+		now := time.Now().UTC()
+		state.mu.Lock()
+		state.value.LastSyncedAt = &now
+		state.mu.Unlock()
+		if copied < defaultBatchSize {
+			break
+		}
+		if n == maxBatchesPerTick-1 {
+			saturated = true
+		}
+	}
+	return ready, saturated, pending
 }

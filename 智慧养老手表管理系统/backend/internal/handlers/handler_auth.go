@@ -127,15 +127,9 @@ func (h *Handler) login(w http.ResponseWriter, r *http.Request) {
 	// account with a wrong password must not trigger an extra dummy bcrypt call.
 	compared := err == nil
 	if err == nil && auth.Matches(password, uPass.String) {
-		if !h.factorLogin(w, r, m, auth.RoleAdmin, uid, phone) {
-			return
-		}
-		if !h.renewSession(w, r, session.Principal{
+		h.finishAccountLogin(w, r, m, session.Principal{
 			Role: auth.RoleAdmin, ID: uid, Phone: uPhone.String, DisplayName: uName.String,
-		}) {
-			return
-		}
-		response.JSON(w, http.StatusOK, map[string]any{"authenticated": true})
+		}, phone)
 		return
 	}
 
@@ -165,16 +159,9 @@ func (h *Handler) login(w http.ResponseWriter, r *http.Request) {
 			response.JSON(w, http.StatusForbidden, map[string]any{"code": "ACCOUNT_UNLINKED", "message": "该家属账号尚未关联老人，请联系管理员"})
 			return
 		}
-		if !h.factorLogin(w, r, m, auth.RoleFamily, fid, phone) {
-			return
-		}
-		if !h.renewSession(w, r, session.Principal{
-			Role: auth.RoleFamily, ID: fid, Phone: fPhone.String,
-			OldID: oldID.Int64, DisplayName: fName.String,
-		}) {
-			return
-		}
-		response.JSON(w, http.StatusOK, map[string]any{"authenticated": true})
+		h.finishAccountLogin(w, r, m, session.Principal{
+			Role: auth.RoleFamily, ID: fid, Phone: fPhone.String, OldID: oldID.Int64, DisplayName: fName.String,
+		}, phone)
 		return
 	}
 
@@ -310,4 +297,14 @@ func (h *Handler) checkDesktopToken(w http.ResponseWriter, r *http.Request) bool
 		return false
 	}
 	return true
+}
+
+func (h *Handler) finishAccountLogin(w http.ResponseWriter, r *http.Request, m map[string]any, p session.Principal, phone string) {
+	if !h.factorLogin(w, r, m, p.Role, p.ID, phone) {
+		return
+	}
+	if !h.renewSession(w, r, p) {
+		return
+	}
+	response.JSON(w, http.StatusOK, map[string]any{"authenticated": true})
 }

@@ -192,22 +192,74 @@ PG 0006/0007/0008-to-MySQL migration. The three affected SOS paths were rechecke
 after extracting locked authentication. No new tests or assertions were needed.
 Handler/database vet, OpenAPI consistency and independent standards/behavior
 reviews passed. One orphaned telemetry comment found in review was removed.
-Final-head CI and minimal post-CI smoke remain required for this batch.
+PR #63 completed 25 checks (23 successful, one neutral, one skipped). Three
+post-CI MySQL smoke tests passed. It was merged as
+`468a269ad88eb803155fb46fb16478798f682939`; its tree matched tested head
+`e32742de588a21b9caba0bd8bcf12b1395f30fa9`.
 
-## Remaining scope
+## Final batch: state machines, batches and worker coordination
 
-The original 12 inventoried long files have been addressed. A subsequent merged
-SQL hardening change made `mysql_translate.go` 355 lines; its new quote-aware
-rewrites need responsibility review on the current source. This is not a claim
-that all long files or functions are resolved.
-The initial function inventory contained 30 functions of at least 90 lines.
-After the batches above, 12 original functions remain for structural work.
-The 94-line evidence encoding sequence has been reviewed and retained as one
-cohesive operation after extracting eligibility checks; the review threshold is
-not a requirement to fragment a single encoding sequence. The decomposed 124-line
-invitation registration and 91-line device registration retain their transaction
-coordinator bodies to keep failure, commit and rollback ordering explicit. The decomposed SOS and binding coordinators also retain explicit transaction
-control. Remaining work covers care transitions/dispatch/receipts, security/login,
-analytics polling/batches, SQL compilation, database-worker startup, sample writes,
-health upload lock modes and the reliability command. Their transaction and
-state-machine boundaries must remain intact while distinct steps are separated.
+The remaining 12 inventoried functions have distinct steps without new workflow
+frameworks or changed contracts:
+
+- Care dispatch separates claim/commit, external delivery and attempt-guarded
+  completion. Only an empty queue returns `found=false`; retry/fallback ownership
+  and authenticated delivery receipts still win over stale attempts.
+- Care transitions separate state admission and incident/event persistence.
+  Authorization, the row lock, independent verification, verdict audit and commit
+  remain in the handler. Receipt signature/body validation is separate from its
+  unchanged idempotent delivery transaction.
+- Analytics batches separate bounded event reads from aligned/coalesced projection
+  arrays. Every claimed event is still acknowledged only after PG projection
+  succeeds. The poller delegates its bounded drain while retaining pool recovery,
+  optional configuration, status sampling, cancellation and backoff ownership.
+- Health upload separates source validation/normalization from both existing lock
+  modes. Sample batch writes delegate the stored-version read after the owner lock;
+  revision reservation, history ordering and argument-buffer reuse stay together.
+- Login shares its two-factor/session-success step across administrator and family
+  accounts. Password comparison order, dummy bcrypt handling, unlinked-family
+  rejection and submitted-phone versus stored-phone use are unchanged.
+- Factor setup and recovery-code generation have named helpers. Setup still resets
+  the initial not-found result; confirmation/disable and session revocation retain
+  their original state checks and transaction ordering.
+- Database worker startup groups the same seven workers and wait group. The parent
+  still drains them before closing the pool. The maintenance CLI separates its
+  isolated-database operations while keeping probe's early return and safety gates.
+- SQL dialect rewriting lives in `mysql_dialect.go`, with both file indexes updated.
+  The original regex vocabulary, quote/comment-aware rewrites and placeholder
+  scanner remain unchanged; query-plan caching and bound arguments stay separate.
+
+Seventeen existing core regressions passed once on real MySQL/PostgreSQL where
+required: notification ownership/retry, transactional replay and saturated drain,
+health versions/history/conflict rollback, TOTP recovery/session revocation, native
+login response, care verdict audit and signed receipt concurrency, both health
+lock modes, and SQL rewriting/binding. No tests or benchmarks were added. The
+changed packages passed vet and unused/tagged-switch analysis; OpenAPI consistency
+still reports 107 paths. Final-head CI and minimal post-CI smoke are pending.
+
+## Final inventory and deliberate boundaries
+
+The original eight Go files and four Vue pages have been decomposed. A later SQL
+hardening change temporarily made `mysql_translate.go` 355 lines; separating its
+syntax-rewrite responsibility resolves that new long file too. The current full
+production scan has no Go file above 350 lines, Vue/JS/TS file above 300 lines, or
+CSS file above 350 lines. Dependencies, generated artifacts and tests are excluded.
+
+All 30 originally inventoried functions have received responsibility review and
+applicable decomposition. Eight remain at least 90 lines; this threshold triggers
+review and does not justify fragmenting a coherent algorithm or transaction:
+
+| Function | Current lines | Retained responsibility |
+| --- | ---: | --- |
+| `deviceBind` | 125 | Ordered elder/device locks, binding write and code-consumption CAS, commit/rollback |
+| `inviteJoin` | 124 | Invitation/account locks, hashing, activation, invitation consumption and transaction ownership |
+| `deviceSos` | 106 | Retry acknowledgement before nonce reservation, incident/notification transaction and responses |
+| `securityFactor` | 104 | Factor state admission, OTP replay protection and commit/session-revocation ordering |
+| `compileMySQLQuery` | 97 | One cursor through quoted values/comments, operators and placeholder positions |
+| `appendEvidenceFast` | 94 | One borrowed-buffer JSON encoding sequence with its ordered fields and fallback |
+| `analytics.Run` | 93 | Pool recovery, status publication, drain scheduling and cancellation/backoff coordination |
+| `deviceCreate` | 91 | Registration transaction, secret/owner/profile persistence and final response |
+
+These are documented boundaries, not unfinished row-count reductions. The source
+structure task does not establish that the project has no further functional bugs
+or that all production release conditions have been accepted.

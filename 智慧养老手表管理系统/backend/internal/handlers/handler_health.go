@@ -28,30 +28,12 @@ func (h *Handler) healthBatch(w http.ResponseWriter, r *http.Request) {
 // can delay the device-row lock until the final binding/secret revalidation.
 // Never enable owner-first concurrently with an old device-first writer.
 func (h *Handler) healthBatchWithLockOrder(w http.ResponseWriter, r *http.Request, lateDeviceLock bool) {
-	var req struct {
-		DeviceNo       string          `json:"deviceNo"`
-		Secret         string          `json:"secret"`
-		BindingVersion int64           `json:"bindingVersion"`
-		Samples        []health.Sample `json:"samples"`
-	}
+	var req healthBatchRequest
 	if !decodeHealth(w, r, &req) {
 		return
 	}
-	if len(req.Samples) < 1 || len(req.Samples) > 200 {
-		write400(w, "每批须为 1–200 条采样")
+	if !normalizeHealthUpload(w, &req) {
 		return
-	}
-	for i, s := range req.Samples {
-		if s.SourceDevice != req.DeviceNo {
-			write400(w, "采样来源设备与认证设备不一致")
-			return
-		}
-		n, err := s.Normalize()
-		if err != nil {
-			write400(w, err.Error())
-			return
-		}
-		req.Samples[i] = n
 	}
 	ctx := r.Context()
 	tx, err := h.DB.Begin(ctx)
@@ -181,4 +163,31 @@ func (h *Handler) healthChanges(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	response.OK(w, map[string]any{"changes": items, "nextCursor": cursor, "hasMore": hasMore, "oldId": oldID})
+}
+
+type healthBatchRequest struct {
+	DeviceNo       string          `json:"deviceNo"`
+	Secret         string          `json:"secret"`
+	BindingVersion int64           `json:"bindingVersion"`
+	Samples        []health.Sample `json:"samples"`
+}
+
+func normalizeHealthUpload(w http.ResponseWriter, req *healthBatchRequest) bool {
+	if len(req.Samples) < 1 || len(req.Samples) > 200 {
+		write400(w, "每批须为 1–200 条采样")
+		return false
+	}
+	for i, s := range req.Samples {
+		if s.SourceDevice != req.DeviceNo {
+			write400(w, "采样来源设备与认证设备不一致")
+			return false
+		}
+		n, err := s.Normalize()
+		if err != nil {
+			write400(w, err.Error())
+			return false
+		}
+		req.Samples[i] = n
+	}
+	return true
 }

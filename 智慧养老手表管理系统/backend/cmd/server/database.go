@@ -18,7 +18,6 @@ import (
 	"suining-care/internal/care"
 	"suining-care/internal/config"
 	"suining-care/internal/csrf"
-	"suining-care/internal/db"
 	"suining-care/internal/handlers"
 	"suining-care/internal/notify"
 	"suining-care/internal/observability"
@@ -167,14 +166,14 @@ func watchDatabase(ctx context.Context, cfg config.Config, sessions *session.Sto
 		attempt, cancel := context.WithTimeout(ctx, 5*time.Second)
 		var err error
 		if pool == nil {
-			pool, err = db.OpenMySQL(attempt, cfg.MySQLDSN)
+			pool, err = dbstore.OpenMySQL(attempt, cfg.MySQLDSN)
 		} else {
 			err = pool.Ping(attempt)
 		}
 		cancel()
 		if err == nil && api == nil {
 			migration, cancelMigration := context.WithTimeout(ctx, 2*time.Minute)
-			err = db.MigrateMySQL(migration, pool)
+			err = dbstore.MigrateMySQL(migration, pool)
 			cancelMigration()
 			if err == nil {
 				if cfg.SessionBackend == "database" {
@@ -191,21 +190,7 @@ func watchDatabase(ctx context.Context, cfg config.Config, sessions *session.Sto
 				h.Analytics = &service.analytics
 				h.Routes(mux)
 				observability.Default.SetRouteResolver(func(r *http.Request) string { _, pattern := mux.Handler(r); return pattern })
-				done := make(chan struct{})
-				workerDone = done
-				go func() {
-					defer close(done)
-					var jobs sync.WaitGroup
-					jobs.Add(7)
-					go func() { defer jobs.Done(); rules.Run(ctx, pool, h.Box) }()
-					go func() { defer jobs.Done(); notify.Run(ctx, pool, h.Box) }()
-					go func() { defer jobs.Done(); h.RunCapabilities(ctx) }()
-					go func() { defer jobs.Done(); care.Run(ctx, pool, h.Box) }()
-					go func() { defer jobs.Done(); analytics.Run(ctx, pool, cfg.PGAnalyticsURL, &service.analytics) }()
-					go func() { defer jobs.Done(); handlers.RunSignedDeviceNonceCleanup(ctx, pool) }()
-					go func() { defer jobs.Done(); handlers.RunDurableTelemetry(ctx, pool, h.Box) }()
-					jobs.Wait()
-				}()
+				workerDone = startDatabaseWorkers(ctx, pool, h, cfg.PGAnalyticsURL, &service.analytics)
 				api = limiter.Middleware(csrf.Middleware(sessions, auth.Middleware(sessions, h.EnforceAdminDuty(sensitiveCareAudit(pool, mux)))))
 			}
 		}
@@ -238,4 +223,22 @@ func boolNumber(value bool) float64 {
 		return 1
 	}
 	return 0
+}
+
+func startDatabaseWorkers(ctx context.Context, pool *dbstore.Database, h *handlers.Handler, analyticsURL string, analyticsState *analytics.State) <-chan struct{} {
+	done := make(chan struct{})
+	go func() {
+		defer close(done)
+		var jobs sync.WaitGroup
+		jobs.Add(7)
+		go func() { defer jobs.Done(); rules.Run(ctx, pool, h.Box) }()
+		go func() { defer jobs.Done(); notify.Run(ctx, pool, h.Box) }()
+		go func() { defer jobs.Done(); h.RunCapabilities(ctx) }()
+		go func() { defer jobs.Done(); care.Run(ctx, pool, h.Box) }()
+		go func() { defer jobs.Done(); analytics.Run(ctx, pool, analyticsURL, analyticsState) }()
+		go func() { defer jobs.Done(); handlers.RunSignedDeviceNonceCleanup(ctx, pool) }()
+		go func() { defer jobs.Done(); handlers.RunDurableTelemetry(ctx, pool, h.Box) }()
+		jobs.Wait()
+	}()
+	return done
 }
