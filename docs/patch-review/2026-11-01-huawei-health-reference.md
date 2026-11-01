@@ -29,7 +29,7 @@
 成功响应为 `{ "returnCode": "1111", "oldId": 1, "items": [...] }`，每项复用 `health.Record`，保留 sampleId、deviceId、bindingVersion、revision 和完整 Sample。
 
 - 每个精确 `(source, sourceDevice, metric, semantics)` 返回一条未删除的存量采样。MySQL 使用字节身份分组，避免大小写或尾随空格混组。
-- 按 `Sample.start` 的精确时间降序选取；完全同刻按 revision 降序。SQL 微秒索引的并列候选全部进入比较，不先截成一行。
+- 按 `Sample.start` 的精确时间降序选取；完全同刻按 revision 降序。SQL 微秒索引的并列候选全部进入比较，不先截成一行；窗口阶段只排名样本 ID，再读取候选的完整内容。
 - 区间展示开始和结束时间；日累计明确标成快照，不当作今日汇总。前端不跨来源相加；累计类型跨来源相加可能重复计数，也与 [Health Connect 读取说明](https://developer.android.com/health-and-fitness/health-connect/read-data) 提醒一致。
 - 订正读取当前版本；删除后可回退到其他未删除记录，但保留其原始时间与归属。旧绑定历史不会改成当前绑定采样。`legacy-unzoned` 明确显示原时间与时区未确认。
 - 无数据返回空数组；首页给出空状态和已有日常记录入口。读取失败可以刷新重试；复用已有取消、超时、卸载处理。它是存量读取，不声称设备实时在线或已接入华为云。

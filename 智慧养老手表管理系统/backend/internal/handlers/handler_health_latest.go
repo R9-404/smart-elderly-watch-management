@@ -35,11 +35,13 @@ func (h *Handler) healthLatest(w http.ResponseWriter, r *http.Request) {
 	if h.DB.IsMySQL() {
 		partition = "BINARY source,BINARY source_device,BINARY metric,BINARY semantics"
 	}
-	rows, err := h.DB.Query(r.Context(), `SELECT sample_id,device_id,epoch,revision,payload FROM (
- SELECT sample_id,device_id,epoch,revision,payload,
+	rows, err := h.DB.Query(r.Context(), `SELECT s.sample_id,s.device_id,s.epoch,s.revision,s.payload
+ FROM health_sample s INNER JOIN (
+ SELECT sample_id,
  RANK() OVER (PARTITION BY `+partition+` ORDER BY sample_start DESC) AS latest_rank
  FROM health_sample WHERE old_id=$1 AND NOT deleted
- ) ranked WHERE latest_rank=1 ORDER BY sample_id LIMIT 10001`, oldID)
+	 ) ranked ON ranked.sample_id=s.sample_id
+ WHERE ranked.latest_rank=1 ORDER BY s.sample_id LIMIT 10001`, oldID)
 	if err != nil {
 		response.Error500(w, ref())
 		return
