@@ -13,9 +13,9 @@
         <p class="latest-value">{{ item.sample.value == null ? '暂无数值' : item.sample.value }} <span>{{ unitLabels[item.sample.unit] || item.sample.unit }}</span></p>
         <p>{{ semanticsLabels[item.sample.semantics] || item.sample.semantics }}<span v-if="item.sample.stage"> · {{ stageLabels[item.sample.stage] || item.sample.stage }}</span></p>
         <p v-if="item.sample.timeBasis === 'legacy-unzoned'">原始时间：{{ item.sample.start }}<span v-if="item.sample.semantics === 'interval'"> — {{ item.sample.end }}</span>（时区未确认）</p>
-        <p v-else-if="item.sample.semantics === 'interval'">采样区间：{{ localTime(item.sample.start) }} — {{ localTime(item.sample.end) }}</p>
-        <p v-else>采样时间：{{ localTime(item.sample.start) }}</p>
-        <p class="latest-source">来源：{{ item.sample.source }} · {{ item.sample.sourceDevice }}<span v-if="item.deviceId != null"> · 绑定版本 {{ item.bindingVersion }}</span></p>
+        <p v-else-if="item.sample.semantics === 'interval'">{{ item.sample.metadata?.timestampBasis === 'app-received' ? '应用观测区间' : '采样区间' }}：{{ localTime(item.sample.start) }} — {{ localTime(item.sample.end) }}</p>
+        <p v-else>{{ item.sample.metadata?.timestampBasis === 'app-received' ? '应用接收时间' : '采样时间' }}：{{ localTime(item.sample.start) }}</p>
+        <p class="latest-source">来源：{{ item.sample.source === 'suining-harmonyos' ? '鸿蒙手表（应用上报）' : item.sample.source }} · {{ item.sample.sourceDevice }}<span v-if="item.deviceId != null"> · 绑定版本 {{ item.bindingVersion }}</span></p>
       </li>
     </ul>
   </section>

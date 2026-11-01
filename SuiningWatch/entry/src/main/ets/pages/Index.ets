@@ -1,8 +1,10 @@
 import { common } from '@kit.AbilityKit';
 import { WatchApi } from '../services/WatchApi';
 import { WatchStore } from '../services/WatchStore';
+import { HealthSensors } from '../services/HealthSensors';
+import { NativeSampling } from '../model/NativeSampling';
 import { Binding, WatchConfig,
-  normalizeConfig, bindingFrom, enqueue, batchRequest, makeSamples, sameBinding, pendingForBinding } from '../model/Protocol';
+  HealthSample, normalizeConfig, bindingFrom, enqueue, batchRequest, makeSamples, sameBinding, pendingForBinding } from '../model/Protocol';
 
 @Entry
 @Component
@@ -16,6 +18,8 @@ struct Index {
   @State private connected: boolean = false;
   @State private heart: number = 72;
   @State private steps: number = 1280;
+  @State private nativeHeart: number = 0;
+  @State private nativeCounter: number = -1;
   @State private queued: number = 0;
   @State private busy: boolean = false;
   @State private status: string = '本地预览 · 尚未连接后台';
@@ -26,6 +30,8 @@ struct Index {
   private store: WatchStore | undefined = undefined;
   private binding: Binding | undefined = undefined;
   private counterDay: string = new Date().toISOString().slice(0, 10);
+  private sensors: HealthSensors = new HealthSensors();
+  private sampling: NativeSampling = new NativeSampling();
 
   aboutToAppear(): void {
     try {
@@ -51,7 +57,21 @@ struct Index {
       this.status = '读取本地状态失败，请重新打开应用；不会覆盖旧记录';
     }
   }
+  aboutToDisappear(): void {
+    this.sensors.cancel();
+    this.sampling.reset();
+  }
   private config(): WatchConfig { return normalizeConfig(this.server, this.deviceNo); }
+  private useBinding(binding: Binding | undefined): void {
+    if (!binding || !this.binding || !sameBinding(this.binding, binding)) {
+      this.nativeHeart = 0;
+      this.nativeCounter = -1;
+      this.sampling.reset();
+      this.person = binding ? '长者 #' + binding.oldId : '尚未绑定';
+    }
+    this.binding = binding;
+    this.connected = binding !== undefined;
+  }
   private credentials(): void {
     if (this.secret.length < 24 || this.secret.length > 128) {
       throw new Error('请输入后台生成的设备密钥（24–128 位），不是管理员密码');
@@ -63,10 +83,10 @@ struct Index {
     this.connected = false;
     const config = this.config();
     const reply = await this.api.login(config, this.secret);
+    if (reply.bound !== 1) { this.useBinding(undefined); }
     const binding = bindingFrom(config, reply);
+    this.useBinding(binding);
     this.person = reply.oldPersonName || '长者 #' + binding.oldId;
-    this.binding = binding;
-    this.connected = true;
     return binding;
   }
   private async act(action: () => Promise<void>): Promise<void> {
@@ -85,15 +105,13 @@ struct Index {
     await this.store?.saveConfig(config);
     const reply = await this.api.login(config, this.secret);
     if (reply.bound !== 1) {
-      this.connected = false;
-      this.binding = undefined;
-      this.person = '尚未绑定';
+      this.useBinding(undefined);
       this.status = '设备认证成功，请输入设备绑定码';
       return;
     }
-    this.binding = bindingFrom(config, reply);
-    this.connected = true;
-    this.person = reply.oldPersonName || '长者 #' + this.binding.oldId;
+    const binding = bindingFrom(config, reply);
+    this.useBinding(binding);
+    this.person = reply.oldPersonName || '长者 #' + binding.oldId;
     this.status = '已认证 · ' + this.person;
   }
   private async bind(): Promise<void> {
@@ -119,6 +137,31 @@ struct Index {
     this.queued = batch.samples.length;
     this.status = '已保存 2 条模拟采样，点击“上传记录”提交';
   }
+  private async sampleNative(): Promise<void> {
+    const binding = await this.liveBinding();
+    const context = this.getUIContext().getHostContext();
+    if (!context || !this.store) { throw new Error('应用上下文或本地存储尚未就绪'); }
+    // Read before sensor access too: a failed persistence operation blocks new
+    // deltas until Preferences is reloaded on application restart.
+    const current = this.store.batch();
+    const result = await this.sensors.read(context as common.UIAbilityContext);
+    const candidate = this.sampling.copy();
+    let samples: HealthSample[] = [];
+    for (const observation of result.observations) {
+      samples = samples.concat(candidate.accept(binding, this.store.nextID(), observation));
+      if (observation.metric === 'heart_rate') { this.nativeHeart = observation.value; }
+      if (observation.metric === 'steps') { this.nativeCounter = observation.value; }
+    }
+    if (samples.length) {
+      const batch = enqueue(current, binding, samples);
+      await this.store.saveBatch(batch);
+      this.queued = batch.samples.length;
+    }
+    // Advance a step baseline only after its derived samples were persisted.
+    this.sampling = candidate;
+    this.status = '已保存 ' + samples.length + ' 条传感器采样；计步首次读取仅建立基线' +
+      (result.status ? '；' + result.status : '；点击上传记录提交');
+  }
   private async upload(): Promise<void> {
     if (!this.store) { throw new Error('本地存储未就绪'); }
     const batch = this.store.batch();
@@ -134,7 +177,7 @@ struct Index {
   }
   private confirmSOS(): void {
     this.getUIContext().showAlertDialog({
-      title: '确认发送模拟求助？',
+      title: '确认发送 SOS 求助？',
       message: '当前绑定有未确认请求时将重试；否则会新建求助。旧绑定请求保留待核查。后台接收不代表通知送达或人员到场。',
       primaryButton: { value: '取消', action: () => {} },
       secondaryButton: { value: '确认发送', action: () => { this.act(async () => { await this.sendSOS(); }); } }
@@ -146,7 +189,7 @@ struct Index {
     let items = this.store.pendingSOS();
     let pending = pendingForBinding(items, live);
     if (!pending) {
-      pending = { binding: live, requestId: 'watch-sim-' + this.store.nextID() };
+      pending = { binding: live, requestId: 'harmonyos-' + this.store.nextID() };
       items = items.concat([pending]);
       await this.store.saveSOS(items);
       this.sosPending = items.filter((item) => !item.incidentId).length;
@@ -165,11 +208,11 @@ struct Index {
       (this.sosPending ? '；另有 ' + this.sosPending + ' 条旧求助待管理员核查' : '');
   }
   private confirmDiscard(): void {
-    this.getUIContext().showAlertDialog({ title: '丢弃待上传的模拟记录？',
-      message: '只清除本机模拟采样，不删除后台数据，也不清除未确认的求助。',
+    this.getUIContext().showAlertDialog({ title: '丢弃待上传记录？',
+      message: '只清除本机采样，不删除后台数据，也不清除未确认的求助。',
       primaryButton: { value: '保留', action: () => {} },
       secondaryButton: { value: '丢弃', action: () => {
-        this.act(async () => { await this.store?.saveBatch(undefined); this.queued = 0; this.status = '本机模拟记录已丢弃'; });
+        this.act(async () => { await this.store?.saveBatch(undefined); this.sampling.reset(); this.queued = 0; this.status = '本机记录已丢弃，计步基线已重置'; });
       } }
     });
   }
@@ -185,32 +228,32 @@ struct Index {
   @Builder
   private home() {
     Text(this.person === '尚未绑定' ? '今天，也安心' : this.person).fontSize(19).fontColor('#F3EDE0')
-    Text('心率 · 模拟').fontSize(12).fontColor('#93B1A7')
+    Text('心率 · 传感器观测').fontSize(12).fontColor('#93B1A7')
     Row({ space: 4 }) {
-      Text(this.heart.toString()).fontSize(52).fontWeight(FontWeight.Medium).fontColor('#E6CE9D')
+      Text(this.nativeHeart > 0 ? this.nativeHeart.toString() : '—').fontSize(52).fontWeight(FontWeight.Medium).fontColor('#E6CE9D')
       Text('次/分').fontSize(12).fontColor('#93B1A7').padding({ top: 22 })
     }.justifyContent(FlexAlign.Center)
-    Text('步数 ' + this.steps + '  ·  模拟').fontSize(15).fontColor('#D8E4DC')
-    this.action('生成模拟采样', () => { this.act(async () => { await this.sample(); }); })
-    this.action('SOS 模拟求助' + (this.sosPending ? '（待核查 ' + this.sosPending + '）' : ''), () => { this.confirmSOS(); }, '#803F37')
+    Text('计步器累计 ' + (this.nativeCounter >= 0 ? this.nativeCounter.toString() : '尚未读取')).fontSize(15).fontColor('#D8E4DC')
+    this.action('授权并读取传感器', () => { this.act(async () => { await this.sampleNative(); }); })
+    this.caption('前台读取；仅上传两次计步观测的增量，不冒充全天步数。')
+    this.action('SOS 求助' + (this.sosPending ? '（待核查 ' + this.sosPending + '）' : ''), () => { this.confirmSOS(); }, '#803F37')
     if (this.lastSOS) { this.caption(this.lastSOS) }
   }
   @Builder
   private records() {
     Text('数据同步').fontSize(21).fontColor('#F3EDE0')
     Text(this.queued.toString()).fontSize(42).fontColor('#E6CE9D')
-    Text('条模拟采样待上传').fontSize(13).fontColor('#93B1A7')
+    Text('条采样待上传').fontSize(13).fontColor('#93B1A7')
     this.caption('最近上传：' + this.lastUpload)
     this.action('上传记录', () => { this.act(async () => { await this.upload(); }); })
     this.action('发送心跳', () => { this.act(async () => {
       this.credentials();
       const reply = await this.api.heartbeat(this.config(), this.secret);
-      this.connected = false;
-      this.binding = undefined;
-      if (reply.bound === 1) { this.binding = bindingFrom(this.config(), reply); this.connected = true; }
+      this.useBinding(reply.bound === 1 ? bindingFrom(this.config(), reply) : undefined);
       this.status = '心跳成功 · 当前绑定已校验';
     }); })
-    this.action('丢弃本机模拟记录', () => { this.confirmDiscard(); }, '#373B35')
+    this.action('丢弃本机记录', () => { this.confirmDiscard(); }, '#373B35')
+    this.action('生成模拟采样（调试）', () => { this.act(async () => { await this.sample(); }); }, '#373B35')
     this.caption('失败不清除队列；重试复用记录 ID，后台去重。绑定变化时禁止补传。')
   }
   @Builder
@@ -218,25 +261,25 @@ struct Index {
     Text('连接与绑定').fontSize(21).fontColor('#F3EDE0')
     this.caption('后端地址')
     TextInput({ text: this.server, placeholder: 'http://127.0.0.1:18796' }).fontSize(12)
-      .height(38).enabled(!this.busy).onChange((value: string) => { this.server = value; this.connected = false; this.binding = undefined; })
+      .height(38).enabled(!this.busy).onChange((value: string) => { this.server = value; this.useBinding(undefined); })
     this.caption('设备号（后台登记）')
     TextInput({ text: this.deviceNo, placeholder: 'WATCH5_SIM_001' }).fontSize(13)
-      .height(38).enabled(!this.busy).onChange((value: string) => { this.deviceNo = value; this.connected = false; this.binding = undefined; })
+      .height(38).enabled(!this.busy).onChange((value: string) => { this.deviceNo = value; this.useBinding(undefined); })
     this.caption('设备密钥（仅本次运行使用）')
     TextInput({ text: this.secret, placeholder: '后台生成的设备密钥' }).type(InputType.Password).fontSize(13)
-      .height(38).enabled(!this.busy).onChange((value: string) => { this.secret = value; this.connected = false; this.binding = undefined; })
+      .height(38).enabled(!this.busy).onChange((value: string) => { this.secret = value; this.useBinding(undefined); })
     this.action('保存地址并认证', () => { this.act(async () => { await this.connect(); }); })
     this.caption('设备绑定码（不是家属邀请码）')
     TextInput({ text: this.bindCode, placeholder: '输入设备绑定码' }).fontSize(15)
       .height(38).enabled(!this.busy).onChange((value: string) => { this.bindCode = value; })
     this.action('绑定长者', () => { this.act(async () => { await this.bind(); }); })
-    this.caption('本版仅模拟器采样，不读取真实心率、血压或睡眠。')
+    this.caption('真机使用手表可访问的 HTTPS 地址；模拟器可用 HDC 本机转发。传感器授权与设备密钥认证分别完成。')
   }
   build() {
     Scroll() {
       Column({ space: 9 }) {
         Text('岁宁守护').fontSize(15).fontColor('#D5BD89').fontWeight(FontWeight.Medium)
-        Text('模拟器演示 · 非真实健康数据').fontSize(10).fontColor('#D5BD89')
+        Text('HarmonyOS · 需授权读取传感器').fontSize(10).fontColor('#D5BD89')
         Row({ space: 7 }) {
           ForEach(['首页', '记录', '设置'], (label: string, index: number) => {
             Button(label).fontSize(12).height(28).backgroundColor(this.page === index ? '#3D5F50' : '#172D26')

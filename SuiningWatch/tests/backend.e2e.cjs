@@ -16,6 +16,17 @@ mod._compile(ts.transpileModule(fs.readFileSync(source, 'utf8'), {
   compilerOptions: { target: ts.ScriptTarget.ES2020, module: ts.ModuleKind.CommonJS }
 }).outputText, source);
 const protocol = mod.exports;
+const load = require('./load-ets.cjs');
+// Real HTTP to the disposable Go server through the production WatchApi.
+const { WatchApi } = load('services/WatchApi', { '@kit.NetworkKit': { http: {
+  RequestMethod: { POST: 'POST' }, HttpDataType: { STRING: 'STRING' },
+  createHttp: () => ({ request: async (url, options) => {
+    const response = await fetch(url, { method: options.method, headers: options.header, body: options.extraData, signal: AbortSignal.timeout(options.readTimeout) });
+    return { responseCode: response.status, result: await response.text() };
+  }, destroy() {} })
+} } });
+const { NativeSampling } = load('model/NativeSampling');
+const watch = new WatchApi();
 let cookie = '', csrf = '';
 const checks = [];
 async function request(route, body, headers = {}, expected = 200) {
@@ -52,10 +63,10 @@ async function main() {
   const code = await request('/api/v1/device/createBindCode', { oldId: String(elder.oldId), expireDays: '1' });
   await request('/api/v1/device/bind', { ...credentials, code: code.code });
   const config = protocol.normalizeConfig(base, device.deviceNo);
-  const live = protocol.bindingFrom(config, await request('/api/v1/device/login', credentials));
+  const live = protocol.bindingFrom(config, await watch.login(config, device.secret));
   assert.equal(live.oldId, elder.oldId);
   checks.push('bind code attached device to test elder');
-  assert.equal((await request('/api/v1/device/heartbeat', { ...credentials, appVersion: 'watch-sim-0.1.0' })).bound, 1);
+  assert.equal((await watch.heartbeat(config, device.secret)).bound, 1);
   checks.push('heartbeat acknowledged');
   const samples = protocol.makeSamples(device.deviceNo, 'e2e-fixed-record', new Date(), 72, 1280);
   const queue = protocol.enqueue(undefined, live, samples);
@@ -65,6 +76,20 @@ async function main() {
   const changes = await request('/api/v1/health/changes', { oldId: elder.oldId, after: 0, limit: 100 });
   assert.equal(changes.changes.length, 2);
   checks.push('two simulated samples persisted; retry acknowledged two duplicates without extra changes');
+  const native = new NativeSampling();
+  const at = Date.now();
+  assert.deepEqual(native.accept(live, 'native-anchor', { metric: 'steps', value: 100, receivedAt: at - 1000, sensorTimestamp: 1000000 }), []);
+  const nativeSamples = native.accept(live, 'native-steps', { metric: 'steps', value: 105, receivedAt: at, sensorTimestamp: 2000000 })
+    .concat(native.accept(live, 'native-hr', { metric: 'heart_rate', value: 74, receivedAt: at, sensorTimestamp: 2000000 }));
+  const nativeBody = protocol.batchRequest(protocol.enqueue(undefined, live, nativeSamples), live, device.secret);
+  assert.equal((await watch.upload(config, nativeBody)).accepted, 2);
+  assert.equal((await watch.upload(config, nativeBody)).duplicates, 2);
+  const latest = await request('/api/v1/health/latest', { oldId: elder.oldId });
+  const nativeRecords = latest.items.filter(item => item.sample.source === 'suining-harmonyos');
+  assert.equal(nativeRecords.length, 2);
+  assert.equal(nativeRecords.find(item => item.sample.metric === 'steps').sample.value, 5);
+  assert.ok(nativeRecords.every(item => item.sample.metadata.timestampBasis === 'app-received'));
+  checks.push('production HarmonyOS transport negotiated, uploaded native-shaped heart/step samples, deduplicated retry and read latest with provenance');
   const sos = { ...credentials, requestId: 'watch-sim-e2e-same-press', bindingVersion: live.version };
   await request('/api/v1/device/sos', { ...credentials, requestId: 'missing-binding-version' }, {}, 400);
   await request('/api/v1/device/sos', { ...credentials, bindingVersion: live.version }, {}, 400);

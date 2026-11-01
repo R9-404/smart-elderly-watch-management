@@ -42,6 +42,15 @@ func (h *Handler) deviceLogin(w http.ResponseWriter, r *http.Request) {
 	if !ok {
 		return
 	}
+	harmony := false
+	if platform, present := m["platform"]; present {
+		version, valid := int64Val(m, "protocolVersion")
+		if platform != "harmonyos" || !valid || version != 1 {
+			write400(w, "不支持的手表平台或协议版本；HarmonyOS 须使用协议 1")
+			return
+		}
+		harmony = true
+	}
 	ctx := r.Context()
 	d, code, msg, err := h.hwAuth(ctx, h.DB, deviceNo, secret, "设备已停用，请联系管理员")
 	if err != nil {
@@ -61,6 +70,10 @@ func (h *Handler) deviceLogin(w http.ResponseWriter, r *http.Request) {
 	fields := map[string]any{
 		"deviceId": d.ID, "deviceNo": d.No, "alias": d.Alias,
 		"bound": bound, "oldId": d.OldID, "bindingVersion": d.HealthEpoch,
+	}
+	if harmony {
+		fields["protocolVersion"] = 1
+		fields["maxBatchSize"] = 200
 	}
 	if d.OldID != nil {
 		bound = 1

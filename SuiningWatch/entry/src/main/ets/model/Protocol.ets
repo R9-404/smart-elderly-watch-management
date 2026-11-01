@@ -17,8 +17,11 @@ export interface DeviceReply {
   incidentId?: number;
   incidentState?: string;
   notificationState?: string;
+  protocolVersion?: number;
+  maxBatchSize?: number;
 }
 export interface Credentials { deviceNo: string; secret: string; }
+export interface LoginRequest extends Credentials { platform: string; protocolVersion: number; }
 export interface Binding {
   server: string;
   deviceNo: string;
@@ -28,6 +31,10 @@ export interface Binding {
 export interface SampleMetadata {
   simulated: string;
   counterTimezone?: string;
+  sensor?: string;
+  sensorTimestamp?: string;
+  timestampBasis?: string;
+  counterBasis?: string;
 }
 export interface HealthSample {
   recordId: string;
@@ -68,11 +75,23 @@ export function normalizeConfig(server: string, deviceNo: string): WatchConfig {
   if (!/^https?:\/\/(?:\[[0-9a-fA-F:]+\]|[A-Za-z0-9.-]+)(?::[0-9]{1,5})?$/.test(url)) {
     throw new Error('服务器地址须为 http(s)://主机:端口，不含路径或账号');
   }
+  if (url.startsWith('http:') && !/^http:\/\/(?:127\.0\.0\.1|localhost|\[::1\])(?::[0-9]{1,5})?$/.test(url)) {
+    throw new Error('真机连接请使用 HTTPS；HTTP 仅用于本机模拟器端口转发');
+  }
   const no = deviceNo.trim().toUpperCase();
   if (!/^[A-Z0-9_-]{1,32}$/.test(no)) {
     throw new Error('设备号须为 1–32 位字母、数字、下划线或短横线');
   }
   return { server: url, deviceNo: no };
+}
+
+export const WATCH_APP_VERSION: string = 'harmonyos-0.2.0';
+export const WATCH_PROTOCOL_VERSION: number = 1;
+
+export function verifyHandshake(reply: DeviceReply): void {
+  if (reply.protocolVersion !== WATCH_PROTOCOL_VERSION || reply.maxBatchSize !== 200) {
+    throw new Error('后台不支持当前鸿蒙采样协议，请更新后台后重试');
+  }
 }
 
 export function bindingFrom(config: WatchConfig, reply: DeviceReply): Binding {
