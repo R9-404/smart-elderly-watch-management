@@ -4,6 +4,8 @@ const fs = require('node:fs');
 const path = require('node:path');
 const crypto = require('node:crypto');
 const Module = require('node:module');
+const http = require('node:http');
+const os = require('node:os');
 const base = process.env.WATCH_TEST_URL;
 const bootstrap = process.env.WATCH_TEST_SETUP_TOKEN;
 if (!/^http:\/\/127\.0\.0\.1:\d+$/.test(base || '') || !bootstrap) {
@@ -17,11 +19,12 @@ mod._compile(ts.transpileModule(fs.readFileSync(source, 'utf8'), {
 }).outputText, source);
 const protocol = mod.exports;
 const load = require('./load-ets.cjs');
+let transportProxy = '';
 // Real HTTP to the disposable Go server through the production WatchApi.
 const { WatchApi } = load('services/WatchApi', { '@kit.NetworkKit': { http: {
   RequestMethod: { POST: 'POST' }, HttpDataType: { STRING: 'STRING' },
   createHttp: () => ({ request: async (url, options) => {
-    const response = await fetch(url, { method: options.method, headers: options.header, body: options.extraData, signal: AbortSignal.timeout(options.readTimeout) });
+    const response = await fetch(transportProxy ? transportProxy + new URL(url).pathname : url, { method: options.method, headers: options.header, body: options.extraData, signal: AbortSignal.timeout(options.readTimeout) });
     return { responseCode: response.status, result: await response.text() };
   }, destroy() {} })
 } } });
@@ -81,9 +84,54 @@ async function main() {
   assert.deepEqual(native.accept(live, 'native-anchor', { metric: 'steps', value: 100, receivedAt: at - 1000, sensorTimestamp: 1000000 }), []);
   const nativeSamples = native.accept(live, 'native-steps', { metric: 'steps', value: 105, receivedAt: at, sensorTimestamp: 2000000 })
     .concat(native.accept(live, 'native-hr', { metric: 'heart_rate', value: 74, receivedAt: at, sensorTimestamp: 2000000 }));
-  const nativeBody = protocol.batchRequest(protocol.enqueue(undefined, live, nativeSamples), live, device.secret);
-  assert.equal((await watch.upload(config, nativeBody)).accepted, 2);
-  assert.equal((await watch.upload(config, nativeBody)).duplicates, 2);
+  const nativeQueue = protocol.enqueue(undefined, live, nativeSamples);
+  // Real disk backing at the Preferences boundary, not a claim about device flash.
+  const temporary = fs.mkdtempSync(path.join(os.tmpdir(), 'suining-watch-e2e-'));
+  const prefsFile = path.join(temporary, 'preferences.json');
+  const { WatchStore } = load('services/WatchStore', { '@kit.ArkData': { preferences: { getPreferencesSync: () => {
+    const values = fs.existsSync(prefsFile) ? JSON.parse(fs.readFileSync(prefsFile, 'utf8')) : {};
+    return { getSync: (key, fallback) => values[key] ?? fallback, putSync: (key, value) => { values[key] = value; },
+      flush: async () => fs.writeFileSync(prefsFile, JSON.stringify(values)) };
+  } } } });
+  let forwarded = 0;
+  let upstreamAck;
+  const proxy = http.createServer(async (incoming, outgoing) => {
+    try {
+      assert.equal(incoming.url, '/api/v1/device/healthBatch');
+      let payload = '';
+      for await (const chunk of incoming) payload += chunk;
+      forwarded++;
+      const response = await fetch(base + incoming.url, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: payload, signal: AbortSignal.timeout(10000) });
+      assert.equal(response.status, 200);
+      upstreamAck = await response.json();
+      // The database committed, but the watch never receives its acknowledgement.
+      outgoing.destroy();
+    } catch (error) { outgoing.destroy(error); }
+  });
+  try {
+    const store = new WatchStore({});
+    await store.saveBatch(nativeQueue);
+    await new Promise(resolve => proxy.listen(0, '127.0.0.1', resolve));
+    transportProxy = 'http://127.0.0.1:' + proxy.address().port;
+    await assert.rejects(watch.upload(config, protocol.batchRequest(store.batch(), live, device.secret)));
+    transportProxy = '';
+    assert.equal(forwarded, 1, 'a failed POST must not be replayed automatically');
+    assert.equal(upstreamAck.accepted, 2, 'failure must occur after the real backend committed');
+    const recovered = new WatchStore({});
+    assert.deepEqual(recovered.batch(), nativeQueue, 'restart must retain the original IDs, values and binding');
+    const retry = await watch.upload(config, protocol.batchRequest(recovered.batch(), live, device.secret));
+    assert.equal(retry.accepted, 2);
+    assert.equal(retry.duplicates, 2);
+    await recovered.saveBatch(undefined);
+    assert.equal(new WatchStore({}).batch(), undefined);
+    checks.push('real socket loss after database commit retained the disk-backed queue; restart retry deduplicated original records before clearing');
+  } finally {
+    transportProxy = '';
+    proxy.closeAllConnections();
+    await new Promise(resolve => proxy.close(resolve));
+    if (fs.existsSync(prefsFile)) fs.unlinkSync(prefsFile);
+    fs.rmdirSync(temporary);
+  }
   const latest = await request('/api/v1/health/latest', { oldId: elder.oldId });
   const nativeRecords = latest.items.filter(item => item.sample.source === 'suining-harmonyos');
   assert.equal(nativeRecords.length, 2);

@@ -122,3 +122,35 @@ test('sensor timeout removes the listener and reports unavailability', async (co
   assert.match(result.status, /未取得有效读数/);
   assert.deepEqual(removed, [1]);
 });
+
+test('leaving and reopening while authentication is pending cannot start a stale sensor read', async () => {
+  let enumerations = 0;
+  const { HealthSensors } = load('services/HealthSensors', { '@kit.SensorServiceKit': { sensor: {
+    getSensorList: async () => { enumerations++; return []; }
+  } }, '@kit.AbilityKit': {} });
+  const service = new HealthSensors();
+  const session = service.session();
+  let authenticated;
+  const login = new Promise(resolve => { authenticated = resolve; });
+  const read = (async () => { await login; return service.read({}, session); })();
+  service.suspend();
+  service.resume();
+  authenticated();
+  await assert.rejects(read, /取消/);
+  assert.equal(enumerations, 0);
+});
+
+test('leaving during permission authorization never starts hardware listeners', async () => {
+  let authorize; let listeners = 0;
+  const { HealthSensors } = load('services/HealthSensors', {
+    '@kit.SensorServiceKit': { sensor: { SensorId: { HEART_RATE: 1, PEDOMETER: 2 }, getSensorList: async () => [{ sensorId: 1 }], once: () => listeners++ } },
+    '@kit.AbilityKit': { abilityAccessCtrl: { createAtManager: () => ({ requestPermissionsFromUser: () => new Promise(resolve => { authorize = resolve; }) }) } }
+  });
+  const service = new HealthSensors();
+  const read = service.read({});
+  await new Promise(resolve => setImmediate(resolve));
+  service.suspend();
+  authorize({ authResults: [0] });
+  await assert.rejects(read, /取消/);
+  assert.equal(listeners, 0);
+});
