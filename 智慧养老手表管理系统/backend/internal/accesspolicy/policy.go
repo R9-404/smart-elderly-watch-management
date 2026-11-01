@@ -41,6 +41,7 @@ var routes = map[route]rule{
 	{http.MethodPost, "/api/v1/health/daily-query"}:          {access: Shared},
 	{http.MethodPost, "/api/v1/health/changes"}:              {access: Shared},
 	{http.MethodPost, "/api/v1/health/statistics"}:           {access: Shared},
+	{http.MethodPost, "/api/v1/health/latest"}:               {access: Shared},
 	{http.MethodPost, "/api/v1/auth/logout"}:                 {access: Shared},
 	{http.MethodPost, "/api/v1/family/selectTwo"}:            {access: Shared},
 	{http.MethodPost, "/api/v1/family/updateTwo"}:            {access: Shared},

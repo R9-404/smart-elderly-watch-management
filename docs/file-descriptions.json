@@ -1,4 +1,10 @@
 {
+  "docs/patch-review/2026-11-01-huawei-health-reference.md": "华为运动健康静态证据复核、设计取舍与最新采样接口合同",
+  "智慧养老手表管理系统/backend/internal/handlers/handler_health_latest.go": "按来源、设备、指标与语义读取最新采样并保留精确时间及绑定归属",
+  "智慧养老手表管理系统/backend/internal/handlers/health_latest_test.go": "最新采样来源隔离、精确时间、订正删除与家属归属回归",
+  "智慧养老手表管理系统/frontend/src/api/health.ts": "最新健康采样的类型与会话接口调用",
+  "智慧养老手表管理系统/frontend/src/components/LatestHealthPanel.vue": "家属首页按来源展示最新健康采样、原采样时间与读取状态",
+  "智慧养老手表管理系统/frontend/src/components/LatestHealthPanel.test.ts": "最新采样面板来源、零值、区间与读取生命周期回归",
   "智慧养老手表管理系统/backend/internal/handlers/sos_binding_integration_test.go": "真实 MySQL/PostgreSQL 验证 SOS 绑定版本、重绑定行锁竞态及并发重复请求",
   ".dockerignore": "项目配置、源文件或测试资料：",
   ".github/CODEOWNERS": "指定仓库代码审查负责人和受保护路径",

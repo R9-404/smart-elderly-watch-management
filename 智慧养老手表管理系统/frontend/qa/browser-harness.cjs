@@ -30,6 +30,7 @@ module.exports = async function (run) {
   const unknown=mode==='unknown';
   const fixtures={
    'api/v1/service/status':{databaseReady:true},
+   'api/v1/health/latest':{returnCode:'1111',oldId:1,items:[]},
    'api/v1/care/incidents':{items:[],total:0,page:1,pageSize:20,duty:'supervisor',actorId:1},
    'api/v1/care/diagnostics':{workerHealthy:true,notificationConfigured:false,receiptConfigured:false,pendingNotifications:0,failedNotifications:0,staleSending:0,overdueIncidents:0},
    'api/v1/care/staff':{staff:[]},
