@@ -1,4 +1,4 @@
-// Package handlers 实现全部 HTTP endpoint（按 go-rewrite-spec/ 三组规格）。
+// Package handlers implements the application HTTP endpoints.
 package handlers
 
 import (

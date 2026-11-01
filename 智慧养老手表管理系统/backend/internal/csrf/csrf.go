@@ -20,9 +20,8 @@ const HeaderName = "X-CSRF-TOKEN"
 
 func rejected(w http.ResponseWriter) {
 	response.JSON(w, http.StatusForbidden, map[string]any{
-		"returnCode": "0000",
-		"code":       "CSRF_REJECTED",
-		"message":    "请求未获授权，请刷新页面后重试",
+		"code":    "CSRF_REJECTED",
+		"message": "请求未获授权，请刷新页面后重试",
 	})
 }
 

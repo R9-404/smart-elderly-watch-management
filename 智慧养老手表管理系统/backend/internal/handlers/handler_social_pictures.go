@@ -38,7 +38,6 @@ func (h *Handler) notificationPhones(r *http.Request, q dbQuerier) ([]notificati
 }
 
 // ---------------------------------------------------------------------------
-// PicShowController
 // ---------------------------------------------------------------------------
 
 type picShowDTO struct {
@@ -83,7 +82,7 @@ func (h *Handler) picshowAdd(w http.ResponseWriter, r *http.Request) {
 	for _, name := range names {
 		ct, err := tx.Exec(r.Context(), "INSERT INTO pic_show(pic_name) VALUES($1)", name)
 		if err != nil || ct.RowsAffected() != 1 {
-			// 复刻 IllegalStateException("展示图片保存失败") → 500，事务回滚。
+			// 保存失败时回滚事务。
 			response.Error500(w, ref())
 			return
 		}

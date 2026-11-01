@@ -119,7 +119,7 @@ func adviceOfKind(kind string) string {
 	}
 }
 
-// describePersonAlert 复刻 DeviceAlertJdbcDao.describePersonAlert；无异常返回 nil。
+// describePersonAlert returns nil when there is no pending alert.
 func describePersonAlert(pr *personRow, now time.Time) map[string]any {
 	onlineNow := pr.lastTime != nil && now.Sub(*pr.lastTime) <= 120*time.Second
 	// 已人工确认过、且设备没有重新上线过 → 不再重复报"离线/从未上报"。

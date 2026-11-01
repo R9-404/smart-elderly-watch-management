@@ -69,6 +69,8 @@
 </template>
 
 <script>
+import { apiErrorMessage } from '../api/httpContract'
+
 import axios from 'axios'
 import RecordCards from '@/components/RecordCards.vue'
 
@@ -124,8 +126,8 @@ export default {
 					_this.saidList=tableData2
 
         })
-          .catch(function () {
-            _this.loadError = '评论暂时无法加载，请检查服务连接后重试。'
+          .catch(function (error) {
+            _this.loadError = apiErrorMessage(error, '评论暂时无法加载，请检查服务连接后重试。')
             _this.saidList = []
             _this.total = 0
           }).finally(function () { _this.isLoading = false })
@@ -158,7 +160,7 @@ export default {
         }
       })
         .catch(function (error) {
-          console.log(error)
+          _this.$message.error(apiErrorMessage(error, '请求未完成，请重试'))
         })
     },
     async deleteSaid (saidId) {
@@ -187,7 +189,7 @@ export default {
           _this.searchSaid()
         })
           .catch(function (error) {
-            console.log(error)
+            _this.$message.error(apiErrorMessage(error, '请求未完成，请重试'))
           })
       } catch (err) {
         this.$message({

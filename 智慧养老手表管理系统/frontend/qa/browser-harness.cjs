@@ -80,12 +80,12 @@ module.exports = async function (run) {
   if(!(endpoint in fixtures)){report.unexpectedApi.push(endpoint);await route.fulfill({status:404,body:'{}'});return;}
   if(mode==='loading')await new Promise(resolve=>setTimeout(resolve,700));
   if(mode==='error' && !endpoint.includes('userLogin') && endpoint!=='api/v1/service/status'){await route.fulfill({status:503,contentType:'application/json',body:'{}'});return;}
-  if(endpoint==='api/v1/said/insert' && mode!=='comment-failure'){const data=route.request().postDataJSON();comments.push({saidId:1,personName:data.personName,said:data.said,niceCount:0,good:0});}
+  if(endpoint==='api/v1/said/insert' && mode!=='comment-failure'){const data=route.request().postDataJSON();comments.push({saidId:1,personName:role==='FAMILY'?'小明':'管理员',said:data.said,niceCount:0,good:0});}
   if(endpoint==='api/v1/said/goodCount' && comments[0]){comments[0].good=comments[0].good?0:1;comments[0].niceCount=comments[0].good;}
   if (endpoint==='api/v1/auth/logout') signedIn=false;
   if (endpoint==='api/v1/auth/login' && mode==='login-success') { signedIn=true; fixtures[endpoint]={authenticated:true}; }
   if (route.request().method()==='POST') report.checks.push({name:'CSRF header '+endpoint,pass:route.request().headers()['x-csrf-token']==='mock-csrf-token'});
-  await route.fulfill({status:endpoint==='api/v1/auth/login' && loginMode!=='success' && mode!=='login-success' ? 401 : 200,contentType:'application/json',body:JSON.stringify(fixtures[endpoint])});
+  await route.fulfill({status:endpoint==='api/v1/auth/login' && loginMode!=='success' && mode!=='login-success' ? 401 : fixtures[endpoint].returnCode==='0000' ? 400 : 200,contentType:'application/json',body:JSON.stringify(fixtures[endpoint].returnCode === '0000' ? {code:'INVALID_REQUEST',message:'请求参数无效',...fixtures[endpoint]} : {returnCode:'1111',...fixtures[endpoint]})});
  });
  const page=await context.newPage();
  page.on('pageerror',error=>report.pageErrors.push(error.message));

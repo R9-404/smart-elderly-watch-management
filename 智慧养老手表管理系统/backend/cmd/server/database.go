@@ -99,7 +99,12 @@ func (s *databaseService) middleware(local http.Handler) http.Handler {
 			return
 		}
 		api := s.api.Load()
-		if r.URL.Path == "/api/v1/service/status" && r.Method == http.MethodGet {
+		if r.URL.Path == "/api/v1/service/status" {
+			if r.Method != http.MethodGet {
+				w.Header().Set("Allow", http.MethodGet)
+				response.Error(w, http.StatusMethodNotAllowed, "METHOD_NOT_ALLOWED", "服务状态接口仅支持 GET")
+				return
+			}
 			w.Header().Set("Cache-Control", "no-store")
 			snapshot := s.analytics.Snapshot()
 			response.JSON(w, http.StatusOK, map[string]any{
@@ -120,7 +125,7 @@ func (s *databaseService) middleware(local http.Handler) http.Handler {
 			w.Header().Set("Retry-After", "3")
 			w.Header().Set("Cache-Control", "no-store")
 			response.JSON(w, http.StatusServiceUnavailable, map[string]any{
-				"returnCode": "0000", "code": "DATABASE_UNAVAILABLE",
+				"code":    "DATABASE_UNAVAILABLE",
 				"message": "数据库尚未连接，请稍后重试",
 			})
 			return
@@ -191,7 +196,7 @@ func watchDatabase(ctx context.Context, cfg config.Config, sessions *session.Sto
 				h.Routes(mux)
 				observability.Default.SetRouteResolver(func(r *http.Request) string { _, pattern := mux.Handler(r); return pattern })
 				workerDone = startDatabaseWorkers(ctx, pool, h, cfg.PGAnalyticsURL, &service.analytics)
-				api = limiter.Middleware(csrf.Middleware(sessions, auth.Middleware(sessions, h.EnforceAdminDuty(sensitiveCareAudit(pool, mux)))))
+				api = limiter.Middleware(csrf.Middleware(sessions, auth.Middleware(sessions, h.EnforceAdminDuty(sensitiveCareAudit(pool, response.Router(mux))))))
 			}
 		}
 		if err == nil {

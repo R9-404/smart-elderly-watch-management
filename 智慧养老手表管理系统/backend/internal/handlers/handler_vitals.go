@@ -1,4 +1,4 @@
-// RatepreController / StepController 的 Go 复刻：心率血压、睡眠步数。
+// Heart-rate, blood-pressure, sleep and step endpoints.
 // 另含两组共享小工具（optBody/strictPage/numParam/resolveOldID 等），供 handler_social.go 复用。
 package handlers
 
@@ -36,7 +36,7 @@ func (h *Handler) routeVitals(mux *http.ServeMux) {
 // 共享小工具
 // ---------------------------------------------------------------------------
 
-// optBody 解析可选 JSON body；空 body 返回空 map（复刻 required=false 的接口）。
+// optBody parses optional JSON; an empty body produces an empty map.
 func optBody(w http.ResponseWriter, r *http.Request) (map[string]any, bool) {
 	if r.Body == nil {
 		return map[string]any{}, true
@@ -51,7 +51,7 @@ func optBody(w http.ResponseWriter, r *http.Request) (map[string]any, bool) {
 	}
 	var m map[string]any
 	if err := json.Unmarshal(data, &m); err != nil {
-		response.JSON(w, http.StatusBadRequest, map[string]any{"returnCode": "0000", "message": "请求参数格式错误"})
+		response.JSON(w, http.StatusBadRequest, map[string]any{"message": "请求参数格式错误"})
 		return nil, false
 	}
 	if m == nil {
@@ -60,7 +60,7 @@ func optBody(w http.ResponseWriter, r *http.Request) (map[string]any, bool) {
 	return m, true
 }
 
-// strictPage 校验 body 分页参数（复刻 PageRequest）：整数、page 1–100000、pageSize 1–100。
+// strictPage requires integer page 1–100000 and pageSize 1–100.
 func strictPage(w http.ResponseWriter, m map[string]any) (int, int, bool) {
 	p, ok := strictPageVal(w, m, "page", 1)
 	if !ok {
@@ -71,7 +71,7 @@ func strictPage(w http.ResponseWriter, m map[string]any) (int, int, bool) {
 		return 0, 0, false
 	}
 	if p < 1 || p > 100000 || ps < 1 || ps > 100 {
-		response.JSON(w, http.StatusBadRequest, map[string]any{"returnCode": "0000", "message": "分页参数超出允许范围"})
+		response.JSON(w, http.StatusBadRequest, map[string]any{"message": "分页参数超出允许范围"})
 		return 0, 0, false
 	}
 	return p, ps, true
@@ -109,7 +109,7 @@ func strictPageVal(w http.ResponseWriter, m map[string]any, key string, def int)
 }
 
 func badPageInt(w http.ResponseWriter) {
-	response.JSON(w, http.StatusBadRequest, map[string]any{"returnCode": "0000", "message": "分页参数必须为整数"})
+	response.JSON(w, http.StatusBadRequest, map[string]any{"message": "分页参数必须为整数"})
 }
 
 // numParam 解析必填数字参数（兼容 JSON 数字与数字字符串）。
@@ -160,7 +160,7 @@ func strID(m map[string]any, key string) string {
 	return ""
 }
 
-// isDigits 非空全数字串（复刻 isNumeric + length>0 的调用形态）。
+// isDigits reports whether a nonempty string contains only digits.
 func isDigits(s string) bool {
 	if s == "" {
 		return false
@@ -173,7 +173,7 @@ func isDigits(s string) bool {
 	return true
 }
 
-// safeSub 复刻 ParamUtil.safeSubstring（ASCII 时间串按字节截取与之等价）。
+// safeSub extracts a bounded byte range from an ASCII timestamp.
 func safeSub(s string, begin, end int) string {
 	if begin < 0 {
 		begin = 0
@@ -190,26 +190,25 @@ func safeSub(s string, begin, end int) string {
 	return s[begin:end]
 }
 
-// writeCode 写 {"returnCode":"1111"} 或 {"returnCode":"0000"}（无 message）。
 func writeCode(w http.ResponseWriter, ok bool) {
-	code := "0000"
-	if ok {
-		code = "1111"
+	if !ok {
+		response.Fail(w, "操作未完成")
+		return
 	}
-	response.JSON(w, http.StatusOK, map[string]any{"returnCode": code})
+	response.OK(w, nil)
 }
 
-// principalOr401 取当前登录人；无则 401（复刻 AccountAccess.current）。
+// principalOr401 requires the authenticated session principal.
 func principalOr401(w http.ResponseWriter, r *http.Request) (*session.Principal, bool) {
 	p := auth.Principal(r)
 	if p == nil {
-		response.JSON(w, http.StatusUnauthorized, map[string]any{"returnCode": "0000", "message": "请先登录"})
+		response.JSON(w, http.StatusUnauthorized, map[string]any{"message": "请先登录"})
 		return nil, false
 	}
 	return p, true
 }
 
-// resolveOldID 复刻 AccountAccess.oldId：ADMIN 可传任意数字老人 id；
+// resolveOldID allows ADMIN to select an elder by ID;
 // FAMILY 传空用会话绑定的 oldId，传值则实时查库核对 oldperson.family_id。
 func (h *Handler) resolveOldID(w http.ResponseWriter, r *http.Request, m map[string]any) (int64, bool) {
 	p, ok := principalOr401(w, r)
@@ -235,21 +234,21 @@ func (h *Handler) resolveOldID(w http.ResponseWriter, r *http.Request, m map[str
 	}
 	id, err := strconv.ParseInt(raw, 10, 64)
 	if err != nil {
-		response.JSON(w, http.StatusBadRequest, map[string]any{"returnCode": "0000", "message": "老人编号不正确"})
+		response.JSON(w, http.StatusBadRequest, map[string]any{"message": "老人编号不正确"})
 		return 0, false
 	}
 	if p.Role != auth.RoleAdmin {
 		var familyID *int64
 		err := h.DB.QueryRow(r.Context(), "SELECT family_id FROM oldperson WHERE old_id=$1", id).Scan(&familyID)
 		if err != nil || familyID == nil || *familyID != p.ID {
-			response.JSON(w, http.StatusForbidden, map[string]any{"returnCode": "0000", "message": "无权访问该账户或照护记录"})
+			response.JSON(w, http.StatusForbidden, map[string]any{"message": "无权访问该账户或照护记录"})
 			return 0, false
 		}
 	}
 	return id, true
 }
 
-// pagedTotal 复刻 PagedQuery 的 count 部分。
+// pagedTotal counts rows for a paginated query.
 func (h *Handler) pagedTotal(w http.ResponseWriter, r *http.Request, sql string, args []any) (int64, bool) {
 	var total int64
 	if err := h.DB.QueryRow(r.Context(), "SELECT COUNT(*) FROM ("+sql+") AS paged_total", args...).Scan(&total); err != nil {

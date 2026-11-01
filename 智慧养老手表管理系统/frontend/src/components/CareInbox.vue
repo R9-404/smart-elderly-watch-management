@@ -53,6 +53,7 @@
   </section>
 </template>
 <script setup>
+import { apiErrorMessage } from '../api/httpContract'
 import { ref, onMounted, onBeforeUnmount } from 'vue'
 import axios from 'axios'
 import { createLatestRead } from '../composables/latestRead'
@@ -92,9 +93,9 @@ const reads = createLatestRead(
     actorId.value = data.actorId
     error.value = ''
   },
-  () => {
+  cause => {
     tasks.value = []; total.value = 0; duty.value = ''; actorId.value = null
-    error.value = '照护任务暂时无法加载，请检查后端连接和登录状态。'
+    error.value = apiErrorMessage(cause, '照护任务暂时无法加载')
   },
   value => { loading.value = value }
 )
@@ -112,7 +113,7 @@ const historyReads = createLatestRead(
   },
   error => {
     history.value.error = error instanceof Error && error.message.includes('超时')
-      ? '审计记录读取超时，请重试' : '审计记录暂时无法加载'
+      ? '审计记录读取超时，请重试' : apiErrorMessage(error, '审计记录暂时无法加载')
   },
   value => { history.value.loading = value }
 )
@@ -144,8 +145,8 @@ async function submit () {
     error.value = ''
     await load()
     if (dialog.value.action === 'verify') emit('verified')
-  } catch (_) {
-    dialog.value.error = '操作未确认成功，请关闭窗口并重新加载任务核实。'
+  } catch (cause) {
+    dialog.value.error = apiErrorMessage(cause, '任务操作未完成')
   } finally {saving.value = false}
 }
 onMounted(() => {load();timer=setInterval(() => {if (!document.hidden && !loading.value && !saving.value && !dialog.value.visible && !history.value.visible) load()},15000)})

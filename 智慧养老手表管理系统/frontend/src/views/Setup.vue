@@ -23,6 +23,7 @@
 </template>
 
 <script>
+import { apiErrorMessage } from '../api/httpContract'
 import axios from 'axios'
 import { loadSession } from '../auth'
 import { createAdministrator } from '../desktop'
@@ -50,11 +51,7 @@ export default {
         if (!account) throw new Error('Session missing')
         this.$router.replace('/main')
       } catch (e) {
-        if (e.response?.data?.code === 'DATABASE_UNAVAILABLE') {
-          this.error = '创建账号需要连接数据库，正在自动连接。恢复后请重试，填写内容已保留。'
-          return
-        }
-        this.error = e.response?.status === 409 ? '管理员已创建，请返回登录页面。' : '暂时无法创建，请检查填写的信息后重试。'
+        this.error = apiErrorMessage(e, '暂时无法创建，请检查填写的信息后重试。')
       } finally { this.busy = false }
     }
   }

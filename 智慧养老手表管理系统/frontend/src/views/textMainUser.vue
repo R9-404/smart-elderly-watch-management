@@ -19,6 +19,8 @@
 </template>
 
 <script>
+import { apiErrorMessage } from '../api/httpContract'
+
 import axios from 'axios'
 export default {
   data () { return { notice: null, pictures: [], comments: [], loading: false, commentsLoading: false, error: '', commentsError: '' } },
@@ -35,15 +37,15 @@ export default {
         if (!response.data.text) throw new Error('missing notice')
         this.notice = response.data.text
         this.pictures = response.data.pics || []
-      }).catch(() => { this.error = '公告暂时无法加载，请重试。' }).then(() => { this.loading = false })
+      }).catch((error) => { this.error = apiErrorMessage(error, '公告暂时无法加载，请重试。') }).then(() => { this.loading = false })
     },
     loadComments () {
       this.commentsLoading = true
       this.commentsError = ''
       this.comments = []
-      axios.post('api/v1/said/select', { textId: this.$route.query.textId, familyPhone: '' }, { withCredentials: true }).then((response) => {
+      axios.post('api/v1/said/select', { textId: this.$route.query.textId }, { withCredentials: true }).then((response) => {
         this.comments = response.data.said2s || []
-      }).catch(() => { this.commentsError = '留言暂时无法加载，请重试。' }).then(() => { this.commentsLoading = false })
+      }).catch((error) => { this.commentsError = apiErrorMessage(error, '留言暂时无法加载，请重试。') }).then(() => { this.commentsLoading = false })
     }
   }
 }

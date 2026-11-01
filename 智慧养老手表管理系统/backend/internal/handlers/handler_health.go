@@ -62,8 +62,12 @@ func (h *Handler) healthBatchWithLockOrder(w http.ResponseWriter, r *http.Reques
 			return
 		}
 	}
-	if !secretMatches(req.Secret, d.Secret) || d.No != req.DeviceNo || (d.Status != nil && *d.Status == 0) {
-		hwFail(w, "0004", "设备号或密钥不正确，或设备已停用")
+	if d.No != req.DeviceNo {
+		hwFail(w, "DEVICE_AUTH_FAILED", "设备号或密钥不正确，或设备已停用")
+		return
+	}
+	if code, msg = deviceCredentialFailure(req.Secret, d.Secret, d.Status, "设备已停用"); code != "" {
+		hwFail(w, code, msg)
 		return
 	}
 	if d.OldID == nil || d.HealthEpoch != req.BindingVersion {
@@ -88,8 +92,12 @@ func (h *Handler) healthBatchWithLockOrder(w http.ResponseWriter, r *http.Reques
 			return
 		}
 		d = locked
-		if !secretMatches(req.Secret, d.Secret) || d.No != req.DeviceNo || (d.Status != nil && *d.Status == 0) {
-			hwFail(w, "0004", "设备号或密钥不正确，或设备已停用")
+		if d.No != req.DeviceNo {
+			hwFail(w, "DEVICE_AUTH_FAILED", "设备号或密钥不正确")
+			return
+		}
+		if code, msg = deviceCredentialFailure(req.Secret, d.Secret, d.Status, "设备已停用"); code != "" {
+			hwFail(w, code, msg)
 			return
 		}
 		if d.OldID == nil || *d.OldID != expectedOwner || d.HealthEpoch != req.BindingVersion {

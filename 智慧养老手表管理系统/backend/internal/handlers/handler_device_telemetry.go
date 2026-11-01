@@ -48,7 +48,7 @@ func (h *Handler) deviceReport(w http.ResponseWriter, r *http.Request) {
 	}
 	if d.OldID == nil {
 		rollback()
-		hwFail(w, "0005", "设备还未绑定老人，请先在手表上输入绑定码")
+		hwFail(w, "DEVICE_NOT_BOUND", "设备还未绑定老人，请先在手表上输入绑定码")
 		return
 	}
 	if !acceptSignedDeviceNonce(w, ctx, tx, d.ID) {

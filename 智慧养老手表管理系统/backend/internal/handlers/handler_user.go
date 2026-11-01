@@ -8,18 +8,13 @@ import (
 	"suining-care/internal/response"
 )
 
-// routeUser 注册 UserController / CustomerController 路由。
+// routeUser registers account and guardian routes.
 func (h *Handler) routeUser(mux *http.ServeMux) {
 	mux.HandleFunc("POST /api/v1/user/select", h.userSelect)
 	mux.HandleFunc("POST /api/v1/customer/select", h.customerSelect)
 	mux.HandleFunc("POST /api/v1/customer/add", h.customerAdd)
 	mux.HandleFunc("POST /api/v1/customer/update", h.customerUpdate)
 	mux.HandleFunc("POST /api/v1/customer/delete", h.customerDelete)
-}
-
-// failBare0000 写无 message 的业务失败包络 {"returnCode":"0000"}。
-func failBare0000(w http.ResponseWriter) {
-	response.JSON(w, http.StatusOK, map[string]any{"returnCode": response.CodeFail})
 }
 
 // POST /api/v1/user/select —— 按手机号查管理员账号（ADMIN）。
@@ -140,7 +135,7 @@ func (h *Handler) customerAdd(w http.ResponseWriter, r *http.Request) {
 	if ct.RowsAffected() == 1 {
 		response.OK(w, nil)
 	} else {
-		failBare0000(w)
+		recordNotFound(w)
 	}
 }
 
@@ -180,7 +175,7 @@ func (h *Handler) customerUpdate(w http.ResponseWriter, r *http.Request) {
 	if ct.RowsAffected() == 1 {
 		response.OK(w, nil)
 	} else {
-		failBare0000(w)
+		recordNotFound(w)
 	}
 }
 
@@ -226,7 +221,7 @@ func (h *Handler) customerDelete(w http.ResponseWriter, r *http.Request) {
 		}
 		response.OK(w, nil)
 	} else {
-		failBare0000(w)
+		recordNotFound(w)
 	}
 }
 

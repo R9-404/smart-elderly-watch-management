@@ -1,4 +1,7 @@
+import { apiErrorMessage } from '../api/httpContract'
 import axios from 'axios'
+
+const residentFields = ['name', 'bothdate', 'sex', 'phone', 'room', 'illness', 'warn', 'foodLike', 'foodHate', 'drag', 'customerId']
 
 // Resident writes use the page-owned drafts, form refs and refresh callbacks.
 export const residentCommandMethods = {
@@ -6,7 +9,7 @@ export const residentCommandMethods = {
       var _this = this
       this.$refs.addoldFormRef.validate(function (valid) {
         if (!valid) return
-        var param = _this.oldForm
+        var param = Object.fromEntries(residentFields.map(key => [key, _this.oldForm[key]]))
         axios.post('api/v1/oldPerson/add',
           param,
           {
@@ -31,7 +34,7 @@ export const residentCommandMethods = {
           }
         })
           .catch(function (error) {
-            console.log(error)
+            _this.$message.error(apiErrorMessage(error, '请求未完成，请重试'))
           })
       })
     },
@@ -43,7 +46,7 @@ export const residentCommandMethods = {
       var _this = this
       this.$refs.editoldFormRef.validate(function (valid) {
         if (!valid) return
-        axios.post('api/v1/oldPerson/update', _this.oldEditForm,
+        axios.post('api/v1/oldPerson/update', { ...Object.fromEntries(residentFields.map(key => [key, _this.oldEditForm[key]])), oldId: _this.oldEditForm.oldId },
           {
             headers: {
               'content-type': 'application/json'
@@ -66,7 +69,7 @@ export const residentCommandMethods = {
           }
         })
           .catch(function (error) {
-            console.log(error)
+            _this.$message.error(apiErrorMessage(error, '请求未完成，请重试'))
           })
       })
     },
@@ -96,9 +99,7 @@ export const residentCommandMethods = {
       } catch (error) {
         this.$message({
           type: 'error',
-          message: error.response?.status === 409
-            ? '请先解除该长者名下设备绑定，再删除长者'
-            : '删除失败，请稍后重试'
+          message: apiErrorMessage(error, '删除失败，请稍后重试')
         })
       }
     },

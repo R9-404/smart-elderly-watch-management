@@ -135,7 +135,6 @@ func (h *Handler) ratepreSelectDetail(w http.ResponseWriter, r *http.Request) {
 	if !rowsOK(w, rows) {
 		return
 	}
-	// 记录为空时返回空列表而不是 500（复刻 P1-3 修复意图，按规格信封）。
 	timeStr := ""
 	lastDay := ""
 	hrs := []*int64{}
@@ -159,16 +158,11 @@ func (h *Handler) ratepreSelectDetail(w http.ResponseWriter, r *http.Request) {
 	if lastDay != "" && lastDay != timeStr {
 		timeStr += " 至 " + lastDay
 	}
-	dtos := []map[string]any{}
-	for _, d := range list {
-		dtos = append(dtos, map[string]any{"hr": d.Hr, "bp": d.Bp, "createTime": d.CreateTime})
-	}
 	response.JSON(w, http.StatusOK, map[string]any{
-		"time":                 timeStr,
-		"ratepreDtoListDetial": dtos,
-		"hrs":                  hrs,
-		"bps":                  bps,
-		"createTimes":          createTimes,
+		"time":        timeStr,
+		"hrs":         hrs,
+		"bps":         bps,
+		"createTimes": createTimes,
 	})
 }
 
@@ -188,7 +182,6 @@ func (h *Handler) ratepreSelectCount(w http.ResponseWriter, r *http.Request) {
 	response.JSON(w, http.StatusOK, map[string]any{"rates": rates, "pres": pres})
 }
 
-// deviceIDList 查某状态为 '1' 的设备 id 列表（字符串形态，复刻 queryForList(String.class)）。
 func (h *Handler) deviceIDList(w http.ResponseWriter, r *http.Request, table, stateCol string) ([]*string, bool) {
 	query := "SELECT CAST(device_id AS varchar) FROM " + table + " WHERE " + stateCol + "='1' GROUP BY device_id"
 	if table == "watch_day_info" {

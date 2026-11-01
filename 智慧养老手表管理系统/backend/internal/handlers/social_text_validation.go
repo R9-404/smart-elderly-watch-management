@@ -1,12 +1,10 @@
 package handlers
 
 import (
-	"fmt"
 	"net/http"
-	"suining-care/internal/response"
 )
 
-// picNameList 取 fileListName；缺失→空列表（P2-3 修复），非列表→500（复刻 ClassCastException）。
+// picNameList accepts an optional array of image filenames.
 func picNameList(w http.ResponseWriter, m map[string]any) ([]string, bool) {
 	v, exists := m["fileListName"]
 	if !exists || v == nil {
@@ -14,7 +12,7 @@ func picNameList(w http.ResponseWriter, m map[string]any) ([]string, bool) {
 	}
 	arr, ok := v.([]any)
 	if !ok {
-		response.Error500(w, ref())
+		write400(w, "fileListName 必须为图片文件名数组")
 		return nil, false
 	}
 	out := make([]string, 0, len(arr))
@@ -22,7 +20,8 @@ func picNameList(w http.ResponseWriter, m map[string]any) ([]string, bool) {
 		if s, ok := e.(string); ok {
 			out = append(out, s)
 		} else {
-			out = append(out, fmt.Sprintf("%v", e))
+			write400(w, "fileListName 只能包含字符串")
+			return nil, false
 		}
 	}
 	return out, true

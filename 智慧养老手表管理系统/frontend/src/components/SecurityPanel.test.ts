@@ -21,7 +21,7 @@ describe('two-factor setup', () => {
     view.unmount()
   })
   it('does not claim setup succeeded after a server failure', async () => {
-    post.mockRejectedValue({ response: { data: { message: '安全密钥不可用' } } })
+    post.mockRejectedValue({ response: { data: { returnCode: '0000', code: 'INVALID_REQUEST', message: '安全密钥不可用' } } })
     const view = mount(SecurityPanel)
     await view.get('#security-password').setValue('strong-password')
     await view.findAll('button')[0]!.trigger('click'); await flushPromises()

@@ -47,6 +47,8 @@
 </template>
 
 <script>
+import { apiErrorMessage } from '../api/httpContract'
+
 
 import axios from 'axios'
 import PositionMap from '@/components/PositionMap.vue'
@@ -95,7 +97,7 @@ export default {
         .catch(function (error) {
 
           _this.positionList = []
-          _this.loadError = '位置记录暂时无法加载，请检查服务连接后重试。'
+          _this.loadError = apiErrorMessage(error, '位置记录暂时无法加载，请检查服务连接后重试。')
         }).then(function () {
           _this.isLoading = false
         })

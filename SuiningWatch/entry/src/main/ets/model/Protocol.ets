@@ -6,6 +6,8 @@ export interface WatchConfig {
 export interface SimulatorState { day: string; steps: number; }
 export interface DeviceReply {
   returnCode: string;
+  code?: string;
+  reference?: string;
   message?: string;
   deviceId?: number;
   bound?: number;

@@ -101,6 +101,8 @@ html.large-text .care-family .data-caption { font-size: 18px; }
 @media (max-width: 700px) { html.large-text .care-family .welcome-card h1 { font-size: 36px; } }
 </style>
 <script>
+import { apiErrorMessage } from '../api/httpContract'
+
 
 	import axios from 'axios'
 	import LatestHealthPanel from '../components/LatestHealthPanel.vue'
@@ -156,7 +158,7 @@ export default {
 				})
 				.catch(function (error) {
 
-					_this.loadError = '请检查服务连接后重试'
+					_this.loadError = apiErrorMessage(error, '请检查服务连接后重试')
 					_this.tableData = []
 					_this.total = 0
 				}).then(function () {

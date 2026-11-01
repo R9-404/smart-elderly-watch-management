@@ -34,7 +34,7 @@ func (h *Handler) EnforceAdminDuty(next http.Handler) http.Handler {
 		if err != nil {
 			// An unavailable role store must not turn into an allow decision.
 			response.JSON(w, http.StatusServiceUnavailable, map[string]any{
-				"returnCode": "0000", "code": "AUTHZ_UNAVAILABLE",
+				"code":    "AUTHZ_UNAVAILABLE",
 				"message": "岗位权限暂时无法验证",
 			})
 			return
@@ -48,13 +48,13 @@ func (h *Handler) EnforceAdminDuty(next http.Handler) http.Handler {
 				(actor_id,actor_role,resource,method) VALUES($1,$2,$3,$4)`,
 				principal.ID, principal.Role, "/api/v1/legacy-admin-denied", r.Method); err != nil {
 				response.JSON(w, http.StatusServiceUnavailable, map[string]any{
-					"returnCode": "0000", "code": "AUTHZ_AUDIT_UNAVAILABLE",
+					"code":    "AUTHZ_AUDIT_UNAVAILABLE",
 					"message": "权限审计不可用，请稍后再试",
 				})
 				return
 			}
 			response.JSON(w, http.StatusForbidden, map[string]any{
-				"returnCode": "0000", "code": "ACCESS_DENIED",
+				"code":    "ACCESS_DENIED",
 				"message": "当前岗位无后台管理权限",
 			})
 			return

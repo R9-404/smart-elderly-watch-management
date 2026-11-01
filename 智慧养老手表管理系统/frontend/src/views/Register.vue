@@ -75,6 +75,8 @@
 </template>
 
 <script>
+import { apiErrorMessage } from '../api/httpContract'
+
 import axios from 'axios'
 
 export default {
@@ -185,7 +187,6 @@ export default {
           _this.codeMessage = data.message ? data.message : '邀请码无效'
         }
       }).catch(function (error) {
-        console.log(error)
         _this.codeOk = false
         _this.codeMessage = '邀请码验证失败，请稍后重试'
       })
@@ -237,11 +238,10 @@ export default {
             _this.checkCode()
           }
         }).catch(function (error) {
-          console.log(error)
           _this.submitting = false
           _this.$message({
             type: 'error',
-            message: '注册失败，请检查后端服务是否已启动'
+            message: apiErrorMessage(error, '注册失败，请检查后端服务是否已启动')
           })
         })
       })

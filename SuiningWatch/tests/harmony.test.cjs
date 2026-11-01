@@ -51,6 +51,7 @@ test('transport negotiates capabilities, destroys HTTP handles, and never replay
   reply = { returnCode: '1111' };
   await assert.rejects(api.login(config, 'not-logged'), /协议|兼容/);
   status = 409;
+  reply = { returnCode: '0000', code: 'CONFLICT', message: '绑定版本已变化', reference: 'watch-test' };
   await assert.rejects(api.upload(config, {}), /绑定版本/);
   assert.equal(calls.length, 3);
   assert.equal(destroyed, 3);

@@ -11,11 +11,6 @@ import (
 	"unicode/utf8"
 )
 
-// ---------------------------------------------------------------------------
-// DeviceController —— 硬件公开接口（设备密钥鉴权）
-// ---------------------------------------------------------------------------
-
-// checkDeviceCredentials 校验 deviceNo/secret 必填与长度（复刻 @Valid Credentials）。
 func checkDeviceCredentials(w http.ResponseWriter, m map[string]any) (string, string, bool) {
 	deviceNo, okNo := vstr(m, "deviceNo")
 	secret, okSecret := vstr(m, "secret")
@@ -27,9 +22,20 @@ func checkDeviceCredentials(w http.ResponseWriter, m map[string]any) (string, st
 	return strings.ToUpper(deviceNo), secret, true
 }
 
-// hwFail 写设备鉴权失败包络（0004）。
+// hwFail writes the device domain error with its HTTP status.
 func hwFail(w http.ResponseWriter, code, msg string) {
-	response.JSON(w, http.StatusOK, map[string]any{"returnCode": code, "message": msg})
+	status := http.StatusBadRequest
+	switch code {
+	case "DEVICE_AUTH_FAILED":
+		status = http.StatusUnauthorized
+	case "DEVICE_DISABLED":
+		status = http.StatusForbidden
+	case "DEVICE_NOT_BOUND", "BIND_CODE_USED", "BIND_CODE_EXPIRED":
+		status = http.StatusConflict
+	case "BIND_CODE_NOT_FOUND", "NOT_FOUND":
+		status = http.StatusNotFound
+	}
+	response.Error(w, status, code, msg)
 }
 
 // POST /api/v1/device/login —— 设备登录（公开；限流由全局中间件处理）。
@@ -163,7 +169,7 @@ func (h *Handler) deviceBind(w http.ResponseWriter, r *http.Request) {
 	bindCode := normalizeCode(codeRaw)
 	if bindCode == "" {
 		rollback()
-		hwFail(w, "0006", "请输入绑定码")
+		hwFail(w, "BIND_CODE_REQUIRED", "请输入绑定码")
 		return
 	}
 	bc, err := h.findBindCode(ctx, tx, bindCode)
@@ -184,7 +190,7 @@ func (h *Handler) deviceBind(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		rollback()
 		if err == pgx.ErrNoRows {
-			hwFail(w, "0000", "绑定码对应的老人不存在")
+			hwFail(w, "NOT_FOUND", "绑定码对应的老人不存在")
 		} else {
 			response.Error500(w, ref())
 		}
@@ -301,16 +307,16 @@ func (h *Handler) deviceHeartbeat(w http.ResponseWriter, r *http.Request) {
 
 func bindCodeFailure(bc *bindCodeRow) (string, string) {
 	if bc == nil {
-		return "0006", "绑定码不存在，请在系统里重新生成"
+		return "BIND_CODE_NOT_FOUND", "绑定码不存在，请在系统里重新生成"
 	}
 	if bc.Used == 1 {
-		return "0006", "该绑定码已被使用"
+		return "BIND_CODE_USED", "该绑定码已被使用"
 	}
 	if bc.ExpireTime != nil && !bc.ExpireTime.After(time.Now()) {
-		return "0006", "该绑定码已过期，请重新生成"
+		return "BIND_CODE_EXPIRED", "该绑定码已过期，请重新生成"
 	}
 	if bc.OldID == nil {
-		return "0000", "绑定码对应的老人不存在"
+		return "NOT_FOUND", "绑定码对应的老人不存在"
 	}
 	return "", ""
 }

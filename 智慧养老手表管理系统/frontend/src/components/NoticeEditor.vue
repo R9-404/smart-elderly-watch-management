@@ -15,11 +15,13 @@
   </div>
 </template>
 <script>
+import { apiErrorMessage } from '../api/httpContract'
+
 import axios from 'axios'
 export default {
   name: 'NoticeEditor',
   props: { editing: { type: Boolean, default: false } },
-  data () { return { form: { title: '', textMain: '' }, attachments: [], picId: '', loading: false, saving: false, loadError: '', saveError: '', baseline: JSON.stringify({ title: '', textMain: '', names: [] }), rules: { title: [{ required: true, whitespace: true, message: '请输入公告标题', trigger: 'blur' }], textMain: [{ required: true, whitespace: true, message: '请输入公告正文', trigger: 'blur' }] } } },
+  data () { return { form: { title: '', textMain: '' }, attachments: [], loading: false, saving: false, loadError: '', saveError: '', baseline: JSON.stringify({ title: '', textMain: '', names: [] }), rules: { title: [{ required: true, whitespace: true, message: '请输入公告标题', trigger: 'blur' }], textMain: [{ required: true, whitespace: true, message: '请输入公告正文', trigger: 'blur' }] } } },
   computed: {
     signature () { return JSON.stringify({ title: this.form.title, textMain: this.form.textMain, names: this.attachments.map(file => file.name) }) },
     dirty () { return this.signature !== this.baseline },
@@ -41,10 +43,9 @@ export default {
       return axios.post('api/v1/text/selectDetail', { textId: this.$route.query.textId }, { withCredentials: true }).then((response) => {
         if (!response.data.text || response.data.text.picId == null) throw new Error('missing notice')
         this.form = { title: response.data.text.title || '', textMain: response.data.text.textMain || '' }
-        this.picId = response.data.text.picId
         this.attachments = (response.data.pics || []).map((pic, index) => ({ uid: 'existing-' + index, name: pic.picName, url: '/api/v1/image/download?name=' + encodeURIComponent(pic.picName), status: 'success' }))
         this.baseline = this.signature
-      }).catch(() => { this.loadError = '公告暂时无法加载，请重试。' }).then(() => { this.loading = false })
+      }).catch((error) => { this.loadError = apiErrorMessage(error, '公告暂时无法加载，请重试。') }).then(() => { this.loading = false })
     },
     beforeUpload (file) {
       if (!['image/jpeg', 'image/png'].includes(file.type)) { this.$message.error('请选择 JPG 或 PNG 图片'); return false }
@@ -55,11 +56,11 @@ export default {
     filesChanged (file, files) { this.attachments = files },
     filesRemoved (file, files) { this.attachments = files },
     uploadSuccess (response, file, files) {
-      if (!response || response.returnCode !== '1111' || !response.filename) { file.status = 'fail'; this.$message.error('图片未能上传，请删除后重试') }
+      if (!response || response.returnCode !== '1111' || !response.filename) { file.status = 'fail'; this.$message.error(apiErrorMessage({ cause: response }, '图片未能上传，请删除后重试')) }
       else { file.name = response.filename }
       this.attachments = files
     },
-    uploadError (error, file, files) { this.attachments = files; this.$message.error('图片暂时无法上传，请删除后重试') },
+    uploadError (error, file, files) { this.attachments = files; this.$message.error(apiErrorMessage(error, '图片暂时无法上传，请删除后重试')) },
     uploadExceeded () { this.$message.warning('最多添加10张公告图片') },
     submit () {
       if (this.saving || this.loading || this.loadError || this.uploadsPending) return
@@ -68,13 +69,13 @@ export default {
         this.saving = true
         this.saveError = ''
         var params = { title: this.form.title.trim(), textMain: this.form.textMain.trim(), fileListName: this.successfulAttachments.map(file => file.name) }
-        if (this.editing) { params.textId = this.$route.query.textId; params.picId = this.picId }
+        if (this.editing) { params.textId = this.$route.query.textId }
         axios.post('api/v1/text/' + (this.editing ? 'update' : 'add'), params, { withCredentials: true }).then((response) => {
           if (response.data.returnCode !== '1111') throw new Error('save rejected')
           this.$message.success(this.editing ? '公告已保存' : '公告已发布')
           this.baseline = this.signature
           this.$router.push('/textOpt')
-        }).catch(() => { this.saveError = '公告暂时未能保存，内容已保留，请稍后重试。' }).then(() => { this.saving = false })
+        }).catch((error) => { this.saveError = apiErrorMessage(error, '公告暂时未能保存，内容已保留，请稍后重试。') }).then(() => { this.saving = false })
       })
     }
   }

@@ -66,7 +66,7 @@ func bodyPage(m map[string]any) (int, int) {
 	return p, ps
 }
 
-// ref 生成错误 reference UUID（复刻 Error500 语义）。
+// ref generates a UUID for an internal error reference.
 func ref() string { return uuid.NewString() }
 
 // isNotFound 判断 pgx.ErrNoRows。

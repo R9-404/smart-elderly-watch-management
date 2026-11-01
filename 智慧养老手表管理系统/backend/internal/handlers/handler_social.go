@@ -1,5 +1,4 @@
-// SaidController / TextController / PicShowController / ImagesApi 的 Go 复刻：
-// 说说评论、公告文章、首页展示图、图片上传下载（含 PhotoUtil 与 SmsUtil 的等价实现）。
+// Comments, announcements, gallery images and uploads.
 package handlers
 
 import (
@@ -29,7 +28,6 @@ func (h *Handler) routeSocial(mux *http.ServeMux) {
 }
 
 // ---------------------------------------------------------------------------
-// SaidController
 // ---------------------------------------------------------------------------
 
 type said2DTO struct {
@@ -292,7 +290,7 @@ func (h *Handler) saidGoodCount(w http.ResponseWriter, r *http.Request) {
 	var locked int64
 	if err := tx.QueryRow(r.Context(), "SELECT said_id FROM said WHERE said_id=$1 FOR UPDATE", saidID).Scan(&locked); err != nil {
 		if isNotFound(err) {
-			response.JSON(w, http.StatusNotFound, map[string]any{"returnCode": "0000", "message": "评论不存在"})
+			response.JSON(w, http.StatusNotFound, map[string]any{"message": "评论不存在"})
 			return
 		}
 		response.Error500(w, ref())

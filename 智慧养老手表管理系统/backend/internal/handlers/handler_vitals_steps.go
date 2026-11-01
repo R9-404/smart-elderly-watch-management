@@ -9,10 +9,6 @@ import (
 	"strings"
 )
 
-// ---------------------------------------------------------------------------
-// StepController
-// ---------------------------------------------------------------------------
-
 type stepDTO struct {
 	Name       *string `json:"name"`
 	OldID      *int64  `json:"oldId"`
@@ -193,7 +189,7 @@ func (h *Handler) stepSelectCount(w http.ResponseWriter, r *http.Request) {
 	response.JSON(w, http.StatusOK, map[string]any{"deviceIdList": list})
 }
 
-// POST /api/v1/step/getAllCount —— 异常总数汇总（心率+血压+睡眠），字符串形态。
+// POST /api/v1/step/getAllCount —— 异常总数汇总（心率+血压+睡眠）。
 func (h *Handler) stepGetAllCount(w http.ResponseWriter, r *http.Request) {
 	if _, ok := optBody(w, r); !ok {
 		return
@@ -210,5 +206,5 @@ func (h *Handler) stepGetAllCount(w http.ResponseWriter, r *http.Request) {
 	if !ok {
 		return
 	}
-	response.JSON(w, http.StatusOK, map[string]any{"allCount": strconv.Itoa(len(rates) + len(pres) + len(devs))})
+	response.JSON(w, http.StatusOK, map[string]any{"allCount": len(rates) + len(pres) + len(devs)})
 }

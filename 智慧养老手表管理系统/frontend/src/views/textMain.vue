@@ -13,6 +13,8 @@
   </div>
 </template>
 <script>
+import { apiErrorMessage } from '../api/httpContract'
+
 import axios from 'axios'
 export default {
   data () {
@@ -33,36 +35,36 @@ export default {
         this.time = text.time || ''
         this.textMain = text.textMain || ''
         this.imgList = Array.isArray(response.data.pics) ? response.data.pics : []
-      }).catch(() => { this.loadError = '请检查服务连接后重试。' }).then(() => { this.isLoading = false })
+      }).catch((error) => { this.loadError = apiErrorMessage(error, '请检查服务连接后重试。') }).then(() => { this.isLoading = false })
     },
     searchSaid () {
       if (!this.$route.query.textId) return
       this.commentsLoading = true
       this.commentsError = ''
-      return axios.post('api/v1/said/select', { textId: this.$route.query.textId, familyPhone: localStorage.getItem('familyPhone') || '' }, { withCredentials: true }).then(response => {
+      return axios.post('api/v1/said/select', { textId: this.$route.query.textId }, { withCredentials: true }).then(response => {
         this.tableData = response.data && Array.isArray(response.data.said2s) ? response.data.said2s : []
-      }).catch(() => { this.commentsError = '留言暂时无法加载。' }).then(() => { this.commentsLoading = false })
+      }).catch((error) => { this.commentsError = apiErrorMessage(error, '留言暂时无法加载。') }).then(() => { this.commentsLoading = false })
     },
     onSubmit () {
       if (!this.formSaid.said.trim() || this.submitting) return
       this.submitting = true
       this.submitError = ''
       this.submitSuccess = ''
-      axios.post('api/v1/said/insert', { phone: localStorage.getItem('familyPhone') || '', said: this.formSaid.said.trim(), textId: this.$route.query.textId, personName: localStorage.getItem('user_name') || '', touPic: localStorage.getItem('familyTouPic') || '' }, { withCredentials: true }).then(response => {
+      axios.post('api/v1/said/insert', { said: this.formSaid.said.trim(), textId: this.$route.query.textId }, { withCredentials: true }).then(response => {
         if (!response.data || response.data.returnCode !== '1111') throw new Error('comment rejected')
         this.formSaid.said = ''
         this.submitSuccess = '留言已发表。'
         return this.searchSaid()
-      }).catch(() => { this.submitError = '留言未能发表，内容已保留，请重试。' }).then(() => { this.submitting = false })
+      }).catch((error) => { this.submitError = apiErrorMessage(error, '留言未能发表，内容已保留，请重试。') }).then(() => { this.submitting = false })
     },
     getview (item) {
       if (this.likingId !== null) return
       this.likingId = item.saidId
       this.submitError = ''
-      axios.post('api/v1/said/goodCount', { saidId: item.saidId, phone: localStorage.getItem('familyPhone') || '' }, { withCredentials: true }).then(response => {
+      axios.post('api/v1/said/goodCount', { saidId: item.saidId }, { withCredentials: true }).then(response => {
         if (!response.data || response.data.returnCode !== '1111') throw new Error('like rejected')
         return this.searchSaid()
-      }).catch(() => { this.submitError = '赞同操作未完成，请重试。' }).then(() => { this.likingId = null })
+      }).catch((error) => { this.submitError = apiErrorMessage(error, '赞同操作未完成，请重试。') }).then(() => { this.likingId = null })
     }
   }
 }

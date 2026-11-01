@@ -36,7 +36,7 @@ func (h *Handler) familyUpdateTwo(w http.ResponseWriter, r *http.Request) {
 	if ct.RowsAffected() == 1 {
 		response.OK(w, nil)
 	} else {
-		failBare0000(w)
+		recordNotFound(w)
 	}
 }
 
@@ -71,7 +71,7 @@ func (h *Handler) familyUpdateTouPic(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	if ct.RowsAffected() != 1 {
-		failBare0000(w)
+		recordNotFound(w)
 		return
 	}
 	if err = tx.Commit(r.Context()); err != nil {

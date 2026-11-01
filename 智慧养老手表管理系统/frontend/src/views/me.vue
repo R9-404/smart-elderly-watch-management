@@ -85,6 +85,8 @@
 html.large-text .care-family .profile-identity span, html.large-text .care-family .profile-details dd { font-size: 21px; }
 </style>
 <script>
+import { apiErrorMessage } from '../api/httpContract'
+
 
 	import axios from 'axios'
 import SecurityPanel from '../components/SecurityPanel.vue'
@@ -185,7 +187,7 @@ export default {
 			  })
 			    .catch(function (error) {
 
-              _this.profileLoadError = '个人资料暂时无法加载，请重试。'
+              _this.profileLoadError = apiErrorMessage(error, '个人资料暂时无法加载，请重试。')
 			    }).then(function () { _this.isProfileLoading = false })
 			},
       editFamily () {
@@ -201,7 +203,7 @@ export default {
             } else {
               this.$message.error(response.data.message || '资料未能保存，请检查后重试')
             }
-          }).catch(() => { this.$message.error('资料暂时无法保存，请稍后重试') }).then(() => { this.isProfileSaving = false })
+          }).catch((error) => { this.$message.error(apiErrorMessage(error, '资料暂时无法保存，请稍后重试')) }).then(() => { this.isProfileSaving = false })
         })
       },
       handleAvatarSuccess (res, file) {
@@ -216,9 +218,9 @@ export default {
           } else {
             this.$message.error('头像未能更新，请重试')
           }
-        }).catch(() => { this.$message.error('头像暂时无法更新，请稍后重试') })
+        }).catch((error) => { this.$message.error(apiErrorMessage(error, '头像暂时无法更新，请稍后重试')) })
       },
-      handleAvatarError () { this.$message.error('头像暂时无法上传，请稍后重试') },
+      handleAvatarError (error) { this.$message.error(apiErrorMessage(error, '头像暂时无法上传，请稍后重试')) },
       editPassword (formName) {
         if (this.isPasswordSaving) return
         this.$refs[formName].validate((valid) => {
@@ -235,8 +237,8 @@ export default {
             } else {
               this.$message.error(response.data.message || '修改密码失败，请检查原密码后重试')
             }
-          }).catch(() => {
-            this.$message.error('密码暂时无法修改，请稍后重试')
+          }).catch((error) => {
+            this.$message.error(apiErrorMessage(error, '密码暂时无法修改，请稍后重试'))
           }).then(() => { this.isPasswordSaving = false })
         })
       },

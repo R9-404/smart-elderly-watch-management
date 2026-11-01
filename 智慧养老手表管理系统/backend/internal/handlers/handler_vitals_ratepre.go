@@ -9,10 +9,6 @@ import (
 	"strings"
 )
 
-// ---------------------------------------------------------------------------
-// RatepreController
-// ---------------------------------------------------------------------------
-
 type ratepreDTO struct {
 	Name        *string `json:"name"`
 	OldID       *int64  `json:"oldId"`
@@ -282,9 +278,9 @@ func (h *Handler) ratepreResolveAlert(w http.ResponseWriter, r *http.Request) {
 		response.Error500(w, ref())
 		return
 	}
-	code := "0000"
-	if rows >= 1 {
-		code = "1111"
+	if rows < 1 {
+		recordNotFound(w)
+		return
 	}
-	response.JSON(w, http.StatusOK, map[string]any{"message": "已处置，红点已消除", "returnCode": code})
+	response.OK(w, map[string]any{"message": "已处置，红点已消除"})
 }

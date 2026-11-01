@@ -8,7 +8,6 @@ import (
 )
 
 // ---------------------------------------------------------------------------
-// WatchInfoController (/api/v1/watchInfo)
 // ---------------------------------------------------------------------------
 
 // watchProfileParams 阈值校验（add/update 共用）：缺失/超范围 → 400"<key> 缺失或超出允许范围"；
@@ -127,7 +126,7 @@ func (h *Handler) watchInfoAdd(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	if exists {
-		failCodeOnly(w)
+		response.Error(w, http.StatusConflict, "CONFLICT", "设备阈值档案已存在")
 		return
 	}
 	now := time.Now()
@@ -168,7 +167,7 @@ func (h *Handler) watchInfoUpdate(w http.ResponseWriter, r *http.Request) {
 		response.OK(w, nil)
 		return
 	}
-	failCodeOnly(w)
+	recordNotFound(w)
 }
 
 // POST /api/v1/watchInfo/delete —— 删除手表阈值档案（ADMIN）。
@@ -196,5 +195,5 @@ func (h *Handler) watchInfoDelete(w http.ResponseWriter, r *http.Request) {
 		response.OK(w, nil)
 		return
 	}
-	failCodeOnly(w)
+	recordNotFound(w)
 }

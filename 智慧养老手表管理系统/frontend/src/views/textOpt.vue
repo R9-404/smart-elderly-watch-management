@@ -58,6 +58,8 @@
 @media (max-width: 480px) { .announcement-actions { align-items: stretch; flex-direction: column; } .announcement-actions .el-input { width: 100%; } }
 </style>
 <script>
+import { apiErrorMessage } from '../api/httpContract'
+
 	
 	import axios from 'axios'
 	
@@ -70,20 +72,7 @@ export default {
 
 	methods: {
       handleEdit(index, row) {
-
-				var title = row.title
-				var textMain = row.textMain
-				var textId = row.textId
-				var picId = row.picId
-				this.$router.push({
-					path: '/text',
-					query: {
-						title: title,
-						textMain: textMain,
-						textId: textId,
-						picId: picId
-					}
-				})
+        this.$router.push({ path: '/text', query: { textId: row.textId } })
       },
       picShow () {
         if (this.gallerySaving || !this.fileList2.length || this.fileList2.some(file => file.status !== 'success')) return
@@ -93,7 +82,7 @@ export default {
           this.$message.success('展示图片已保存')
           this.$refs.galleryUpload.clearFiles()
           this.fileList2 = []
-        }).catch(() => { this.$message.error('展示图片未能保存，选择的图片已保留，请重试') }).then(() => { this.gallerySaving = false })
+        }).catch((error) => { this.$message.error(apiErrorMessage(error, '展示图片未能保存，选择的图片已保留，请重试')) }).then(() => { this.gallerySaving = false })
       },
 	  handleSizeChange (val) { this.pageSize = val; this.currentPage = 1; this.searchOlds(true) },
 
@@ -102,39 +91,29 @@ export default {
       handleRemove (file, files) { this.fileList2 = files },
       handlePreview (file) { this.previewUrl = file.url; this.previewVisible = true },
       handleAvatarSuccess (res, file, files) {
-        if (!res || res.returnCode !== '1111' || !res.filename) { file.status = 'fail'; this.$message.error('图片未能上传，请删除后重试') }
+        if (!res || res.returnCode !== '1111' || !res.filename) { file.status = 'fail'; this.$message.error(apiErrorMessage({ cause: res }, '图片未能上传，请删除后重试')) }
         else { file.name = res.filename }
         this.fileList2 = files
       },
-      galleryError (error, file, files) { this.fileList2 = files; this.$message.error('图片暂时无法上传，请重试') },
+      galleryError (error, file, files) { this.fileList2 = files; this.$message.error(apiErrorMessage(error, '图片暂时无法上传，请重试')) },
       beforeAvatarUpload (file) {
         if (file.type !== 'image/jpeg') { this.$message.error('请选择 JPG 图片'); return false }
         if (file.size > 8 * 1024 * 1024) { this.$message.error('图片大小不能超过8MB'); return false }
         return true
       },
-	  getDetail(row){
-
-	  	var textId = row.textId
-	  	var picId = row.picId
-
-	  	this.$router.push({
-	  	path: '/textMainUser',
-	  	query: {
-	  		textId: textId,
-	  		picId: picId
-	  	}
-	  	})
-	  },
+      getDetail (row) {
+        this.$router.push({ path: '/textMainUser', query: { textId: row.textId } })
+      },
       handleDelete (index, row) {
         if (this.deletingId !== null) return
         this.deletingId = row.textId
         this.$confirm('删除后将无法继续阅读这条公告，是否删除？', '删除公告', { confirmButtonText: '删除公告', cancelButtonText: '保留公告', type: 'warning' }).then(() => {
-          return axios.post('api/v1/text/delete', { textId: row.textId, picId: row.picId }, { withCredentials: true })
+          return axios.post('api/v1/text/delete', { textId: row.textId }, { withCredentials: true })
         }).then((response) => {
           if (response.data.returnCode !== '1111') throw new Error('delete rejected')
           this.$message.success('公告已删除')
           this.searchOlds()
-        }).catch((error) => { if (error !== 'cancel' && error !== 'close') this.$message.error('公告暂时无法删除，请重试') }).then(() => { this.deletingId = null })
+        }).catch((error) => { if (error !== 'cancel' && error !== 'close') this.$message.error(apiErrorMessage(error, '公告暂时无法删除，请重试')) }).then(() => { this.deletingId = null })
       },
 			addtext(){
 				this.$router.push('/textTwo')
@@ -147,7 +126,7 @@ export default {
           if (!Array.isArray(response.data.texts)) throw new Error('missing notices')
           this.tableData = response.data.texts
           this.total = response.data.total ?? this.tableData.length
-        }).catch(() => { this.loadError = '公告暂时无法更新，请重试。' }).then(() => { this.isLoading = false })
+        }).catch((error) => { this.loadError = apiErrorMessage(error, '公告暂时无法更新，请重试。') }).then(() => { this.isLoading = false })
       }
 
     },

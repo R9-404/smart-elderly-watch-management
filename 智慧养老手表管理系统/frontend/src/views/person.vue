@@ -108,6 +108,8 @@
 </template>
 
 <script>
+import { apiErrorMessage } from '../api/httpContract'
+
 import axios from 'axios'
 import { residentCommandMethods } from './person.command-methods'
 import RecordCards from '@/components/RecordCards.vue'
@@ -218,8 +220,8 @@ export default {
         _this.total = response.data.total ?? response.data.oldPersonDetails.length
 
       })
-        .catch(function () {
-          _this.loadError = '老人档案暂时无法加载，请检查服务连接后重试。'
+        .catch(function (error) {
+          _this.loadError = apiErrorMessage(error, '老人档案暂时无法加载，请检查服务连接后重试。')
           _this.personDetailList = []
           _this.total = 0
         }).finally(function () { _this.isLoading = false })
@@ -241,9 +243,9 @@ export default {
           page += 1
         } while (options.length < total)
         this.options = options
-      } catch (_) {
+      } catch (error) {
         this.options = []
-        this.customerError = '监护人选项暂时无法加载，请重试。'
+        this.customerError = apiErrorMessage(error, '监护人选项暂时无法加载，请重试。')
       } finally { this.customerLoading = false }
     },
     handleeditOldPerson (index, row) {

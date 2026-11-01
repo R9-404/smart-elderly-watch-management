@@ -250,12 +250,12 @@ func (h *Handler) setup(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	if count != 0 {
-		response.JSON(w, http.StatusConflict, map[string]any{"returnCode": "0000", "message": "管理员已创建"})
+		response.JSON(w, http.StatusConflict, map[string]any{"message": "管理员已创建"})
 		return
 	}
 	if !auth.ValidPhone(phone) || strings.TrimSpace(name) == "" ||
 		utf8.RuneCountInString(name) > 10 || !auth.ValidNewPassword(password) {
-		response.JSON(w, http.StatusBadRequest, map[string]any{"returnCode": "0000", "message": "请检查姓名、手机号和密码"})
+		response.JSON(w, http.StatusBadRequest, map[string]any{"message": "请检查姓名、手机号和密码"})
 		return
 	}
 	hashed, err := auth.Hash(password)

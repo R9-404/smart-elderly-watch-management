@@ -19,14 +19,14 @@ run(async ({ page, base, report, setRole, setSignedIn }) => {
       await stalled
       try { await route.fulfill({
         status: 200, contentType: 'application/json',
-        body: JSON.stringify({ items: [{ id: 'stale', oldPersonName: 'STALE-F02', state: 'received' }], total: 100, duty: 'supervisor', actorId: 7 })
+        body: JSON.stringify({returnCode:'1111', items: [{ id: 'stale', oldPersonName: 'STALE-F02', state: 'received' }], total: 100, duty: 'supervisor', actorId: 7 })
       }) } catch (_) { /* request should have been canceled */ }
       return
     }
     const label = query.page === 3 ? 'F02-LATEST' : 'F02-INITIAL'
     await route.fulfill({
       status: 200, contentType: 'application/json',
-      body: JSON.stringify({ items: [{ id: 'f02-' + query.page, oldPersonName: label, state: 'received' }], total: 100, duty: 'supervisor', actorId: 7 })
+      body: JSON.stringify({returnCode:'1111', items: [{ id: 'f02-' + query.page, oldPersonName: label, state: 'received' }], total: 100, duty: 'supervisor', actorId: 7 })
     })
   })
   await page.route('**/api/v1/care/events', async route => {
@@ -35,13 +35,13 @@ run(async ({ page, base, report, setRole, setSignedIn }) => {
       await stalledHistory
       try { await route.fulfill({
         status: 200, contentType: 'application/json',
-        body: JSON.stringify({ events: [{ action: 'STALE-HISTORY', actor: '值守', createdAt: '2026-10-28T00:00:00Z' }], total: 1 })
+        body: JSON.stringify({returnCode:'1111', events: [{ action: 'STALE-HISTORY', actor: '值守', createdAt: '2026-10-28T00:00:00Z' }], total: 1 })
       }) } catch (_) { /* dismissed dialog cancels transport */ }
       return
     }
     await route.fulfill({
       status: 200, contentType: 'application/json',
-      body: JSON.stringify({ events: [{ action: 'F02-HISTORY-LATEST', actor: '值守', createdAt: '2026-10-28T00:00:00Z' }], total: 1 })
+      body: JSON.stringify({returnCode:'1111', events: [{ action: 'F02-HISTORY-LATEST', actor: '值守', createdAt: '2026-10-28T00:00:00Z' }], total: 1 })
     })
   })
 

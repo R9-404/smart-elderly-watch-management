@@ -41,7 +41,7 @@ func sensitiveCareAudit(pool *dbstore.Database, next http.Handler) http.Handler 
 			sess.Principal.ID, sess.Principal.Role, r.URL.Path, r.Method)
 		if err != nil {
 			response.JSON(w, http.StatusServiceUnavailable, map[string]any{
-				"returnCode": "0000", "message": "敏感操作审计不可用，请稍后重试",
+				"message": "敏感操作审计不可用，请稍后重试",
 			})
 			return
 		}

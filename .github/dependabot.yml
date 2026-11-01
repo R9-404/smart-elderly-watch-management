@@ -1,11 +1,9 @@
 version: 2
 
-# Version-update PRs intentionally target preview while this branch is the
-# engineering handoff branch. GitHub security-update PRs are a separate feature
-# and always target the repository default branch when target-branch is set.
+# Dependency updates target preview; security updates follow the default branch.
 updates:
   - package-ecosystem: npm
-    directory: "/智慧养老手表管理系统/oldIot"
+    directory: "/智慧养老手表管理系统/frontend"
     target-branch: preview
     schedule:
       interval: weekly

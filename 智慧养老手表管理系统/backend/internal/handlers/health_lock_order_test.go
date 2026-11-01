@@ -260,11 +260,11 @@ func TestLateHealthDeviceLockRejectsConcurrentCredentialChanges(t *testing.T) {
 			release()
 			select {
 			case response := <-healthResult:
-				if response.Code != 200 || !json.Valid(response.Body.Bytes()) {
+				if response.Code != map[bool]int{true: 401, false: 403}[tc.rotate] || !json.Valid(response.Body.Bytes()) {
 					t.Fatalf("credential-change reply %d %s", response.Code, response.Body.String())
 				}
 				var result map[string]any
-				if err := json.Unmarshal(response.Body.Bytes(), &result); err != nil || result["returnCode"] != "0004" {
+				if err := json.Unmarshal(response.Body.Bytes(), &result); err != nil || result["returnCode"] != "0000" || result["code"] != map[bool]string{true: "DEVICE_AUTH_FAILED", false: "DEVICE_DISABLED"}[tc.rotate] {
 					t.Fatalf("stale device authorization not rejected: %s (%v)", response.Body.String(), err)
 				}
 			case <-ctx.Done():
@@ -324,8 +324,8 @@ func TestBulkPreparationRevalidatesConcurrentDeviceChanges(t *testing.T) {
 		code         int
 		factor       string
 	}{
-		{"rotation", "UPDATE device SET secret=$1 WHERE device_id=1", 200, "0004"},
-		{"disabled", "UPDATE device SET status=0 WHERE device_id=1", 200, "0004"},
+		{"rotation", "UPDATE device SET secret=$1 WHERE device_id=1", 401, "DEVICE_AUTH_FAILED"},
+		{"disabled", "UPDATE device SET status=0 WHERE device_id=1", 403, "DEVICE_DISABLED"},
 		{"unbind", "UPDATE device SET old_id=NULL WHERE device_id=1", 409, ""},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
@@ -390,7 +390,7 @@ func TestBulkPreparationRevalidatesConcurrentDeviceChanges(t *testing.T) {
 			select {
 			case w := <-result:
 				var out map[string]any
-				if json.Unmarshal(w.Body.Bytes(), &out) != nil || w.Code != tc.code || (tc.factor != "" && out["returnCode"] != tc.factor) {
+				if json.Unmarshal(w.Body.Bytes(), &out) != nil || w.Code != tc.code || (tc.factor != "" && out["code"] != tc.factor) {
 					t.Fatalf("stale bulk authorization accepted: HTTP %d %s", w.Code, w.Body.String())
 				}
 			case <-ctx.Done():

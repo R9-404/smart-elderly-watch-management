@@ -42,7 +42,7 @@ func prepareSignedDeviceRequest(w http.ResponseWriter, r *http.Request) (*http.R
 		return r, true
 	}
 	fail := func() (*http.Request, bool) {
-		response.JSON(w, http.StatusUnauthorized, map[string]any{"returnCode": "0004", "message": "设备请求签名无效或已过期"})
+		response.JSON(w, http.StatusUnauthorized, map[string]any{"code": "DEVICE_SIGNATURE_INVALID", "message": "设备请求签名无效或已过期"})
 		return r, false
 	}
 	sigBytes, err := hex.DecodeString(sig)
@@ -65,7 +65,7 @@ func prepareSignedDeviceRequest(w http.ResponseWriter, r *http.Request) (*http.R
 	}
 	raw, err := io.ReadAll(io.LimitReader(r.Body, signedDeviceMaxBody+1))
 	if err != nil || len(raw) > signedDeviceMaxBody {
-		response.JSON(w, http.StatusRequestEntityTooLarge, map[string]any{"returnCode": "0000", "message": "设备请求体过大或无法读取"})
+		response.JSON(w, http.StatusRequestEntityTooLarge, map[string]any{"message": "设备请求体过大或无法读取"})
 		return r, false
 	}
 	defer r.Body.Close()
@@ -114,11 +114,11 @@ func persistSignedDeviceNonce(ctx context.Context, tx oldQuerier, deviceID int64
 func acceptSignedDeviceNonce(w http.ResponseWriter, ctx context.Context, tx oldQuerier, deviceID int64) bool {
 	accepted, err := persistSignedDeviceNonce(ctx, tx, deviceID)
 	if err != nil {
-		response.JSON(w, http.StatusServiceUnavailable, map[string]any{"returnCode": "0000", "message": "设备防重放状态不可用"})
+		response.JSON(w, http.StatusServiceUnavailable, map[string]any{"message": "设备防重放状态不可用"})
 		return false
 	}
 	if !accepted {
-		response.JSON(w, http.StatusConflict, map[string]any{"returnCode": "0004", "message": "设备请求已处理，请使用新的随机数重试"})
+		response.JSON(w, http.StatusConflict, map[string]any{"code": "NONCE_REPLAY", "message": "设备请求已处理，请使用新的随机数重试"})
 	}
 	return accepted
 }

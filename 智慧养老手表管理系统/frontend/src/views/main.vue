@@ -96,6 +96,8 @@
 @media (max-width: 760px) { .overview-card { padding: 22px 18px; } .alert-card { border-right: 0; border-bottom: 1px solid #e2e9e1; } .overview-note { padding: 18px; } .desktop-announcements { display: none; } .mobile-announcements { display: block; } .page-heading { align-items: flex-start; flex-direction: column; } .page-heading h1 { font-size: 25px; } .overview-grid { grid-template-columns: 1fr; } .overview-note { grid-column: auto; } .panel-heading { align-items: flex-start; flex-direction: column; } .search-box { width: 100%; } .announcement-panel { padding: 18px 14px; } .pagination-wrap { justify-content: center; overflow-x: auto; } }
 </style>
 <script>
+import { apiErrorMessage } from '../api/httpContract'
+
 import axios from 'axios'
 import CareInbox from '@/components/CareInbox.vue'
 import { authState } from '@/auth'
@@ -137,7 +139,7 @@ export default {
         if (![rates, pressures, sleeps].every(Array.isArray)) throw new Error('missing counts')
         this.categoryCounts = { rate: rates.length, pressure: pressures.length, sleep: sleeps.length }
         this.allCount = rates.length + pressures.length + sleeps.length
-      }).catch(() => { this.countError = '设备统计暂时无法加载' }).then(() => { this.countLoading = false })
+      }).catch((error) => { this.countError = apiErrorMessage(error, '设备统计暂时无法加载') }).then(() => { this.countLoading = false })
     },
     async searchposition () {
       if (this.isRestricted || this.positionLoading) return
@@ -180,8 +182,8 @@ export default {
         if (!Array.isArray(response.data.texts)) throw new Error('missing notices')
         this.tableData = response.data.texts
         this.total = response.data.total ?? this.tableData.length
-      }).catch(() => {
-        this.loadError = '请检查服务连接后重试'
+      }).catch((error) => {
+        this.loadError = apiErrorMessage(error, '请检查服务连接后重试')
         this.tableData = []
         this.total = 0
       }).then(() => { this.isLoading = false })

@@ -41,6 +41,7 @@
 </template>
 
 <script>
+import { apiErrorMessage } from '../api/httpContract'
 import axios from 'axios'
 import { loadSession } from '../auth'
 
@@ -107,7 +108,7 @@ export default {
         }).catch(function (error) {
           if (error.response?.data?.code === 'MFA_REQUIRED') { _this.mfaRequired = true; _this.errorMessage = error.response.data.message; return }
           if (['INVALID_CREDENTIALS', 'INVALID_LOGIN_INPUT', 'ACCOUNT_UNLINKED'].includes(error.response?.data?.code)) { _this.errorMessage = error.response.data.message; return }
-          _this.errorMessage = error.response?.data?.code === 'DATABASE_UNAVAILABLE' ? '登录需要连接数据库，正在自动连接，请恢复后重试。' : '暂时无法登录，请稍后重试'
+          _this.errorMessage = apiErrorMessage(error, '暂时无法登录，请稍后重试')
         }).then(function () {
           _this.submitting = false
         })

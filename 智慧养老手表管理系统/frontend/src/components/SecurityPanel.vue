@@ -30,6 +30,7 @@
   </section>
 </template>
 <script setup lang="ts">
+import { apiErrorMessage } from '../api/httpContract'
 import { ref, onBeforeUnmount } from 'vue'
 import { api, accepted, type Envelope } from '../api/client'
 const password = ref(''), otp = ref(''), secret = ref(''), error = ref('')
@@ -47,8 +48,7 @@ async function send(action: 'setup' | 'confirm' | 'disable') {
       password.value = ''; otp.value = ''; secret.value = ''
     }
   } catch (cause) {
-    const result = cause as { response?: { data?: { message?: string } }; message?: string }
-    error.value = result.response?.data?.message || result.message || '设置未确认成功，请核实后重试'
+    error.value = apiErrorMessage(cause, '认证设置未保存')
   } finally { busy.value = false }
 }
 onBeforeUnmount(() => { password.value = ''; otp.value = ''; secret.value = ''; recoveryCodes.value = [] })

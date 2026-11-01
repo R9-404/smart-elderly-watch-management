@@ -63,7 +63,7 @@ func TestTOTPEnrollmentRecoveryAndCrossReplicaRevocation(t *testing.T) {
 	credentials["otp"] = ""
 	credentials["recoveryCode"] = codes[0]
 	login := callAPI(h.login, credentials)
-	if login.Code != http.StatusOK || strings.TrimSpace(login.Body.String()) != `{"authenticated":true}` {
+	if login.Code != http.StatusOK || strings.TrimSpace(login.Body.String()) != `{"authenticated":true,"returnCode":"1111"}` {
 		t.Fatal(login.Code, login.Body.String())
 	}
 	if w := callAPI(h.login, credentials); w.Code != 401 {
@@ -116,7 +116,7 @@ func TestAnnouncementWritesOutboxInsideTransaction(t *testing.T) {
 	seedDevice(t, h.DB)
 	mustExec(t, h.DB, "INSERT INTO family(family_id,family_phone) VALUES(1,'13800000003')")
 	mustExec(t, h.DB, "UPDATE oldperson SET family_id=1 WHERE old_id=1")
-	api(t, h.textAdd, map[string]any{"title": "通知", "textMain": "新的照护公告", "picNameList": []string{}})
+	api(t, h.textAdd, map[string]any{"title": "通知", "textMain": "新的照护公告", "fileListName": []string{}})
 	var count int
 	if err := h.DB.QueryRow(context.Background(), "SELECT count(*) FROM message_outbox WHERE topic='announcement'").Scan(&count); err != nil || count != 2 {
 		t.Fatal(count, err)

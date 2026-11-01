@@ -19,7 +19,7 @@ run(async ({ page, context, base, report, setRole, setSignedIn }) => {
   })
   let coordinates = { lng: '0', lat: '0', name: '<img src=x onerror=alert(1)>', oldId: 1, status: '0' }
   for (const endpoint of ['select', 'selectFamily']) await context.route('**/api/v1/position/' + endpoint, route => route.fulfill({
-    contentType: 'application/json', body: JSON.stringify({ positionDtos: [coordinates], total: 1 })
+    contentType: 'application/json', body: JSON.stringify({returnCode:'1111', positionDtos: [coordinates], total: 1 })
   }))
   for (const [route, role] of [['/position', 'ADMIN'], ['/positionfamily', 'FAMILY']]) {
     await visit(route, role)
@@ -67,7 +67,7 @@ run(async ({ page, context, base, report, setRole, setSignedIn }) => {
   ]) {
     await context.route('**/api/v1/' + endpoint, r => {
       const input = r.request().postDataJSON()
-      return r.fulfill({ contentType: 'application/json', body: JSON.stringify({
+      return r.fulfill({ contentType: 'application/json', body: JSON.stringify({returnCode:'1111',
         [key]: [{ oldId: input.page || 1, deviceId: input.page || 1, deviceNo: 'PAGE', name: '分页长者', alias: '分页设备', status: 1 }],
         total: 45, onlineCount: 0
       }) })

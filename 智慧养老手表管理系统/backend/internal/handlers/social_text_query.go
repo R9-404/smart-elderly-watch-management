@@ -1,6 +1,7 @@
 package handlers
 
 import (
+	"github.com/jackc/pgx/v5"
 	"net/http"
 	"suining-care/internal/response"
 )
@@ -80,8 +81,11 @@ func (h *Handler) textSelectDetail(w http.ResponseWriter, r *http.Request) {
 	var t textDTO
 	err := h.DB.QueryRow(r.Context(), "SELECT "+textColumns+" FROM "+socialTextTable(h.DB.IsMySQL())+" WHERE text_id=$1", textID).Scan(
 		&t.TextID, &t.Title, &t.TextMain, &t.Time, &t.PicID)
+	if err == pgx.ErrNoRows {
+		recordNotFound(w)
+		return
+	}
 	if err != nil {
-		// 复刻源码：公告不存在时后续解引用抛 500。
 		response.Error500(w, ref())
 		return
 	}

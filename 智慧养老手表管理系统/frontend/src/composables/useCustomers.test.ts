@@ -67,7 +67,7 @@ describe('guardian data flow', () => {
     await vi.advanceTimersByTimeAsync(30000)
     expect(state.customerForm).toMatchObject(form)
     expect(state.customerDialogVisible.value).toBe(true)
-    expect(state.mutationError.value).toContain('response lost')
+    expect(state.mutationError.value).toContain('未收到保存确认')
     expect(post.mock.calls.filter(([path]) => path.endsWith('/add'))).toHaveLength(1)
   })
 
@@ -150,7 +150,7 @@ describe('guardian data flow', () => {
     expect(state.loadError.value).toBe('')
   })
   it('keeps a rejected edit open and never mutates the selected table row', async () => {
-    const post = vi.fn().mockResolvedValue({ data: { returnCode: '0000', message: 'denied' } })
+    const post = vi.fn().mockResolvedValue({ data: { returnCode: '0000', code: 'INVALID_REQUEST', message: 'denied' } })
     const state = useCustomers({ post } as PostClient)
     const row = { customerId: 1, customerName: '原名', customerAge: 70, customerPhone: '19912345678', customerSex: '女', customerAddress: '' }
     state.handleEditRole(0, row); state.oldEditForm.customerName = '编辑中'

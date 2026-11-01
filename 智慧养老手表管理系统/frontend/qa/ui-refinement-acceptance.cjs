@@ -12,8 +12,8 @@ run(async ({ page, context, base, report, setRole, setSignedIn }) => {
   const opened = () => page.locator('#admin-navigation > .el-sub-menu').evaluateAll(nodes =>
     nodes.map((node, i) => node.classList.contains('is-opened') ? ['health', 'records', 'service'][i] : null).filter(Boolean))
   setRole('ADMIN')
-  await context.route('**/api/v1/care/incidents', route => route.fulfill({ json: { items: [], total: 0, page: 1, pageSize: 20, duty: 'supervisor', actorId: 1 } }))
-  await context.route('**/api/v1/care/diagnostics', route => route.fulfill({ status: 403, json: {} }))
+  await context.route('**/api/v1/care/incidents', route => route.fulfill({ json: {returnCode:'1111', items: [], total: 0, page: 1, pageSize: 20, duty: 'supervisor', actorId: 1 } }))
+  await context.route('**/api/v1/care/diagnostics', route => route.fulfill({ status: 403, json: {returnCode:'0000',code:'INVALID_REQUEST',message:'请求未完成',} }))
   const elder = { oldId: 1, name: '李奶奶', bothdate: '1948-03-01', sex: '女', phone: '13000000000', room: '301', beTime: '2026-10-01', customerName: '张女士', deviceId: 1, familyName: '小明', familySex: '男', familyRelation: '子女', familyPhone: '13900000000', familyAddress: '很长的家属联系地址'.repeat(12), illness: '病史资料'.repeat(30), warn: '青霉素', foodLike: '米饭', foodHate: '花生', drag: '常用药物资料' }
   const lists = [
     ['/person', 'oldPerson/selectDetail', 'oldPersonDetails', elder],
@@ -26,8 +26,8 @@ run(async ({ page, context, base, report, setRole, setSignedIn }) => {
   for (const [, endpoint, key, row] of lists) {
     await context.route('**/api/v1/' + endpoint, async route => {
       if (hold === endpoint) await new Promise(resolve => { release = resolve })
-      if (failure === endpoint) return route.fulfill({ status: 503, json: {} })
-      await route.fulfill({ json: { [key]: malformed === endpoint ? null : empty === endpoint ? [] : [row], total: empty === endpoint ? 0 : 1 } })
+      if (failure === endpoint) return route.fulfill({ status: 503, json: {returnCode:'0000',code:'SERVICE_UNAVAILABLE',message:'请求未完成',} })
+      await route.fulfill({ json: {returnCode:'1111', [key]: malformed === endpoint ? null : empty === endpoint ? [] : [row], total: empty === endpoint ? 0 : 1 } })
     })
   }
   await context.route('**/api/v1/image/download?*', route => route.fulfill({ contentType: 'image/png', body: Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+aD1sAAAAASUVORK5CYII=', 'base64') }))
@@ -121,13 +121,13 @@ run(async ({ page, context, base, report, setRole, setSignedIn }) => {
   let failCounts = false, failSecondPage = false
   const positionPages = []
   await context.route('**/api/v1/ratepre/selectRatepreCount', route => route.fulfill({ json: failCounts ? { rates: null, pres: [] } : { rates: ['1', '2'], pres: ['1'] } }))
-  await context.route('**/api/v1/step/selectStepCount', route => route.fulfill({ json: { deviceIdList: ['1'] } }))
+  await context.route('**/api/v1/step/selectStepCount', route => route.fulfill({ json: {returnCode:'1111', deviceIdList: ['1'] } }))
   await context.route('**/api/v1/position/select', route => {
     const { page: number = 1, pageSize = 20 } = route.request().postDataJSON()
     positionPages.push(number)
-    if (failSecondPage && number === 2) return route.fulfill({ status: 503, json: {} })
+    if (failSecondPage && number === 2) return route.fulfill({ status: 503, json: {returnCode:'0000',code:'SERVICE_UNAVAILABLE',message:'请求未完成',} })
     const start = (number - 1) * pageSize
-    return route.fulfill({ json: { total: 101, positionDtos: Array.from({ length: Math.min(pageSize, 101 - start) }, (_, i) => ({ oldId: start + i + 1, status: [1, 101].includes(start + i + 1) ? '1' : '0' })) } })
+    return route.fulfill({ json: {returnCode:'1111', total: 101, positionDtos: Array.from({ length: Math.min(pageSize, 101 - start) }, (_, i) => ({ oldId: start + i + 1, status: [1, 101].includes(start + i + 1) ? '1' : '0' })) } })
   })
   for (const width of [390, 1440, 1920, 2560]) {
     await page.setViewportSize({ width, height: 1080 })

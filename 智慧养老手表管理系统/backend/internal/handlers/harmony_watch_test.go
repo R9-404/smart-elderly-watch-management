@@ -28,7 +28,7 @@ func TestHarmonyWatchNegotiationAndNativeRoundTrip(t *testing.T) {
 		t.Fatalf("unsupported version: %d %s", w.Code, w.Body.String())
 	}
 	login["protocolVersion"], login["secret"] = 1, "incorrect-secret"
-	if out := api(t, h.deviceLogin, login); out["returnCode"] == "1111" {
+	if out := apiFailure(t, 401, h.deviceLogin, login); out["returnCode"] == "1111" {
 		t.Fatal("platform bypassed credentials")
 	}
 	at := time.Now().UTC().Truncate(time.Second)

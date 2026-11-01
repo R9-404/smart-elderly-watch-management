@@ -36,13 +36,13 @@ func assertFamilyPhoneUnchanged(t *testing.T, h *Handler) {
 
 func TestContinuousFamilyPhoneFormatValidation(t *testing.T) {
 	h := familyPhoneValidationHandler(t)
-	if out := api(t, h.familyUpdate, familyPhoneEdit("abc")); out["returnCode"] == "1111" {
+	if out := apiFailure(t, 400, h.familyUpdate, familyPhoneEdit("abc")); out["returnCode"] == "1111" {
 		t.Error("edit accepted a phone that cannot log in")
 	}
 	assertFamilyPhoneUnchanged(t, h)
 	add := familyPhoneEdit("1380000000")
 	add["oldPhone"] = "13800000008"
-	if out := api(t, h.familyAdd, add); out["returnCode"] == "1111" {
+	if out := apiFailure(t, 400, h.familyAdd, add); out["returnCode"] == "1111" {
 		t.Error("add accepted an invalid phone")
 	}
 	var count int
@@ -61,7 +61,7 @@ func TestContinuousFamilyPhoneEditRejectsOtherAccounts(t *testing.T) {
 	mustExec(t, h.DB, "INSERT INTO users(user_id,user_name,user_phone,password,role) SELECT 1,'管理员','13800000003',family_password,'1' FROM family WHERE family_id=1")
 	for _, phone := range []string{"13800000002", "13800000003"} {
 		w := callAPI(h.familyUpdate, familyPhoneEdit(phone))
-		if w.Code != 200 || !strings.Contains(w.Body.String(), `"returnCode":"0000"`) {
+		if w.Code != 400 || !strings.Contains(w.Body.String(), `"returnCode":"0000"`) {
 			t.Errorf("existing account phone %s not rejected as business failure: HTTP %d %s", phone, w.Code, w.Body.String())
 		}
 		assertFamilyPhoneUnchanged(t, h)

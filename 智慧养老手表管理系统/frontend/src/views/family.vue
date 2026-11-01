@@ -93,6 +93,8 @@
 </template>
 
 <script>
+import { apiErrorMessage } from '../api/httpContract'
+
 import axios from 'axios'
 import RecordCards from '@/components/RecordCards.vue'
 import FamilyForm from '@/components/records/FamilyForm.vue'
@@ -176,8 +178,8 @@ export default {
          _this.total = response.data.total ?? response.data.familyDtos.length
 
        })
-         .catch(function () {
-           _this.loadError = '家属账号暂时无法加载，请检查服务连接后重试。'
+         .catch(function (error) {
+           _this.loadError = apiErrorMessage(error, '家属账号暂时无法加载，请检查服务连接后重试。')
            _this.familyList = []
            _this.total = 0
          }).finally(function () { _this.isLoading = false })
@@ -220,7 +222,7 @@ export default {
     },
     editFamily () {
       var _this = this
-      axios.post('api/v1/family/updateFamily', _this.familyEditForm,
+      axios.post('api/v1/family/updateFamily', Object.fromEntries(['familyId', 'familyName', 'familyRelation', 'familySex', 'familyPhone', 'familyAddress'].map(key => [key, _this.familyEditForm[key]])),
         {
           headers: {
             'content-type': 'application/json'
@@ -243,7 +245,7 @@ export default {
         }
       })
         .catch(function (error) {
-          console.log(error)
+          _this.$message.error(apiErrorMessage(error, '请求未完成，请重试'))
         })
     },
     async deleteFamily (familyId) {
@@ -273,7 +275,7 @@ export default {
           _this.searchfamily()
         })
           .catch(function (error) {
-            console.log(error)
+            _this.$message.error(apiErrorMessage(error, '请求未完成，请重试'))
           })
       } catch (err) {
         this.$message({

@@ -19,7 +19,7 @@ func (h *Handler) careSupervisor(w http.ResponseWriter, r *http.Request) (int64,
 		return 0, false
 	}
 	if duty != "supervisor" {
-		response.JSON(w, http.StatusForbidden, map[string]any{"returnCode": "0000", "message": "需要照护主管权限"})
+		response.JSON(w, http.StatusForbidden, map[string]any{"message": "需要照护主管权限"})
 		return 0, false
 	}
 	id, err := strconv.ParseInt(actor, 10, 64)

@@ -13,17 +13,16 @@ import (
 )
 
 func write400(w http.ResponseWriter, msg string) {
-	response.JSON(w, http.StatusBadRequest, map[string]any{"returnCode": "0000", "message": msg})
+	response.JSON(w, http.StatusBadRequest, map[string]any{"message": msg})
 }
 
-// writeValidation400 统一的字段校验失败响应（复刻 ApiExceptionHandler）。
 func writeValidation400(w http.ResponseWriter) {
 	write400(w, "请求字段不完整或超出允许范围")
 }
 
-// failCodeOnly 业务失败但无 message（Java 端只写了 returnCode 的情况）。
-func failCodeOnly(w http.ResponseWriter) {
-	response.JSON(w, http.StatusOK, map[string]any{"returnCode": "0000"})
+// recordNotFound reports a missing record.
+func recordNotFound(w http.ResponseWriter) {
+	response.Error(w, http.StatusNotFound, "NOT_FOUND", "记录不存在")
 }
 
 // tsOrNil 时间戳 → "yyyy-MM-dd HH:mm:ss"，nil 保持 null。
@@ -50,7 +49,6 @@ var (
 	deviceAlphabet = inviteCharset // "23456789ABCDEFGHJKLMNPQRSTUVWXYZ"，与 Java ALPHABET 一致
 )
 
-// validID 1–9 位纯数字（复刻修复后的 ReturnCodeUtil.isNumeric）。
 func validID(s string) bool { return idPattern.MatchString(s) }
 
 // vstr 取字段的字符串形式（trim 后）；JSON 数字保留小数，整数字段由各自解析器校验。
@@ -74,7 +72,6 @@ func vstr(m map[string]any, key string) (string, bool) {
 	}
 }
 
-// pageFromBody 从 JSON body 解析分页（复刻 PageRequest.from）：
 // 非整数 → 400"分页参数必须为整数"；超出 1–100000 / 1–100 → 400"分页参数超出允许范围"。
 func pageFromBody(w http.ResponseWriter, m map[string]any) (int, int, bool) {
 	p, msg := pageIntVal(m, "page", 1)
@@ -122,7 +119,6 @@ func pageIntVal(m map[string]any, key string, fallback int) (int, string) {
 	return int(n), ""
 }
 
-// parseMetric 可选数值字段（复刻 DeviceSupport.optionalMetric）：
 // 缺失/空 → nil；0 恒合法（设备协议里 0 表示无测量）；否则必须在 [min,max] 内，
 // 非法 → "{key} 超出允许范围"。
 func parseMetric(m map[string]any, key string, min, max int) (*int, string) {
@@ -137,7 +133,6 @@ func parseMetric(m map[string]any, key string, min, max int) (*int, string) {
 	return &n, ""
 }
 
-// parseText 可选文本字段（复刻 DeviceSupport.optionalText）：
 // 缺失/空 → nil；超长 → "{key} 超出允许长度"。
 func parseText(m map[string]any, key string, maxLen int) (*string, string) {
 	s, present := vstr(m, key)
@@ -150,7 +145,6 @@ func parseText(m map[string]any, key string, maxLen int) (*string, string) {
 	return &s, ""
 }
 
-// checkPosition 校验经纬度（复刻 DeviceSupport.validatePosition）：
 // 都空 → 合法；否则必须成对、≤20 字符、可解析、|lng|≤180、|lat|≤90。
 func checkPosition(lng, lat string) string {
 	if lng == "" && lat == "" {
@@ -169,7 +163,6 @@ func checkPosition(lng, lat string) string {
 	return ""
 }
 
-// parseReportTimeStrict 严格解析 "yyyy-MM-dd HH:mm:ss"（复刻 STRICT 解析）。
 func parseReportTimeStrict(s string) (time.Time, bool) {
 	if !reportTimeRe.MatchString(s) {
 		return time.Time{}, false

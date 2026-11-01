@@ -82,6 +82,8 @@
 </template>
 
 <script>
+import { apiErrorMessage } from '../api/httpContract'
+
 import axios from 'axios'
 import PositionMap from '@/components/PositionMap.vue'
 import RecordCards from '@/components/RecordCards.vue'
@@ -143,11 +145,10 @@ export default {
         _this.total = response.data.total ?? _this.positionList.length
       })
         .catch(function (error) {
-          console.log(error)
           _this.positionList = []
           _this.total = 0
           _this.num = ''
-          _this.loadError = '请检查服务连接后重试'
+          _this.loadError = apiErrorMessage(error, '请检查服务连接后重试')
         }).then(function () {
           _this.isLoading = false
         })
@@ -191,7 +192,6 @@ export default {
           }
           _this.searchposition()
         }).catch(function (error) {
-          console.log(error)
           _this.$message({type: 'error', message: '处理失败'})
         })
       }).catch(function () {})

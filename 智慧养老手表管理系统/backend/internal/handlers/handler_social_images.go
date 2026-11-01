@@ -28,7 +28,7 @@ const maxImageBytes = 5 * 1024 * 1024
 // POST /api/v1/image/saveImage —— 图片上传（multipart/form-data）。
 func (h *Handler) imageSave(w http.ResponseWriter, r *http.Request) {
 	fail := func() {
-		response.JSON(w, http.StatusBadRequest, map[string]any{"returnCode": "0000", "message": imageFailMessage})
+		response.JSON(w, http.StatusBadRequest, map[string]any{"message": imageFailMessage})
 	}
 	r.Body = http.MaxBytesReader(w, r.Body, maxImageBytes+(1<<20))
 	if err := r.ParseMultipartForm(6 << 20); err != nil {
@@ -78,7 +78,7 @@ func (h *Handler) imageSave(w http.ResponseWriter, r *http.Request) {
 		imageUnavailable(w)
 		return
 	}
-	response.JSON(w, http.StatusOK, map[string]any{"returnCode": "1111", "filename": name})
+	response.JSON(w, http.StatusOK, map[string]any{"filename": name})
 }
 
 // sniffImage 按内容嗅探格式并解码像素（jpeg/png 用标准库，bmp 手工解析）。

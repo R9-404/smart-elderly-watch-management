@@ -172,7 +172,7 @@ func (h *Handler) lockSOSDevice(ctx context.Context, tx *dbstore.Transaction, de
 		return nil, code, msg, err
 	}
 	if d.OldID == nil {
-		return nil, "0005", "设备还未绑定老人", nil
+		return nil, "DEVICE_NOT_BOUND", "设备还未绑定老人", nil
 	}
 	// Match binding and unbinding's elder-then-device lock order. Recheck the
 	// device under its row lock before writing or acknowledging a retry.
@@ -189,7 +189,7 @@ func (h *Handler) lockSOSDevice(ctx context.Context, tx *dbstore.Transaction, de
 		return nil, code, msg, err
 	}
 	if locked.No != deviceNo {
-		return nil, "0004", "设备号或密钥不正确", nil
+		return nil, "DEVICE_AUTH_FAILED", "设备号或密钥不正确", nil
 	}
 	if locked.OldID == nil || *locked.OldID != expectedOwner || locked.HealthEpoch != bindingVersion {
 		return nil, "409", "绑定已变化，请重新登录；旧绑定求助不能归入新老人", nil

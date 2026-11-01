@@ -4,7 +4,7 @@ import { afterEach, beforeEach, describe, it, expect, vi } from 'vitest'
 import CareInbox from './CareInbox.vue'
 
 const { post } = vi.hoisted(() => ({ post: vi.fn() }))
-vi.mock('axios', () => ({ default: { post } }))
+vi.mock('axios', async (importOriginal) => ({ ...await importOriginal<typeof import('axios')>(), default: { post } }))
 const Pagination = defineComponent({ name: 'Pagination', emits: ['current-change'], template: '<nav />' })
 const Button = defineComponent({ emits: ['click'], template: '<button @click="$emit(\'click\')"><slot /></button>' })
 const Dialog = defineComponent({ props: ['modelValue'], emits: ['close', 'update:modelValue'], template: '<section v-if="modelValue" class="test-dialog"><slot /><slot name="footer" /><button class="close-dialog" @click="$emit(\'update:modelValue\', false); $emit(\'close\')">关闭</button></section>' })
