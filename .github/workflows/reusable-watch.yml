@@ -11,6 +11,47 @@ on:
 permissions:
   contents: read
 jobs:
+  preflight:
+    name: Native tool preflight only (no SDK)
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          persist-credentials: false
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+      - name: Verify missing tools fail closed and caller environment is restored
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          Remove-Item -LiteralPath Env:\JAVA_HOME -ErrorAction SilentlyContinue
+          $env:NODE_PATH = 'watch-preflight-sentinel'
+          $before = @{}
+          foreach ($name in @('NODE_PATH', 'JAVA_HOME', 'DEVECO_SDK_HOME', 'PATH')) {
+            $before[$name] = [Environment]::GetEnvironmentVariable($name, 'Process')
+          }
+          $evidence = Join-Path $PWD 'evidence/ci/watch-preflight'
+          $reportPath = Join-Path $evidence 'native-build.json'
+          $failed = $false
+          try {
+            & SuiningWatch/scripts/build.ps1 -DevEcoHome (Join-Path $env:RUNNER_TEMP 'missing-watch-sdk') -CommandLineHome '' -ReportPath $reportPath
+          } catch { $failed = $true }
+          $report = Get-Content -LiteralPath $reportPath -Raw | ConvertFrom-Json
+          if (!$failed -or $report.status -ne 'blocked' -or $null -ne $report.artifact) {
+            throw 'Missing tools must not report a successful native build or an old HAP'
+          }
+          foreach ($name in $before.Keys) {
+            if ([Environment]::GetEnvironmentVariable($name, 'Process') -cne $before[$name]) {
+              throw "Caller environment was not restored: $name"
+            }
+          }
+          'Preflight contract passed; native compilation has not run.' | Set-Content (Join-Path $evidence 'result.txt')
+      - if: always()
+        uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f
+        with:
+          name: watch-preflight-${{ github.event.pull_request.head.sha || github.sha }}
+          path: evidence/ci/watch-preflight/
+          if-no-files-found: error
+
   native:
     name: HarmonyOS SDK compile (no hardware)
     if: ${{ inputs.sdk_url != '' || inputs.sdk_sha256 != '' }}

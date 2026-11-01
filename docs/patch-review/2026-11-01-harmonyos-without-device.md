@@ -9,6 +9,7 @@
 - `tests/backend.e2e.cjs` 增加真实回环 HTTP 故障代理：先把生产 WatchApi 的请求交给真实 Go 后端并等待数据库提交，再断开连接丢失确认。随后重新创建生产 WatchStore、从磁盘支持的 Preferences 边界适配器恢复原记录，重试须得到两条 duplicates，收到完整确认后才清空。不是用预设成功响应代替真实数据库，也不是实际手表闪存/掉电验证。本机独立 MySQL 空库完整联调 9 项通过。
 - `.github/workflows/reusable-watch.yml` 增加独立 Go/MySQL 联调任务，重复执行上述故障恢复。仅使用每个 CI 容器的空测试库，没有真实通知收件人。
 - `scripts/build.ps1` 支持 DevEco Studio 或独立 Command Line Tools，检查依赖及 SDK，保留环境变量、拒绝覆盖不同来源插件，先 clean 再编译，输出源码 SHA、dirty 状态、构建状态、HAP 大小及 SHA-256。缺工具明确记为 blocked，编译失败记为 failed，不用旧 HAP 充当本轮成功证据。
+- Windows CI 强制执行无 SDK 失败预检，核对 blocked/null artifact 和调用方环境恢复。本轮预检真实发现“未设置变量被恢复成空字符串”的差异，已改为对原本不存在的变量删除对应进程环境项；它不代表 SDK 编译成功。
 - 在现有 `Preview CI` 手动入口增加 sdk_url、sdk_sha256 参数。提供 SDK HTTPS 地址及预期 SHA-256 后执行 Windows 原生构建；校验通过才解压运行，成功时保留未签名 HAP 和构建报告。普通 PR CI 强制执行便携检查及真实 Go/MySQL 联调，原生 SDK 任务明确跳过，不将“没有 SDK”包装成原生编译通过。
 - `SuiningWatch/oh-package.json5` 对齐原生工程 0.2.0 元数据。
 

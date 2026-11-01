@@ -73,7 +73,10 @@ try {
   $report.error = $_.Exception.Message
   throw
 } finally {
-  foreach ($name in $savedEnvironment.Keys) { [Environment]::SetEnvironmentVariable($name, $savedEnvironment[$name], 'Process') }
+  foreach ($name in $savedEnvironment.Keys) {
+    if ($null -eq $savedEnvironment[$name]) { Remove-Item -LiteralPath "Env:\$name" -ErrorAction SilentlyContinue }
+    else { [Environment]::SetEnvironmentVariable($name, $savedEnvironment[$name], 'Process') }
+  }
   $report | ConvertTo-Json -Depth 5 | Set-Content -LiteralPath $ReportPath -Encoding utf8
   Pop-Location
 }
