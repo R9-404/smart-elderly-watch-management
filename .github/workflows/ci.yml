@@ -6,6 +6,15 @@ on:
   push:
     branches: [preview, 'codex/**']
   workflow_dispatch:
+    inputs:
+      sdk_url:
+        description: Optional HTTPS URL of Windows Command Line Tools 6.1.1.280 for native watch compilation
+        type: string
+        default: ''
+      sdk_sha256:
+        description: Required expected SDK SHA-256 when sdk_url is supplied
+        type: string
+        default: ''
 
 permissions:
   contents: read
@@ -22,6 +31,9 @@ jobs:
   watch:
     name: Watch protocol
     uses: ./.github/workflows/reusable-watch.yml
+    with:
+      sdk_url: ${{ inputs.sdk_url || '' }}
+      sdk_sha256: ${{ inputs.sdk_sha256 || '' }}
 
   backend:
     name: Backend

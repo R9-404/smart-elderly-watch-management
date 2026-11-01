@@ -1,11 +1,19 @@
 name: Reusable watch protocol verification
 on:
   workflow_call:
+    inputs:
+      sdk_url:
+        type: string
+        default: ''
+      sdk_sha256:
+        type: string
+        default: ''
 permissions:
   contents: read
 jobs:
   native:
     name: HarmonyOS SDK compile (no hardware)
+    if: ${{ inputs.sdk_url != '' || inputs.sdk_sha256 != '' }}
     runs-on: windows-latest
     timeout-minutes: 20
     steps:
@@ -15,18 +23,24 @@ jobs:
           ref: ${{ github.event.pull_request.head.sha || github.sha }}
       - name: Acquire versioned SDK and compile unsigned wearable HAP
         shell: pwsh
+        env:
+          SDK_ARCHIVE_URL: ${{ inputs.sdk_url }}
+          SDK_ARCHIVE_SHA256: ${{ inputs.sdk_sha256 }}
         run: |
           $ErrorActionPreference = 'Stop'
           $evidence = Join-Path $PWD 'evidence/ci/watch-native'
           New-Item -ItemType Directory -Path $evidence -Force | Out-Null
           git rev-parse HEAD | Set-Content (Join-Path $evidence 'source-sha.txt')
-          # This versioned mirror is also used by libsdl-org/SDL's HarmonyOS CI.
-          $url = 'https://libsdl.org/harmonyos-devtools/commandline-tools-windows-x64-6.1.1.280.zip'
-          $url | Set-Content (Join-Path $evidence 'sdk-source.txt')
+          $url = $env:SDK_ARCHIVE_URL
+          $uri = [Uri]$url
+          if ($uri.Scheme -ne 'https' -or $uri.UserInfo) { throw 'SDK must use an HTTPS URL without embedded credentials' }
+          if ($env:SDK_ARCHIVE_SHA256 -notmatch '^[a-fA-F0-9]{64}$') { throw 'An expected SDK SHA-256 is required before executing downloaded tools' }
+          $uri.GetLeftPart([UriPartial]::Path) | Set-Content (Join-Path $evidence 'sdk-source.txt')
           $archive = Join-Path $env:RUNNER_TEMP 'watch-commandline-6.1.1.280.zip'
           curl.exe --fail --location --connect-timeout 20 --max-time 600 --retry 1 --output $archive $url
           if ($LASTEXITCODE -ne 0) { throw 'SDK download failed; native compilation has not run' }
           Get-FileHash -LiteralPath $archive -Algorithm SHA256 | ConvertTo-Json | Set-Content (Join-Path $evidence 'sdk-sha256.json')
+          if ((Get-FileHash -LiteralPath $archive -Algorithm SHA256).Hash -ine $env:SDK_ARCHIVE_SHA256) { throw 'SDK checksum mismatch; archive will not be extracted or executed' }
           $toolDirectory = Join-Path $env:RUNNER_TEMP 'watch-sdk'
           Expand-Archive -LiteralPath $archive -DestinationPath $toolDirectory
           $toolRoot = Join-Path $toolDirectory 'command-line-tools'

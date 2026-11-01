@@ -9,7 +9,7 @@
 - `tests/backend.e2e.cjs` 增加真实回环 HTTP 故障代理：先把生产 WatchApi 的请求交给真实 Go 后端并等待数据库提交，再断开连接丢失确认。随后重新创建生产 WatchStore、从磁盘支持的 Preferences 边界适配器恢复原记录，重试须得到两条 duplicates，收到完整确认后才清空。不是用预设成功响应代替真实数据库，也不是实际手表闪存/掉电验证。本机独立 MySQL 空库完整联调 9 项通过。
 - `.github/workflows/reusable-watch.yml` 增加独立 Go/MySQL 联调任务，重复执行上述故障恢复。仅使用每个 CI 容器的空测试库，没有真实通知收件人。
 - `scripts/build.ps1` 支持 DevEco Studio 或独立 Command Line Tools，检查依赖及 SDK，保留环境变量、拒绝覆盖不同来源插件，先 clean 再编译，输出源码 SHA、dirty 状态、构建状态、HAP 大小及 SHA-256。缺工具明确记为 blocked，编译失败记为 failed，不用旧 HAP 充当本轮成功证据。
-- Windows CI 增加实际 SDK 构建任务，成功时保留未签名 HAP 和构建报告。SDK 固定为 6.1.1.280，来源为 SDL 自有镜像，依据 [SDL 上游工作流](https://github.com/libsdl-org/SDL/blob/main/.github/actions/setup-harmonyos-toolchain/action.yml)，并记录下载文件哈希。它不是本机官方账号下载成功，也不宣称有独立华为签名校验。
+- 在现有 `Preview CI` 手动入口增加 sdk_url、sdk_sha256 参数。提供 SDK HTTPS 地址及预期 SHA-256 后执行 Windows 原生构建；校验通过才解压运行，成功时保留未签名 HAP 和构建报告。普通 PR CI 强制执行便携检查及真实 Go/MySQL 联调，原生 SDK 任务明确跳过，不将“没有 SDK”包装成原生编译通过。
 - `SuiningWatch/oh-package.json5` 对齐原生工程 0.2.0 元数据。
 
 ## 私有实现复核
@@ -22,7 +22,9 @@ P2P 实现涉及源包名/UID、对端指纹、DEVICE_MANAGER 权限、回调与
 
 ## 原生工具链与结果边界
 
-本机官方工具下载页面实际跳转华为账号登录；SDL 镜像的 HTTPS 连接在本机超时。没有代登、绕过账号校验或修改系统 SDK 配置。本机已验证构建脚本能写出 blocked 报告且 artifact 为 null。云端 SDK 构建结果应以当前提交的 CI 和其报告为准；本文件建立时尚未得出云端编译结果。
+本机官方工具下载页面实际跳转华为账号登录；依据 [SDL 上游工作流](https://github.com/libsdl-org/SDL/blob/main/.github/actions/setup-harmonyos-toolchain/action.yml)尝试固定 6.1.1.280 镜像，本机及实际 Windows CI 均连接超时。还核对了两家 DoH 的真实 DNS 地址，并在保留 TLS 证书校验的情况下尝试直达，TCP 可建立但 TLS 握手超时，不能归因于 DNS 单一原因。云端首次运行 `41292708491` 的 SDK 任务明确失败在下载，未启动编译；日志已保留。随后将依赖外部 SDK 的编译单独设为显式手动入口，未添加 continue-on-error，也没有把下载失败改称编译成功。
+
+没有代登、绕过账号校验或修改系统 SDK 配置。本机已验证构建脚本能写出 blocked 报告且 artifact 为 null。当前仍没有本轮 HAP、原生编译或模拟器运行证据。要执行原生验证入口，需可访问的 SDK 包及其预期哈希；实际目标仍是现有 API24 编译/兼容 API18 工程，不用低版本 OpenHarmony SDK 替代 HarmonyOS 结果。
 
 原生构建命令（PowerShell 7）：
 
