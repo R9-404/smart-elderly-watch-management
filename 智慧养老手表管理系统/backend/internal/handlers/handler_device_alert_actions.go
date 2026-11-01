@@ -249,7 +249,8 @@ func parseAlertResolution(w http.ResponseWriter, m map[string]any) (alertResolut
 func (h *Handler) alertResolutionReason(ctx context.Context, tx *dbstore.Transaction, deviceID int64, kind string, recordID *int64) (string, error) {
 	// 处置前的 reason，用于 handledReason 回显。
 	var before string
-	if kind == "person" {
+	switch kind {
+	case "person":
 		pr, err := scanPersonRow(tx.QueryRow(ctx,
 			`SELECT `+personCols+` `+personFrom+` WHERE d.device_id=$1`, deviceID))
 		if err != nil {
@@ -258,7 +259,7 @@ func (h *Handler) alertResolutionReason(ctx context.Context, tx *dbstore.Transac
 		if a := describePersonAlert(pr, time.Now()); a != nil {
 			before, _ = a["reason"].(string)
 		}
-	} else if kind == "rate" || kind == "pre" {
+	case "rate", "pre":
 		a, err := h.findRatepreAlert(ctx, tx, deviceID, kind, recordID)
 		if err != nil {
 			return "", err
