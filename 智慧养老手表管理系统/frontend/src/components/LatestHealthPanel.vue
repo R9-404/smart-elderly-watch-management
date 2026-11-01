@@ -22,6 +22,7 @@
 </template>
 
 <script setup lang="ts">
+import { apiErrorMessage } from '../api/httpContract'
 import { onBeforeUnmount, onMounted, ref } from 'vue'
 import { readLatestHealth, type LatestHealthRecord } from '../api/health'
 import { createLatestRead } from '../composables/latestRead'
@@ -32,7 +33,7 @@ const error = ref('')
 const reads = createLatestRead<void, LatestHealthRecord[]>(
   (_, signal) => readLatestHealth(signal),
   records => { items.value = records; error.value = '' },
-  () => { error.value = '健康采样暂时无法加载，请点击刷新采样重试。' },
+  cause => { error.value = apiErrorMessage(cause, '健康采样暂时无法加载，请点击刷新采样重试。') },
   busy => { loading.value = busy }
 )
 const load = () => reads.run()

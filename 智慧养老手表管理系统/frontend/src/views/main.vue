@@ -161,8 +161,8 @@ export default {
         } while (loaded < total)
         this.num = falls
         this.positionTotal = total
-      } catch (_) {
-        this.positionError = '告警统计暂时无法加载'
+      } catch (error) {
+        this.positionError = apiErrorMessage(error, '告警统计暂时无法加载')
       } finally {
         this.positionLoading = false
       }

@@ -120,7 +120,7 @@ run(async ({ page, context, base, report, setRole, setSignedIn }) => {
 
   let failCounts = false, failSecondPage = false
   const positionPages = []
-  await context.route('**/api/v1/ratepre/selectRatepreCount', route => route.fulfill({ json: failCounts ? { rates: null, pres: [] } : { rates: ['1', '2'], pres: ['1'] } }))
+  await context.route('**/api/v1/ratepre/selectRatepreCount', route => route.fulfill({ json: failCounts ? { returnCode: '1111', rates: null, pres: [] } : { returnCode: '1111', rates: ['1', '2'], pres: ['1'] } }))
   await context.route('**/api/v1/step/selectStepCount', route => route.fulfill({ json: {returnCode:'1111', deviceIdList: ['1'] } }))
   await context.route('**/api/v1/position/select', route => {
     const { page: number = 1, pageSize = 20 } = route.request().postDataJSON()
