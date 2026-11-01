@@ -176,6 +176,9 @@ func aggregateTotals(filtered []*Sample, first *Sample, out Statistics) (Statist
 	for _, s := range filtered {
 		v := *s.Value
 		total += v
+		if math.IsInf(total, 0) {
+			return out, fmt.Errorf("measurement total exceeds finite range")
+		}
 		if first.Metric == "steps" && total > 9007199254740991 {
 			return out, fmt.Errorf("step total exceeds exact integer range")
 		}

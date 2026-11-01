@@ -214,11 +214,13 @@ func (h *Handler) findLatestPending(r *http.Request, oldID int64, kind string) (
 	}
 	var a alertRow
 	err := h.DB.QueryRow(r.Context(), `SELECT r.id, r.device_id, r.old_id, r.hr, r.bp, r.rate_state, r.pre_state,
+		COALESCE((r.rate_handled_at IS NOT NULL AND r.create_time <= r.rate_handled_at), false),
+		COALESCE((r.pre_handled_at IS NOT NULL AND r.create_time <= r.pre_handled_at), false),
 		TO_CHAR(r.create_time,'YYYY-MM-DD HH24:MI:SS'), o.name, w.hrf, w.hrl, w.bpf, w.bpl
 		FROM ratepre r LEFT JOIN oldperson o ON o.old_id=r.old_id
 		LEFT JOIN watch_info w ON w.device_id=r.device_id
 		WHERE r.old_id=$1 AND `+cond+` ORDER BY r.create_time DESC, r.id DESC LIMIT 1`, oldID).
-		Scan(&a.ID, &a.DeviceID, &a.OldID, &a.Hr, &a.Bp, &a.RateState, &a.PreState, &a.CreateTime, &a.OldPersonName, &a.HrHigh, &a.HrLow, &a.BpHigh, &a.BpLow)
+		Scan(&a.ID, &a.DeviceID, &a.OldID, &a.Hr, &a.Bp, &a.RateState, &a.PreState, &a.RateDone, &a.PreDone, &a.CreateTime, &a.OldPersonName, &a.HrHigh, &a.HrLow, &a.BpHigh, &a.BpLow)
 	if isNotFound(err) {
 		return a, false, nil
 	}
