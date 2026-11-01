@@ -264,6 +264,7 @@
   "智慧养老手表管理系统/backend/internal/handlers/handler_family.go": "家属账号、邀请码领取与长者关联管理（智慧养老手表管理系统/backend/internal/handlers/handler_family.go）",
   "智慧养老手表管理系统/backend/internal/handlers/handler_family_invite_join.go": "Go 后端按职责拆分的 family invite join 模块",
   "智慧养老手表管理系统/backend/internal/handlers/handler_family_invites.go": "Go 后端按职责拆分的 family invites 模块",
+  "智慧养老手表管理系统/backend/internal/handlers/fence_observation.go": "围栏定位观测、锁定配置读取、状态推进与事件落库步骤",
   "智慧养老手表管理系统/backend/internal/handlers/handler_fences.go": "Go HTTP 处理器／后台业务：handler／fences",
   "智慧养老手表管理系统/backend/internal/handlers/handler_health.go": "健康采样批量写入、按长者查询和增量变更接口",
   "智慧养老手表管理系统/backend/internal/handlers/handler_notifications.go": "Go HTTP 处理器／后台业务：handler／notifications",

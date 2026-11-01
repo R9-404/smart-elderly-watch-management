@@ -46,8 +46,32 @@ func watchDayUpsertSQL(mysql bool) string {
 
 func (repo telemetryRepository) PersistDeviceReport(ctx context.Context, tx *dbstore.Transaction, d *oldDevice, parsed parsedDeviceTelemetry) (telemetryPersisted, error) {
 	oldID := *d.OldID
-	now, beTime, day := parsed.now, parsed.beTime, parsed.day
-	hr, bp, step, sleep := parsed.hr, parsed.bp, parsed.step, parsed.sleep
+	var position string
+	if parsed.lng != "" || parsed.alarm == "1" || strings.EqualFold(parsed.alarm, "fall") {
+		var err error
+		position, err = sealPositionMetadata(repo.box, parsed.position)
+		if err != nil {
+			return telemetryPersisted{}, err
+		}
+	}
+	result, err := repo.persistReportVitals(ctx, tx, d, oldID, &parsed)
+	if err != nil {
+		return telemetryPersisted{}, err
+	}
+	if err := repo.persistReportDay(ctx, tx, d, oldID, &parsed); err != nil {
+		return telemetryPersisted{}, err
+	}
+	if err := repo.persistReportPositionAndAlarm(ctx, tx, d, oldID, &parsed, position); err != nil {
+		return telemetryPersisted{}, err
+	}
+	if err := touchDevice(ctx, tx, d.ID, parsed.battery, parsed.appVersion, parsed.now); err != nil {
+		return telemetryPersisted{}, err
+	}
+	return result, nil
+}
+
+func (repo telemetryRepository) persistReportVitals(ctx context.Context, tx *dbstore.Transaction, d *oldDevice, oldID int64, parsed *parsedDeviceTelemetry) (telemetryPersisted, error) {
+	hr, bp, beTime := parsed.hr, parsed.bp, parsed.beTime
 	// Zero vital signs are legacy "not measured" sentinels. Keep raw parsing
 	// compatible, but never persist or classify them as actual measurements.
 	if hr != nil && *hr == 0 {
@@ -56,17 +80,6 @@ func (repo telemetryRepository) PersistDeviceReport(ctx context.Context, tx *dbs
 	if bp != nil && *bp == 0 {
 		bp = nil
 	}
-	sleepState, battery, appVersion := parsed.sleepState, parsed.battery, parsed.appVersion
-	lng, lat, sourceStr, alarm := parsed.lng, parsed.lat, parsed.sourceStr, parsed.alarm
-	var position string
-	if lng != "" || alarm == "1" || strings.EqualFold(alarm, "fall") {
-		var err error
-		position, err = sealPositionMetadata(repo.box, parsed.position)
-		if err != nil {
-			return telemetryPersisted{}, err
-		}
-	}
-
 	hrv, bpv := 0, 0
 	if hr != nil {
 		hrv = *hr
@@ -113,13 +126,19 @@ func (repo telemetryRepository) PersistDeviceReport(ctx context.Context, tx *dbs
 			return telemetryPersisted{}, err
 		}
 	}
+	return telemetryPersisted{rateState: rateState, preState: preState}, nil
+}
+
+func (repo telemetryRepository) persistReportDay(ctx context.Context, tx *dbstore.Transaction, d *oldDevice, oldID int64, parsed *parsedDeviceTelemetry) error {
+	step, sleep, sleepState := parsed.step, parsed.sleep, parsed.sleepState
+	beTime, day := parsed.beTime, parsed.day
 	if step != nil || sleep != nil || sleepState != nil {
 		var rowID, epoch int64
 		var owner *int64
 		err := tx.QueryRow(ctx, `SELECT id,old_id,binding_epoch FROM watch_day_info
 		 WHERE device_id=$1 AND create_time=$2 FOR UPDATE`, d.ID, day).Scan(&rowID, &owner, &epoch)
 		if err != nil && err != pgx.ErrNoRows {
-			return telemetryPersisted{}, err
+			return err
 		}
 		if err == nil && (owner == nil || *owner != oldID || epoch != d.HealthEpoch) {
 			// Preserve the previous binding's snapshot before starting an empty one.
@@ -127,11 +146,11 @@ func (repo telemetryRepository) PersistDeviceReport(ctx context.Context, tx *dbs
 			 (device_id,sleep,step,sleep_sate,create_time,step_observed_at,old_id,binding_epoch,sleep_observed_at,sleep_state_observed_at)
 			 SELECT device_id,sleep,step,sleep_sate,create_time,step_observed_at,old_id,binding_epoch,sleep_observed_at,sleep_state_observed_at
 			 FROM watch_day_info WHERE id=$1`, rowID); err != nil {
-				return telemetryPersisted{}, err
+				return err
 			}
 			if _, err = tx.Exec(ctx, `UPDATE watch_day_info SET sleep=NULL,step=NULL,sleep_sate=NULL,
 			 step_observed_at=NULL,sleep_observed_at=NULL,sleep_state_observed_at=NULL,old_id=$1,binding_epoch=$2 WHERE id=$3`, oldID, d.HealthEpoch, rowID); err != nil {
-				return telemetryPersisted{}, err
+				return err
 			}
 		}
 		var stepAny, sleepAny, stateAny, stepObservedAt, sleepObservedAt, sleepStateObservedAt any
@@ -149,20 +168,25 @@ func (repo telemetryRepository) PersistDeviceReport(ctx context.Context, tx *dbs
 		}
 		if _, err := tx.Exec(ctx, watchDayUpsertSQL(tx.IsMySQL()),
 			d.ID, sleepAny, stepAny, stateAny, day, stepObservedAt, oldID, d.HealthEpoch, sleepObservedAt, sleepStateObservedAt); err != nil {
-			return telemetryPersisted{}, err
+			return err
 		}
 	}
+	return nil
+}
+
+func (repo telemetryRepository) persistReportPositionAndAlarm(ctx context.Context, tx *dbstore.Transaction, d *oldDevice, oldID int64, parsed *parsedDeviceTelemetry, position string) error {
+	lng, lat, sourceStr, alarm, beTime := parsed.lng, parsed.lat, parsed.sourceStr, parsed.alarm, parsed.beTime
 	if lng != "" && lat != "" {
 		if _, err := tx.Exec(ctx,
 			`INSERT INTO device_location(device_id, old_id, lng, lat, source, be_time, create_time, position_metadata)
 			 VALUES($1,$2,$3,$4,$5,$6,now(),$7)`,
 			d.ID, oldID, sealCoordinate(repo.box, lng), sealCoordinate(repo.box, lat), sourceStr, beTime, position); err != nil {
-			return telemetryPersisted{}, err
+			return err
 		}
 		if _, err := tx.Exec(ctx, `UPDATE device SET last_lng=$1, last_lat=$2 WHERE device_id=$3
 		 AND NOT EXISTS(SELECT 1 FROM device_location WHERE device_id=$3 AND old_id=$5 AND be_time>$4)`,
 			sealCoordinate(repo.box, lng), sealCoordinate(repo.box, lat), d.ID, beTime, oldID); err != nil {
-			return telemetryPersisted{}, err
+			return err
 		}
 	}
 	if alarm == "1" || strings.EqualFold(alarm, "fall") {
@@ -176,13 +200,10 @@ func (repo telemetryRepository) PersistDeviceReport(ctx context.Context, tx *dbs
 			`INSERT INTO alarm_precess(status, old_id, device_id, be_time, lng, lat, kind, position_metadata)
 			 VALUES('1',$1,$2,$3,$4,$5,$6,$7)`,
 			oldID, d.ID, beTime, alarmLng, alarmLat, kind, position); err != nil {
-			return telemetryPersisted{}, err
+			return err
 		}
 	}
-	if err := touchDevice(ctx, tx, d.ID, battery, appVersion, now); err != nil {
-		return telemetryPersisted{}, err
-	}
-	return telemetryPersisted{rateState: rateState, preState: preState}, nil
+	return nil
 }
 
 // PersistSOSIncident only persists the incident; callers must insert SMS/outbox
