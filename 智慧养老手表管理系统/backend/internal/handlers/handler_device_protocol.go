@@ -159,24 +159,9 @@ func (h *Handler) deviceBind(w http.ResponseWriter, r *http.Request) {
 		response.Error500(w, ref())
 		return
 	}
-	if bc == nil {
+	if code, msg := bindCodeFailure(bc); code != "" {
 		rollback()
-		hwFail(w, "0006", "绑定码不存在，请在系统里重新生成")
-		return
-	}
-	if bc.Used == 1 {
-		rollback()
-		hwFail(w, "0006", "该绑定码已被使用")
-		return
-	}
-	if bc.ExpireTime != nil && !bc.ExpireTime.After(time.Now()) {
-		rollback()
-		hwFail(w, "0006", "该绑定码已过期，请重新生成")
-		return
-	}
-	if bc.OldID == nil {
-		rollback()
-		hwFail(w, "0000", "绑定码对应的老人不存在")
+		hwFail(w, code, msg)
 		return
 	}
 	var oldName *string
@@ -226,24 +211,7 @@ func (h *Handler) deviceBind(w http.ResponseWriter, r *http.Request) {
 		conflict409(w, "设备绑定失败")
 		return
 	}
-	// 老人档案 device_id 只填一次，防止后绑定的表顶掉。
-	if oldDeviceID == nil {
-		if _, err := tx.Exec(ctx, `UPDATE oldperson SET device_id=$1 WHERE old_id=$2`, d.ID, *bc.OldID); err != nil {
-			rollback()
-			response.Error500(w, ref())
-			return
-		}
-	}
-	if oldFamilyID == nil && bc.FamilyID != nil {
-		if _, err := tx.Exec(ctx, `UPDATE oldperson SET family_id=$1 WHERE old_id=$2`, *bc.FamilyID, *bc.OldID); err != nil {
-			rollback()
-			response.Error500(w, ref())
-			return
-		}
-	}
-	// watch_info upsert 默认阈值行（心率 55–110、血压 90–140）。
-	if _, err := saveWatchProfileUpsert(ctx, tx, tx.IsMySQL(), d.ID, 110, 55, 140, 90,
-		time.Date(now.Year(), now.Month(), now.Day(), 0, 0, 0, 0, time.Local)); err != nil {
+	if err := linkBoundDevice(ctx, tx, d.ID, bc, oldDeviceID, oldFamilyID, now); err != nil {
 		rollback()
 		response.Error500(w, ref())
 		return
@@ -318,4 +286,38 @@ func (h *Handler) deviceHeartbeat(w http.ResponseWriter, r *http.Request) {
 	})
 }
 
-// checkTelemetry 校验上报类接口的字段长度（复刻 @Valid Telemetry）。
+func bindCodeFailure(bc *bindCodeRow) (string, string) {
+	if bc == nil {
+		return "0006", "绑定码不存在，请在系统里重新生成"
+	}
+	if bc.Used == 1 {
+		return "0006", "该绑定码已被使用"
+	}
+	if bc.ExpireTime != nil && !bc.ExpireTime.After(time.Now()) {
+		return "0006", "该绑定码已过期，请重新生成"
+	}
+	if bc.OldID == nil {
+		return "0000", "绑定码对应的老人不存在"
+	}
+	return "", ""
+}
+
+func linkBoundDevice(ctx context.Context, tx *dbstore.Transaction, deviceID int64, bc *bindCodeRow, oldDeviceID, oldFamilyID *int64, now time.Time) error {
+	// 老人档案 device_id 只填一次，防止后绑定的表顶掉。
+	if oldDeviceID == nil {
+		if _, err := tx.Exec(ctx, `UPDATE oldperson SET device_id=$1 WHERE old_id=$2`, deviceID, *bc.OldID); err != nil {
+			return err
+		}
+	}
+	if oldFamilyID == nil && bc.FamilyID != nil {
+		if _, err := tx.Exec(ctx, `UPDATE oldperson SET family_id=$1 WHERE old_id=$2`, *bc.FamilyID, *bc.OldID); err != nil {
+			return err
+		}
+	}
+	// watch_info upsert 默认阈值行（心率 55–110、血压 90–140）。
+	if _, err := saveWatchProfileUpsert(ctx, tx, tx.IsMySQL(), deviceID, 110, 55, 140, 90,
+		time.Date(now.Year(), now.Month(), now.Day(), 0, 0, 0, 0, time.Local)); err != nil {
+		return err
+	}
+	return nil
+}

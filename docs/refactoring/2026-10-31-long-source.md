@@ -162,18 +162,52 @@ contract test added to the existing device validation test file. The latter cove
 defaults, owner/profile linkage, stored-secret separation, filtered online counts,
 decrypted coordinates and rejected input without extra records. No new source or
 test file is added. Handler vet, OpenAPI consistency and independent behavior and
-standards review passed. This batch still requires final-head CI and smoke.
+standards review passed. PR #58 was subsequently merged as b97cd16; its completed CI had no failing checks.
+
+## Core transaction steps
+
+Six further functions separate real business steps while retaining the same
+transactions, SQL, validation priority and response contract:
+
+- SOS separates request validation, locked authentication/owner revalidation and
+  notification enqueueing. The coordinator retains retry acknowledgement before
+  nonce reservation, rollback before failure responses and commit before success.
+- Binding separates bind-code admission and conditional elder/profile linking.
+  Its coordinator retains elder/device lock order and both affected-row checks.
+- Legacy transfer separates one-table import and row conversion. The importer
+  still closes its cursor on every conversion/write failure and checks its count;
+  the parent still commits the read snapshot before the atomic target transaction.
+- Alert resolution separates input parsing, the original reason lookup and vital
+  handling. Selected-record ownership and the remaining-alert check are unchanged.
+- Telemetry separates vital, daily and position/alarm persistence. Every step uses
+  one captured owner and the same transaction. Metadata sealing still precedes SQL;
+  encryption calls, missing-value handling and observation ordering are unchanged.
+- Fence observation separates locked configuration loading, pure state advancement
+  and event/care persistence in `fence_observation.go`. Stale observations are still
+  rejected before timezone loading. Exit-event notification order is unchanged.
+
+Three focused baseline checks passed before changes. Fifteen distinct existing
+regressions passed after decomposition, including real MySQL handler behavior and
+PG 0006/0007/0008-to-MySQL migration. The three affected SOS paths were rechecked
+after extracting locked authentication. No new tests or assertions were needed.
+Handler/database vet, OpenAPI consistency and independent standards/behavior
+reviews passed. One orphaned telemetry comment found in review was removed.
+Final-head CI and minimal post-CI smoke remain required for this batch.
 
 ## Remaining scope
 
-This batch addresses all 12 inventoried long files, and leaves no file above the
-inventory thresholds. It is not a claim that all long functions are resolved.
+The original 12 inventoried long files have been addressed. A subsequent merged
+SQL hardening change made `mysql_translate.go` 355 lines; its new quote-aware
+rewrites need responsibility review on the current source. This is not a claim
+that all long files or functions are resolved.
 The initial function inventory contained 30 functions of at least 90 lines.
-After the batches above, 18 original functions remain for responsibility review.
+After the batches above, 12 original functions remain for structural work.
 The 94-line evidence encoding sequence has been reviewed and retained as one
 cohesive operation after extracting eligibility checks; the review threshold is
 not a requirement to fragment a single encoding sequence. The decomposed 124-line
 invitation registration and 91-line device registration retain their transaction
-coordinator bodies to keep failure, commit and rollback ordering explicit. Next priorities are SOS and device binding,
-legacy transfer, alert resolution and telemetry persistence. Their transaction
-boundaries must remain intact while validation and business steps are separated.
+coordinator bodies to keep failure, commit and rollback ordering explicit. The decomposed SOS and binding coordinators also retain explicit transaction
+control. Remaining work covers care transitions/dispatch/receipts, security/login,
+analytics polling/batches, SQL compilation, database-worker startup, sample writes,
+health upload lock modes and the reliability command. Their transaction and
+state-machine boundaries must remain intact while distinct steps are separated.

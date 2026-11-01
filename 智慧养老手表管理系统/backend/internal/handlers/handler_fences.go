@@ -11,7 +11,6 @@ import (
 
 	"github.com/jackc/pgx/v5"
 	"suining-care/internal/fence"
-	"suining-care/internal/notify"
 	"suining-care/internal/response"
 )
 
@@ -158,13 +157,7 @@ func (h *Handler) fenceList(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *Handler) fencePoint(w http.ResponseWriter, r *http.Request) {
-	var req struct {
-		capabilityCredentials
-		Point            *fence.Point `json:"point"`
-		CoordinateSystem string       `json:"coordinateSystem"`
-		Accuracy         float64      `json:"accuracy"`
-		OccurredAt       time.Time    `json:"occurredAt"`
-	}
+	var req fencePointRequest
 	if !decodeCapability(w, r, &req) {
 		return
 	}
@@ -183,27 +176,7 @@ func (h *Handler) fencePoint(w http.ResponseWriter, r *http.Request) {
 	if d == nil {
 		return
 	}
-	rows, err := tx.Query(ctx, `SELECT id,revision,coordinates,timezone,time_begin,time_end,min_points,dwell_seconds,max_accuracy FROM device_fence WHERE device_id=$1 AND old_id=$2 AND epoch=$3 AND enabled=true ORDER BY id FOR UPDATE`, d.ID, *d.OldID, d.HealthEpoch)
-	if err != nil {
-		response.Error500(w, ref())
-		return
-	}
-	configs := []fenceConfig{}
-	for rows.Next() {
-		var f fenceConfig
-		var b []byte
-		if err = rows.Scan(&f.ID, &f.Revision, &b, &f.Timezone, &f.TimeBegin, &f.TimeEnd, &f.MinPoints, &f.DwellSeconds, &f.MaxAccuracy); err != nil {
-			break
-		}
-		if err = json.Unmarshal(b, &f.Coordinates); err != nil {
-			break
-		}
-		configs = append(configs, f)
-	}
-	if err == nil {
-		err = rows.Err()
-	}
-	rows.Close()
+	configs, err := loadActiveFences(ctx, tx, d.ID, *d.OldID, d.HealthEpoch)
 	if err != nil {
 		response.Error500(w, ref())
 		return
@@ -225,25 +198,13 @@ func (h *Handler) fencePoint(w http.ResponseWriter, r *http.Request) {
 			}
 		}
 		at := req.OccurredAt.UTC().Truncate(time.Microsecond)
-		if !at.After(state.Last) {
-			continue
-		}
-		loc, e := time.LoadLocation(f.Timezone)
-		if e != nil {
+		direction, fresh, err := advanceFenceObservation(&f, &state, &req, at)
+		if err != nil {
 			response.Error500(w, ref())
 			return
 		}
-		local := at.In(loc)
-		second := local.Hour()*3600 + local.Minute()*60 + local.Second()
-		direction := ""
-		if !fence.Active(second, f.TimeBegin, f.TimeEnd) {
-			state = fence.State{Last: at}
-		} else if req.Accuracy > f.MaxAccuracy || fence.BoundaryDistance(f.Coordinates, *req.Point) <= req.Accuracy {
-			state.Count = 0
-			state.Since = time.Time{}
-			state.Last = at
-		} else {
-			direction = state.Observe(fence.Contains(f.Coordinates, *req.Point), at, f.MinPoints, time.Duration(f.DwellSeconds)*time.Second)
+		if !fresh {
+			continue
 		}
 		b, _ = json.Marshal(state)
 		_, err = tx.Exec(ctx, `INSERT INTO fence_state(fence_id,revision,payload) VALUES($1,$2,$3) ON CONFLICT(fence_id) DO UPDATE SET revision=EXCLUDED.revision,payload=EXCLUDED.payload`, f.ID, f.Revision, json.RawMessage(b))
@@ -254,35 +215,12 @@ func (h *Handler) fencePoint(w http.ResponseWriter, r *http.Request) {
 		if direction == "" {
 			continue
 		}
-		var eventID int64
-		err = tx.QueryRow(ctx, `INSERT INTO fence_event(fence_id,fence_revision,old_id,device_id,epoch,direction,lng,lat,accuracy,occurred_at) VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9,$10) RETURNING id`, f.ID, f.Revision, *d.OldID, d.ID, d.HealthEpoch, direction, req.Point[0], req.Point[1], req.Accuracy, at).Scan(&eventID)
+		event, err := h.persistFenceEvent(ctx, tx, d, &f, &req, direction, at)
 		if err != nil {
 			response.Error500(w, ref())
 			return
 		}
-		var incidentID *int64
-		if direction == "exit" {
-			var id int64
-			err = tx.QueryRow(ctx, "INSERT INTO care_incident(old_id,device_id,kind,severity) VALUES($1,$2,'fence_exit','high') RETURNING id", *d.OldID, d.ID).Scan(&id)
-			if err == nil {
-				_, err = tx.Exec(ctx, "INSERT INTO care_incident_event(incident_id,actor,action,note) VALUES($1,'rule','received','围栏离开事件，等待通知与照护处置')", id)
-			}
-			if err == nil {
-				_, err = notify.QueueCareSMS(ctx, tx, h.Box, id, *d.OldID)
-			}
-			if err == nil {
-				_, err = tx.Exec(ctx, "UPDATE fence_event SET incident_id=$2 WHERE id=$1", eventID, id)
-			}
-			if err == nil {
-				err = notify.CareInbox(ctx, tx, h.Box, *d.OldID, id)
-			}
-			if err != nil {
-				response.Error500(w, ref())
-				return
-			}
-			incidentID = &id
-		}
-		events = append(events, map[string]any{"id": eventID, "fenceId": f.ID, "direction": direction, "incidentId": incidentID})
+		events = append(events, event)
 	}
 	if err = touchDevice(ctx, tx, d.ID, nil, nil, time.Now()); err != nil {
 		response.Error500(w, ref())

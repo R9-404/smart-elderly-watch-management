@@ -1,11 +1,13 @@
 package handlers
 
 import (
+	"context"
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgconn"
 	"net/http"
 	"strconv"
 	"strings"
+	dbstore "suining-care/internal/db"
 	"suining-care/internal/response"
 	"time"
 )
@@ -140,28 +142,11 @@ func (h *Handler) deviceResolveAlert(w http.ResponseWriter, r *http.Request) {
 	if !ok {
 		return
 	}
-	idStr, present := vstr(m, "deviceId")
-	if !present || !validID(idStr) {
-		writeValidation400(w)
+	req, ok := parseAlertResolution(w, m)
+	if !ok {
 		return
 	}
-	deviceID, _ := strconv.ParseInt(idStr, 10, 64)
-	kind, present := vstr(m, "kind")
-	if !present || kind == "" {
-		writeValidation400(w)
-		return
-	}
-	kind = strings.ToLower(kind)
-	recordIDStr, _ := vstr(m, "recordId")
-	var recordID *int64
-	if recordIDStr != "" {
-		if !validID(recordIDStr) {
-			writeValidation400(w)
-			return
-		}
-		n, _ := strconv.ParseInt(recordIDStr, 10, 64)
-		recordID = &n
-	}
+	deviceID, kind, recordID := req.deviceID, req.kind, req.recordID
 	ctx := r.Context()
 	tx, err := h.DB.Begin(ctx)
 	if err != nil {
@@ -180,70 +165,20 @@ func (h *Handler) deviceResolveAlert(w http.ResponseWriter, r *http.Request) {
 		response.Fail(w, "设备不存在")
 		return
 	}
-	// 处置前的 reason，用于 handledReason 回显。
-	var before string
-	if kind == "person" {
-		pr, err := scanPersonRow(tx.QueryRow(ctx,
-			`SELECT `+personCols+` `+personFrom+` WHERE d.device_id=$1`, deviceID))
-		if err != nil {
-			rollback()
-			response.Error500(w, ref())
-			return
-		}
-		if a := describePersonAlert(pr, time.Now()); a != nil {
-			before, _ = a["reason"].(string)
-		}
-	} else if kind == "rate" || kind == "pre" {
-		a, err := h.findRatepreAlert(ctx, tx, deviceID, kind, recordID)
-		if err != nil {
-			rollback()
-			response.Error500(w, ref())
-			return
-		}
-		if a != nil {
-			before, _ = a["reason"].(string)
-		}
+	before, err := h.alertResolutionReason(ctx, tx, deviceID, kind, recordID)
+	if err != nil {
+		rollback()
+		response.Error500(w, ref())
+		return
 	}
 	var rows int64
 	switch kind {
 	case "rate", "pre":
-		handledCol, hatCol, stateCol := "rate_handled", "rate_handled_at", "rate_state"
-		if kind == "pre" {
-			handledCol, hatCol, stateCol = "pre_handled", "pre_handled_at", "pre_state"
-		}
-		var ct pgconn.CommandTag
-		if recordID != nil {
-			// 按 recordId 处置必须校验记录归属该设备。
-			ct, err = tx.Exec(ctx,
-				`UPDATE ratepre SET `+handledCol+`=1, `+hatCol+`=now(), `+stateCol+`='0'
-				 WHERE id=$1 AND device_id=$2`, *recordID, deviceID)
-		} else {
-			ct, err = tx.Exec(ctx,
-				`UPDATE ratepre SET `+handledCol+`=1, `+hatCol+`=now(), `+stateCol+`='0'
-				 WHERE device_id=$1 AND `+stateCol+`='1'
-				   AND (`+hatCol+` IS NULL OR create_time > `+hatCol+`)`, deviceID)
-		}
+		rows, err = h.resolveVitalAlert(ctx, tx, deviceID, kind, recordID)
 		if err != nil {
 			rollback()
 			response.Error500(w, ref())
 			return
-		}
-		rows = ct.RowsAffected()
-		// 该类已无未处理异常 → 设备层面的标记也置上，红点彻底消失。
-		if a, err := h.findRatepreAlert(ctx, tx, deviceID, kind, nil); err != nil {
-			rollback()
-			response.Error500(w, ref())
-			return
-		} else if a == nil {
-			flagCol := "rate_handled"
-			if kind == "pre" {
-				flagCol = "pre_handled"
-			}
-			if _, err := tx.Exec(ctx, `UPDATE device SET `+flagCol+`=1 WHERE device_id=$1`, deviceID); err != nil {
-				rollback()
-				response.Error500(w, ref())
-				return
-			}
 		}
 	case "person":
 		// 记录"已确认过的掉线次数"：只有设备重新上线后又掉线（boot_seq 增长）才会再次报警。
@@ -277,4 +212,97 @@ func (h *Handler) deviceResolveAlert(w http.ResponseWriter, r *http.Request) {
 	response.OK(w, map[string]any{
 		"handledReason": before, "message": "已处置，红点已消除",
 	})
+}
+
+type alertResolution struct {
+	deviceID int64
+	kind     string
+	recordID *int64
+}
+
+func parseAlertResolution(w http.ResponseWriter, m map[string]any) (alertResolution, bool) {
+	idStr, present := vstr(m, "deviceId")
+	if !present || !validID(idStr) {
+		writeValidation400(w)
+		return alertResolution{}, false
+	}
+	deviceID, _ := strconv.ParseInt(idStr, 10, 64)
+	kind, present := vstr(m, "kind")
+	if !present || kind == "" {
+		writeValidation400(w)
+		return alertResolution{}, false
+	}
+	kind = strings.ToLower(kind)
+	recordIDStr, _ := vstr(m, "recordId")
+	var recordID *int64
+	if recordIDStr != "" {
+		if !validID(recordIDStr) {
+			writeValidation400(w)
+			return alertResolution{}, false
+		}
+		n, _ := strconv.ParseInt(recordIDStr, 10, 64)
+		recordID = &n
+	}
+	return alertResolution{deviceID, kind, recordID}, true
+}
+
+func (h *Handler) alertResolutionReason(ctx context.Context, tx *dbstore.Transaction, deviceID int64, kind string, recordID *int64) (string, error) {
+	// 处置前的 reason，用于 handledReason 回显。
+	var before string
+	if kind == "person" {
+		pr, err := scanPersonRow(tx.QueryRow(ctx,
+			`SELECT `+personCols+` `+personFrom+` WHERE d.device_id=$1`, deviceID))
+		if err != nil {
+			return "", err
+		}
+		if a := describePersonAlert(pr, time.Now()); a != nil {
+			before, _ = a["reason"].(string)
+		}
+	} else if kind == "rate" || kind == "pre" {
+		a, err := h.findRatepreAlert(ctx, tx, deviceID, kind, recordID)
+		if err != nil {
+			return "", err
+		}
+		if a != nil {
+			before, _ = a["reason"].(string)
+		}
+	}
+	return before, nil
+}
+
+func (h *Handler) resolveVitalAlert(ctx context.Context, tx *dbstore.Transaction, deviceID int64, kind string, recordID *int64) (int64, error) {
+	handledCol, hatCol, stateCol := "rate_handled", "rate_handled_at", "rate_state"
+	if kind == "pre" {
+		handledCol, hatCol, stateCol = "pre_handled", "pre_handled_at", "pre_state"
+	}
+	var ct pgconn.CommandTag
+	var err error
+	if recordID != nil {
+		// 按 recordId 处置必须校验记录归属该设备。
+		ct, err = tx.Exec(ctx,
+			`UPDATE ratepre SET `+handledCol+`=1, `+hatCol+`=now(), `+stateCol+`='0'
+			 WHERE id=$1 AND device_id=$2`, *recordID, deviceID)
+	} else {
+		ct, err = tx.Exec(ctx,
+			`UPDATE ratepre SET `+handledCol+`=1, `+hatCol+`=now(), `+stateCol+`='0'
+			 WHERE device_id=$1 AND `+stateCol+`='1'
+			   AND (`+hatCol+` IS NULL OR create_time > `+hatCol+`)`, deviceID)
+	}
+	if err != nil {
+		return 0, err
+	}
+	rows := ct.RowsAffected()
+	// 该类已无未处理异常 → 设备层面的标记也置上，红点彻底消失。
+	if a, err := h.findRatepreAlert(ctx, tx, deviceID, kind, nil); err != nil {
+		return 0, err
+	} else if a == nil {
+		flagCol := "rate_handled"
+		if kind == "pre" {
+			flagCol = "pre_handled"
+		}
+		if _, err := tx.Exec(ctx, `UPDATE device SET `+flagCol+`=1 WHERE device_id=$1`, deviceID); err != nil {
+			return 0, err
+		}
+	}
+	return rows, nil
 }

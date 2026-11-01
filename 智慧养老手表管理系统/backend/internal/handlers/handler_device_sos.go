@@ -1,9 +1,11 @@
 package handlers
 
 import (
+	"context"
 	"github.com/jackc/pgx/v5"
 	"net/http"
 	"regexp"
+	dbstore "suining-care/internal/db"
 	"suining-care/internal/notify"
 	"suining-care/internal/response"
 	"time"
@@ -19,24 +21,11 @@ func (h *Handler) deviceSos(w http.ResponseWriter, r *http.Request) {
 	if !ok {
 		return
 	}
-	deviceNo, secret, ok := checkDeviceCredentials(w, m)
+	req, ok := parseSOSRequest(w, m)
 	if !ok {
 		return
 	}
-	if !checkTelemetry(w, m) {
-		return
-	}
-	bindingVersion, valid := int64Val(m, "bindingVersion")
-	if !valid || bindingVersion < 1 {
-		writeValidation400(w)
-		return
-	}
-	// SOS retry identifiers must be checked before opening a DB transaction.
-	requestID, _ := vstr(m, "requestId")
-	if requestID == "" || len(requestID) > 64 || !sosRequestIDOK(requestID) {
-		writeValidation400(w)
-		return
-	}
+	deviceNo, secret, bindingVersion, requestID := req.deviceNo, req.secret, req.bindingVersion, req.requestID
 	ctx := r.Context()
 	tx, err := h.DB.Begin(ctx)
 	if err != nil {
@@ -44,7 +33,7 @@ func (h *Handler) deviceSos(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	rollback := func() { _ = tx.Rollback(ctx) }
-	d, code, msg, err := h.hwAuth(ctx, tx, deviceNo, secret, "设备已停用")
+	d, code, msg, err := h.lockSOSDevice(ctx, tx, deviceNo, secret, bindingVersion)
 	if err != nil {
 		rollback()
 		response.Error500(w, ref())
@@ -52,50 +41,13 @@ func (h *Handler) deviceSos(w http.ResponseWriter, r *http.Request) {
 	}
 	if d == nil {
 		rollback()
-		hwFail(w, code, msg)
+		if code == "409" {
+			conflict409(w, msg)
+		} else {
+			hwFail(w, code, msg)
+		}
 		return
 	}
-	if d.OldID == nil {
-		rollback()
-		hwFail(w, "0005", "设备还未绑定老人")
-		return
-	}
-	// Match binding and unbinding's elder-then-device lock order. Recheck the
-	// device under its row lock before writing or acknowledging a retry.
-	expectedOwner := *d.OldID
-	if _, err := tx.Exec(ctx, `SELECT old_id FROM oldperson WHERE old_id=$1 FOR UPDATE`, expectedOwner); err != nil {
-		rollback()
-		response.Error500(w, ref())
-		return
-	}
-	locked, err := scanOldDevice(tx.QueryRow(ctx, `SELECT `+oldDeviceCols+` FROM device WHERE device_id=$1 FOR UPDATE`, d.ID))
-	if err != nil {
-		rollback()
-		response.Error500(w, ref())
-		return
-	}
-	locked, code, msg, err = checkDeviceAuth(locked, secret, "设备已停用")
-	if err != nil {
-		rollback()
-		response.Error500(w, ref())
-		return
-	}
-	if locked == nil {
-		rollback()
-		hwFail(w, code, msg)
-		return
-	}
-	if locked.No != deviceNo {
-		rollback()
-		hwFail(w, "0004", "设备号或密钥不正确")
-		return
-	}
-	if locked.OldID == nil || *locked.OldID != expectedOwner || locked.HealthEpoch != bindingVersion {
-		rollback()
-		conflict409(w, "绑定已变化，请重新登录；旧绑定求助不能归入新老人")
-		return
-	}
-	d = locked
 	// A device should reuse a stable requestId when retrying the same SOS on
 	// weak networks; each new press must use a new ID.
 	if requestID != "" {
@@ -149,20 +101,11 @@ func (h *Handler) deviceSos(w http.ResponseWriter, r *http.Request) {
 		response.Error500(w, ref())
 		return
 	}
-	queued, err := notify.QueueCareSMS(ctx, tx, h.Box, incidentID, *d.OldID)
+	notificationState, err := h.queueSOSNotification(ctx, tx, incidentID, *d.OldID)
 	if err != nil {
 		rollback()
 		response.Error500(w, ref())
 		return
-	}
-	notificationState := "no_recipient"
-	if err := notify.CareInbox(ctx, tx, h.Box, *d.OldID, incidentID); err != nil {
-		rollback()
-		response.Error500(w, ref())
-		return
-	}
-	if queued > 0 {
-		notificationState = "pending"
 	}
 	if err := tx.Commit(ctx); err != nil {
 		response.Error500(w, ref())
@@ -179,3 +122,77 @@ func (h *Handler) deviceSos(w http.ResponseWriter, r *http.Request) {
 var sosRequestIDPattern = regexp.MustCompile(`^[A-Za-z0-9_.:-]{1,64}$`)
 
 func sosRequestIDOK(id string) bool { return sosRequestIDPattern.MatchString(id) }
+
+type sosRequest struct {
+	deviceNo, secret, requestID string
+	bindingVersion              int64
+}
+
+func parseSOSRequest(w http.ResponseWriter, m map[string]any) (sosRequest, bool) {
+	deviceNo, secret, ok := checkDeviceCredentials(w, m)
+	if !ok {
+		return sosRequest{}, false
+	}
+	if !checkTelemetry(w, m) {
+		return sosRequest{}, false
+	}
+	bindingVersion, valid := int64Val(m, "bindingVersion")
+	if !valid || bindingVersion < 1 {
+		writeValidation400(w)
+		return sosRequest{}, false
+	}
+	// SOS retry identifiers must be checked before opening a DB transaction.
+	requestID, _ := vstr(m, "requestId")
+	if requestID == "" || len(requestID) > 64 || !sosRequestIDOK(requestID) {
+		writeValidation400(w)
+		return sosRequest{}, false
+	}
+	return sosRequest{deviceNo: deviceNo, secret: secret, requestID: requestID, bindingVersion: bindingVersion}, true
+}
+
+func (h *Handler) queueSOSNotification(ctx context.Context, tx *dbstore.Transaction, incidentID, oldID int64) (string, error) {
+	queued, err := notify.QueueCareSMS(ctx, tx, h.Box, incidentID, oldID)
+	if err != nil {
+		return "", err
+	}
+	if err := notify.CareInbox(ctx, tx, h.Box, oldID, incidentID); err != nil {
+		return "", err
+	}
+	if queued > 0 {
+		return "pending", nil
+	}
+	return "no_recipient", nil
+}
+
+// lockSOSDevice authenticates and revalidates the owner under elder-then-device
+// locks. Code 409 denotes a binding conflict; other codes use the device envelope.
+func (h *Handler) lockSOSDevice(ctx context.Context, tx *dbstore.Transaction, deviceNo, secret string, bindingVersion int64) (*oldDevice, string, string, error) {
+	d, code, msg, err := h.hwAuth(ctx, tx, deviceNo, secret, "设备已停用")
+	if err != nil || d == nil {
+		return nil, code, msg, err
+	}
+	if d.OldID == nil {
+		return nil, "0005", "设备还未绑定老人", nil
+	}
+	// Match binding and unbinding's elder-then-device lock order. Recheck the
+	// device under its row lock before writing or acknowledging a retry.
+	expectedOwner := *d.OldID
+	if _, err := tx.Exec(ctx, `SELECT old_id FROM oldperson WHERE old_id=$1 FOR UPDATE`, expectedOwner); err != nil {
+		return nil, "", "", err
+	}
+	locked, err := scanOldDevice(tx.QueryRow(ctx, `SELECT `+oldDeviceCols+` FROM device WHERE device_id=$1 FOR UPDATE`, d.ID))
+	if err != nil {
+		return nil, "", "", err
+	}
+	locked, code, msg, err = checkDeviceAuth(locked, secret, "设备已停用")
+	if err != nil || locked == nil {
+		return nil, code, msg, err
+	}
+	if locked.No != deviceNo {
+		return nil, "0004", "设备号或密钥不正确", nil
+	}
+	if locked.OldID == nil || *locked.OldID != expectedOwner || locked.HealthEpoch != bindingVersion {
+		return nil, "409", "绑定已变化，请重新登录；旧绑定求助不能归入新老人", nil
+	}
+	return locked, "", "", nil
+}
