@@ -1,10 +1,34 @@
 package health
 
 import (
+	"encoding/json"
 	"math"
 	"testing"
 	"time"
 )
+
+func TestSleepDailyTotalOverflowIsExplicit(t *testing.T) {
+	from := time.Date(2026, 10, 20, 0, 0, 0, 0, time.UTC)
+	a := Sample{RecordID: "sleep-a", Source: "watch", SourceDevice: "A", Metric: "sleep_duration", Unit: "min", Semantics: "daily_total", Start: from, End: from, Version: 1, Value: Number(1e308)}
+	b := a
+	b.RecordID, b.Start, b.End = "sleep-b", from.Add(24*time.Hour), from.Add(24*time.Hour)
+	for _, sample := range []Sample{a, b} {
+		if _, err := sample.Normalize(); err != nil {
+			t.Fatal(err)
+		}
+	}
+	if out, err := Aggregate([]Sample{a, b}, from, from.Add(48*time.Hour)); err == nil {
+		t.Errorf("unrepresentable total accepted: %+v", out)
+	}
+	b.Value = Number(1)
+	out, err := Aggregate([]Sample{a, b}, from, from.Add(48*time.Hour))
+	if err != nil || out.Count != 2 || out.Total == nil || *out.Total != 1e308 {
+		t.Fatalf("finite total rejected: %+v err=%v", out, err)
+	}
+	if _, err := json.Marshal(out); err != nil {
+		t.Fatal(err)
+	}
+}
 
 func TestContinuousDailyConflictsIndependentOfInputOrder(t *testing.T) {
 	from := time.Date(2026, 10, 20, 0, 0, 0, 0, time.UTC)

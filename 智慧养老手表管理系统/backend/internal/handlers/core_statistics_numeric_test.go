@@ -76,3 +76,28 @@ func TestContinuousStatisticsLargeFiniteMean(t *testing.T) {
 		}
 	}
 }
+
+func TestSleepTotalOverflowReturnsConflict(t *testing.T) {
+	pool := testDatabase(t)
+	seedDevice(t, pool)
+	h := testHandler(t, pool)
+	from := time.Date(2026, 10, 20, 0, 0, 0, 0, time.UTC)
+	a := health.Sample{RecordID: "sleep-a", Source: "watch", SourceDevice: "WATCH001", Metric: "sleep_duration", Unit: "min", Semantics: "daily_total", Value: health.Number(1e308), Start: from, End: from, Version: 1}
+	b := a
+	b.RecordID, b.Start, b.End = "sleep-b", from.Add(24*time.Hour), from.Add(24*time.Hour)
+	write := api(t, h.healthBatch, map[string]any{"deviceNo": "WATCH001", "secret": testSecret, "bindingVersion": 1, "samples": []health.Sample{a, b}})
+	if write["returnCode"] != "1111" {
+		t.Fatal(write)
+	}
+	query := map[string]any{"oldId": 1, "source": "watch", "sourceDevice": "WATCH001", "metric": "sleep_duration", "semantics": "daily_total", "from": from, "to": from.Add(48 * time.Hour)}
+	for _, cached := range []bool{false, true} {
+		if cached {
+			h.healthCache = newStatisticsCache(1 << 20)
+		}
+		read := withHealthPrincipal(h, session.Principal{Role: auth.RoleAdmin, ID: 1}, h.healthStatistics)
+		out := callAPI(read, query)
+		if out.Code != 409 || !json.Valid(out.Body.Bytes()) || !strings.Contains(out.Body.String(), "total exceeds finite range") {
+			t.Errorf("cached=%v overflow did not produce explicit JSON conflict: HTTP %d %q", cached, out.Code, out.Body.String())
+		}
+	}
+}
