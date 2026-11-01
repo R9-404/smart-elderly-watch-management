@@ -6,6 +6,15 @@
 
 | 文件 | 职责 |
 | --- | --- |
+| [SuiningWatch/entry/src/main/ets/model/NativeSampling.ets](../SuiningWatch/entry/src/main/ets/model/NativeSampling.ets) | 原生心率与累计计步转换、观测时间和绑定基线隔离 |
+| [SuiningWatch/entry/src/main/ets/services/HealthSensors.ets](../SuiningWatch/entry/src/main/ets/services/HealthSensors.ets) | 鸿蒙传感器枚举、前台授权、一次性读取及超时取消 |
+| [SuiningWatch/entry/src/main/resources/base/profile/network_config.json](../SuiningWatch/entry/src/main/resources/base/profile/network_config.json) | HTTPS 默认策略和模拟器回环明文例外 |
+| [SuiningWatch/tests/harmony.test.cjs](../SuiningWatch/tests/harmony.test.cjs) | 原生采样转换、传感器边界和传输存储回归 |
+| [SuiningWatch/tests/load-ets.cjs](../SuiningWatch/tests/load-ets.cjs) | 便携测试生产 ArkTS 加载器与 SDK 边界替换 |
+| [docs/patch-review/2026-11-01-harmonyos-adaptation.md](../docs/patch-review/2026-11-01-harmonyos-adaptation.md) | 鸿蒙接入结构、逐项改动、通信流程及验证边界 |
+| [智慧养老手表管理系统/backend/internal/handlers/harmony_watch_test.go](../智慧养老手表管理系统/backend/internal/handlers/harmony_watch_test.go) | 鸿蒙协议协商、原生数据往返及绑定隔离集成回归 |
+| [智慧养老手表管理系统/frontend/src/components/HarmonyWatchSetup.vue](../智慧养老手表管理系统/frontend/src/components/HarmonyWatchSetup.vue) | 设备登记及绑定码中的鸿蒙网络与授权接入指引 |
+| [智慧养老手表管理系统/frontend/src/components/HarmonyWatchSetup.test.ts](../智慧养老手表管理系统/frontend/src/components/HarmonyWatchSetup.test.ts) | 鸿蒙接入地址与绑定指引回归 |
 | [docs/patch-review/2026-11-01-huawei-health-reference.md](../docs/patch-review/2026-11-01-huawei-health-reference.md) | 华为运动健康静态证据复核、设计取舍与最新采样接口合同 |
 | [智慧养老手表管理系统/backend/internal/handlers/handler_health_latest.go](../智慧养老手表管理系统/backend/internal/handlers/handler_health_latest.go) | 按来源、设备、指标与语义读取最新采样并保留精确时间及绑定归属 |
 | [智慧养老手表管理系统/backend/internal/handlers/health_latest_test.go](../智慧养老手表管理系统/backend/internal/handlers/health_latest_test.go) | 最新采样来源隔离、精确时间、订正删除与家属归属回归 |

@@ -19,6 +19,7 @@ export interface LatestHealthRecord {
     end: string
     stage?: string
     timeBasis?: string
+    metadata?: { timestampBasis?: string; simulated?: string; sensor?: string }
   }
 }
 

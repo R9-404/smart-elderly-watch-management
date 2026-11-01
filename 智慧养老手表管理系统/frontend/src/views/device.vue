@@ -105,6 +105,7 @@
         <div class="created-line">密　钥：<b class="secret">{{ createdDevice.secret }}</b>
           <el-button size="small" plain type="primary" @click="copy(createdDevice.secret)">复制</el-button>
         </div>
+        <HarmonyWatchSetup :device-no="createdDevice.deviceNo" />
       </div>
       <template #footer><span  class="dialog-footer">
         <el-button :disabled="creating" @click="closeCreateDialog">关 闭</el-button>
@@ -113,6 +114,7 @@
     </el-dialog>
 
     <el-dialog title="设备绑定码" v-model="bindCodeDialogVisible" width="560px">
+      <HarmonyWatchSetup v-if="currentDevice" :device-no="currentDevice.deviceNo" />
       <div v-if="currentDevice" class="tip">
         设备：{{ currentDevice.deviceNo }}（{{ currentDevice.alias }}）；
         当前绑定老人：{{ currentDevice.oldPersonName }}
@@ -165,8 +167,10 @@ import { deviceListMethods } from './device.list-methods.js'
 import { deviceAlertMethods } from './device.alert-methods.js'
 import { deviceRefreshMethods } from './device.refresh-methods.js'
 import { deviceAdminMethods } from './device.admin-methods.js'
+import HarmonyWatchSetup from '../components/HarmonyWatchSetup.vue'
 
 export default {
+  components: { HarmonyWatchSetup },
   data () {
     return {
       deviceList: [], deviceTotal: 0, serverOnlineCount: 0, currentPage: 1, pageSize: 20, filterTimer: null, reloadPending: false,

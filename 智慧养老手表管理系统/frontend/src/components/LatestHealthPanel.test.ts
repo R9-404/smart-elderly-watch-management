@@ -46,6 +46,19 @@ it('shows read failure and retries to an explicit empty state', async () => {
   } finally { view.unmount() }
 })
 
+it('labels native sensor timestamps as application observations rather than device UTC', async () => {
+  vi.spyOn(axios, 'post').mockResolvedValue({ data: { returnCode: '1111', items: [
+    { sampleId: 'native', deviceId: 1, bindingVersion: 1, sample: { ...sample, source: 'suining-harmonyos', semantics: 'interval', metadata: { timestampBasis: 'app-received' } } }
+  ] } })
+  const view = mountPanel()
+  try {
+    await flushPromises()
+    expect(view.text()).toContain('鸿蒙手表（应用上报）')
+    expect(view.text()).toContain('应用观测区间')
+    expect(view.text()).not.toContain('日累计快照')
+  } finally { view.unmount() }
+})
+
 it('cancels an unfinished read on leaving the page', async () => {
   const post = vi.spyOn(axios, 'post').mockReturnValue(new Promise(() => {}))
   const view = mountPanel()

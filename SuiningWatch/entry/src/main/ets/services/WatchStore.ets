@@ -5,6 +5,7 @@ import { WatchConfig, PendingBatch, PendingSOS, SimulatorState, readPendingSOS }
 export class WatchStore {
   private prefs: preferences.Preferences;
   private sosStorageFailed: boolean = false;
+  private batchStorageFailed: boolean = false;
   constructor(context: common.Context) {
     this.prefs = preferences.getPreferencesSync(context, { name: 'suining_watch_sim_v1' });
   }
@@ -20,6 +21,7 @@ export class WatchStore {
     await this.prefs.flush();
   }
   batch(): PendingBatch | undefined {
+    if (this.batchStorageFailed) { throw new Error('采样保存状态未确认，请重启应用恢复记录，勿重复采样'); }
     const raw = this.prefs.getSync('batch', '') as string;
     return raw ? JSON.parse(raw) as PendingBatch : undefined;
   }
@@ -29,8 +31,14 @@ export class WatchStore {
     return readPendingSOS(raw);
   }
   async saveBatch(batch: PendingBatch | undefined): Promise<void> {
-    this.prefs.putSync('batch', batch ? JSON.stringify(batch) : '');
-    await this.prefs.flush();
+    if (this.batchStorageFailed) { throw new Error('采样保存状态未确认，请重启应用恢复记录'); }
+    try {
+      this.prefs.putSync('batch', batch ? JSON.stringify(batch) : '');
+      await this.prefs.flush();
+    } catch (error) {
+      this.batchStorageFailed = true;
+      throw new Error('采样保存状态未确认，请重启应用恢复记录，勿重复采样');
+    }
   }
   async saveSOS(sos: PendingSOS[]): Promise<void> {
     if (this.sosStorageFailed) { throw new Error('求助记录保存失败，请联系管理员核查，勿重复发送'); }

@@ -47,6 +47,7 @@ def route_policies():
 policies = route_policies()
 csrf_exempt = {path for (_, path), (access, bootstrap) in policies.items() if access == "Device" or bootstrap}
 fields = {
+    "/api/v1/device/login": {"deviceNo": "string", "secret": "string", "platform": "string", "protocolVersion": "integer"},
     "/api/v1/device/report": {"positionSource": "string", "positionSampledAt": "string", "positionAccuracy": "number"},
     "/api/v1/device/sos": {"positionSource": "string", "positionSampledAt": "string", "positionAccuracy": "number"},
     "/api/v1/auth/login": {"phone": "string", "password": "string", "otp": "string", "recoveryCode": "string"},
@@ -88,9 +89,19 @@ for file in sorted((backend / "internal/handlers").glob("*.go")):
                     schema["properties"]["positionSampledAt"]["format"] = "date-time"
                     schema["properties"]["positionAccuracy"]["exclusiveMinimum"] = 0
                 # Device fields are incremental; existing telemetry stays an open object.
-                schema["additionalProperties"] = path in {"/api/v1/auth/login", "/api/v1/device/report", "/api/v1/device/sos"}
+                schema["additionalProperties"] = path in {"/api/v1/auth/login", "/api/v1/device/login", "/api/v1/device/report", "/api/v1/device/sos"}
             operation["requestBody"] = {"required": True, "content": {"application/json": {"schema": schema}}}
         operation["description"] = f"Implementation: {file.relative_to(root).as_posix()}. " + ("Device body authentication or signed gateway receipt; not anonymous access." if access == "Device" else "Go API DTOs without explicit schemas remain open objects; consult implementation.")
+        if path == "/api/v1/device/login":
+            schema["required"] = ["deviceNo", "secret"]
+            schema["properties"]["secret"]["writeOnly"] = True
+            operation["description"] += (
+                " HarmonyOS clients send optional platform=harmonyos with protocolVersion=1; "
+                "both are required together when platform is supplied. Authenticated success returns "
+                "protocolVersion=1 and maxBatchSize=200 plus the existing bindingVersion/owner. "
+                "Unsupported platform/version returns 400. Omit platform for the legacy login contract. "
+                "Invalid credentials retain the existing HTTP 200 failure envelope; inspect returnCode."
+            )
         if path == "/api/v1/health/latest":
             schema["properties"]["oldId"]["minimum"] = 1
             operation["description"] = (

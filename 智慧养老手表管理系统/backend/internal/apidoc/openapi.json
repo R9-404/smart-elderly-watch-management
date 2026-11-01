@@ -2374,12 +2374,31 @@
             "application/json": {
               "schema": {
                 "type": "object",
-                "additionalProperties": true
+                "additionalProperties": true,
+                "properties": {
+                  "deviceNo": {
+                    "type": "string"
+                  },
+                  "secret": {
+                    "type": "string",
+                    "writeOnly": true
+                  },
+                  "platform": {
+                    "type": "string"
+                  },
+                  "protocolVersion": {
+                    "type": "integer"
+                  }
+                },
+                "required": [
+                  "deviceNo",
+                  "secret"
+                ]
               }
             }
           }
         },
-        "description": "Implementation: 智慧养老手表管理系统/backend/internal/handlers/handler_old.go. Device body authentication or signed gateway receipt; not anonymous access."
+        "description": "Implementation: 智慧养老手表管理系统/backend/internal/handlers/handler_old.go. Device body authentication or signed gateway receipt; not anonymous access. HarmonyOS clients send optional platform=harmonyos with protocolVersion=1; both are required together when platform is supplied. Authenticated success returns protocolVersion=1 and maxBatchSize=200 plus the existing bindingVersion/owner. Unsupported platform/version returns 400. Omit platform for the legacy login contract. Invalid credentials retain the existing HTTP 200 failure envelope; inspect returnCode."
       }
     },
     "/api/v1/device/report": {
