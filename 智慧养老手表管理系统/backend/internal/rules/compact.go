@@ -9,7 +9,6 @@ import (
 
 // CompactCandidate is an immutable snapshot of one rule result. Its evidence
 // does not allocate a map. Values are copied, never retained via Input pointers.
-// Convert to maps only for callers of the legacy Evaluate API.
 type CompactCandidate struct {
 	Kind, Key, Severity string
 	Breach              bool
@@ -105,15 +104,6 @@ func (c CompactCandidate) marshalEvidence(streak int, owner int64, now time.Time
 	default:
 		return nil, nil
 	}
-}
-
-// EvaluateCompact computes all rule results, including non-breaches, without
-// constructing evidence maps. Do not pool these results: Input owns no output.
-func EvaluateCompact(p Policy, in Input) []CompactCandidate {
-	if !p.Enabled {
-		return nil
-	}
-	return EvaluateCompactInto(make([]CompactCandidate, 0, 7), p, in)
 }
 
 // EvaluateCompactInto writes into caller-provided storage. At most seven
