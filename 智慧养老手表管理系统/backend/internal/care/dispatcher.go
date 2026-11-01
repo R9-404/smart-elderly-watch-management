@@ -22,12 +22,26 @@ type delivery struct {
 	kind       string
 }
 
+type careDeliveryClaim struct {
+	job            delivery
+	recipientError error
+}
+
 func (d *dispatcher) dispatchNext(ctx context.Context) (bool, error) {
+	claim, found, err := d.claimCareDelivery(ctx)
+	if err != nil || !found {
+		return found, err
+	}
+	err = d.sendCareDelivery(ctx, &claim.job, claim.recipientError)
+	return true, d.finishCareDelivery(ctx, &claim.job, err)
+}
+
+func (d *dispatcher) claimCareDelivery(ctx context.Context) (careDeliveryClaim, bool, error) {
 	// Atomic database claim; SKIP LOCKED supports multiple service replicas.
 	var job delivery
 	tx, err := d.db.Begin(ctx)
 	if err != nil {
-		return true, err
+		return careDeliveryClaim{}, true, err
 	}
 	defer tx.Rollback(ctx)
 	exhaustionFilter := ""
@@ -42,9 +56,9 @@ func (d *dispatcher) dispatchNext(ctx context.Context) (bool, error) {
 	if err != nil {
 		// No row is normal; connection and SQL errors are not.
 		if errors.Is(err, pgx.ErrNoRows) {
-			return false, nil
+			return careDeliveryClaim{}, false, nil
 		}
-		return true, err
+		return careDeliveryClaim{}, true, err
 	}
 	// 收件人在入库时是密文；解密失败（密钥错误或已轮换）按投递失败走退避路径，
 	// 不把密文原样交给网关。
@@ -53,16 +67,20 @@ func (d *dispatcher) dispatchNext(ctx context.Context) (bool, error) {
 	job.attempts++
 	observability.Default.Add(`suining_notification_attempts_total{queue="care"}`, 1)
 	if err := tx.QueryRow(ctx, "SELECT kind FROM care_incident WHERE id=$1", job.incidentID).Scan(&job.kind); err != nil {
-		return true, err
+		return careDeliveryClaim{}, true, err
 	}
 	if _, err := tx.Exec(ctx, `UPDATE care_notification_outbox SET status='sending',
         attempts=$2,last_attempt_at=now() WHERE id=$1`, job.id, job.attempts); err != nil {
-		return true, err
+		return careDeliveryClaim{}, true, err
 	}
 	if err := tx.Commit(ctx); err != nil {
-		return true, err
+		return careDeliveryClaim{}, true, err
 	}
-	err = openErr
+	return careDeliveryClaim{job: job, recipientError: openErr}, true, nil
+}
+
+func (d *dispatcher) sendCareDelivery(ctx context.Context, job *delivery, openErr error) error {
+	err := openErr
 	if openErr != nil {
 		err = &gatewayFailure{reason: "decrypt"}
 	}
@@ -100,6 +118,10 @@ func (d *dispatcher) dispatchNext(ctx context.Context) (bool, error) {
 			}
 		}
 	}
+	return err
+}
+
+func (d *dispatcher) finishCareDelivery(ctx context.Context, job *delivery, err error) error {
 	if err == nil {
 		_, updateErr := d.db.Exec(ctx, `
 			UPDATE care_notification_outbox
@@ -107,7 +129,7 @@ func (d *dispatcher) dispatchNext(ctx context.Context) (bool, error) {
 			WHERE id=$1 AND status='sending' AND attempts=$2`, job.id, job.attempts)
 		// A newer claim or an authenticated receipt must never be overwritten.
 		// "sent" only means the gateway accepted the request.
-		return true, updateErr
+		return updateErr
 	}
 	wait := retryDelay(job.attempts)
 	var failure *gatewayFailure
@@ -117,7 +139,7 @@ func (d *dispatcher) dispatchNext(ctx context.Context) (bool, error) {
 	}
 	finish, beginErr := d.db.Begin(ctx)
 	if beginErr != nil {
-		return true, beginErr
+		return beginErr
 	}
 	defer finish.Rollback(ctx)
 	exhaustionUpdate := ""
@@ -129,19 +151,19 @@ func (d *dispatcher) dispatchNext(ctx context.Context) (bool, error) {
 		SET status='failed', last_error=$2, retry_at=now()+($3 * interval '1 second')`+exhaustionUpdate+`
 		WHERE id=$1 AND status='sending' AND attempts=$4`, job.id, truncate(err.Error(), 400), int(wait.Seconds()), job.attempts)
 	if updateErr != nil {
-		return true, updateErr
+		return updateErr
 	}
 	if changed.RowsAffected() > 0 && job.attempts >= 5 && job.channel == "sms" {
 		voiceRecipient, voiceKey, sealErr := notify.SealNotificationRecipient(d.box, job.recipient)
 		if sealErr != nil {
-			return true, sealErr
+			return sealErr
 		}
 		_, err = finish.Exec(ctx, `INSERT INTO care_notification_outbox(incident_id,channel,recipient,recipient_key) VALUES($1,'voice',$2,$3) ON CONFLICT DO NOTHING`, job.incidentID, voiceRecipient, voiceKey)
 		if err != nil {
-			return true, err
+			return err
 		}
 	}
-	return true, finish.Commit(ctx)
+	return finish.Commit(ctx)
 }
 
 // retryDelay is based on the atomic claim's persisted attempt counter.

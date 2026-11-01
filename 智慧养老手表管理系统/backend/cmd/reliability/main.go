@@ -57,37 +57,7 @@ func run() error {
 	}
 	defer pool.Close()
 	if *action == "fixture" || *action == "hold-heartbeat" {
-		dsn, err := mysql.ParseDSN(cfg.MySQLDSN)
-		if err != nil {
-			return err
-		}
-		if !regexp.MustCompile(`^suining_drill_[a-z0-9_]+$`).MatchString(dsn.DBName) {
-			return errors.New("isolated operations require a suining_drill_* disposable database")
-		}
-		if *action == "fixture" {
-			return fixture(ctx, pool, cfg)
-		}
-		if *hold < time.Second || *hold > 5*time.Minute {
-			return errors.New("heartbeat lock must be 1s..5m")
-		}
-		tx, err := pool.Begin(ctx)
-		if err != nil {
-			return err
-		}
-		defer tx.Rollback(ctx)
-		var singleton bool
-		if err = tx.QueryRow(ctx, "SELECT singleton FROM care_worker_heartbeat FOR UPDATE").Scan(&singleton); err != nil {
-			return err
-		}
-		fmt.Println("HEARTBEAT_ROW_LOCKED (no task state changed)")
-		timer := time.NewTimer(*hold)
-		defer timer.Stop()
-		select {
-		case <-timer.C:
-			return nil
-		case <-ctx.Done():
-			return ctx.Err()
-		}
+		return isolatedReliabilityOperation(ctx, pool, &cfg, *action, *hold)
 	}
 	box, err := securestore.New(cfg.DataKey)
 	if err != nil {
@@ -232,4 +202,38 @@ func probe() error {
 	l.WriteMetrics(os.Stdout)
 	time.Sleep(2 * time.Second)
 	return nil
+}
+
+func isolatedReliabilityOperation(ctx context.Context, pool *db.Database, cfg *config.Config, action string, hold time.Duration) error {
+	dsn, err := mysql.ParseDSN(cfg.MySQLDSN)
+	if err != nil {
+		return err
+	}
+	if !regexp.MustCompile(`^suining_drill_[a-z0-9_]+$`).MatchString(dsn.DBName) {
+		return errors.New("isolated operations require a suining_drill_* disposable database")
+	}
+	if action == "fixture" {
+		return fixture(ctx, pool, *cfg)
+	}
+	if hold < time.Second || hold > 5*time.Minute {
+		return errors.New("heartbeat lock must be 1s..5m")
+	}
+	tx, err := pool.Begin(ctx)
+	if err != nil {
+		return err
+	}
+	defer tx.Rollback(ctx)
+	var singleton bool
+	if err = tx.QueryRow(ctx, "SELECT singleton FROM care_worker_heartbeat FOR UPDATE").Scan(&singleton); err != nil {
+		return err
+	}
+	fmt.Println("HEARTBEAT_ROW_LOCKED (no task state changed)")
+	timer := time.NewTimer(hold)
+	defer timer.Stop()
+	select {
+	case <-timer.C:
+		return nil
+	case <-ctx.Done():
+		return ctx.Err()
+	}
 }

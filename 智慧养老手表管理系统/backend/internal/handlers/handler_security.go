@@ -194,17 +194,7 @@ func (h *Handler) securityFactor(w http.ResponseWriter, r *http.Request) {
 			conflict409(w, "已启用双因素认证，不能覆盖现有密钥")
 			return
 		}
-		seed := make([]byte, 20)
-		if _, err = rand.Read(seed); err != nil {
-			response.Error500(w, ref())
-			return
-		}
-		secret := base32.StdEncoding.WithPadding(base32.NoPadding).EncodeToString(seed)
-		sealed, err = h.Box.Seal(secret, scope)
-		if err == nil {
-			_, err = tx.Exec(ctx, `INSERT INTO auth_factor(role,actor_id,secret,pending_until,recovery_hashes,generation) VALUES($1,$2,$3,$4,'[]',$5) ON CONFLICT(role,actor_id) DO UPDATE SET secret=EXCLUDED.secret,pending_until=EXCLUDED.pending_until,last_counter=-1,generation=EXCLUDED.generation`, p.Role, p.ID, sealed, time.Now().Add(10*time.Minute), uuid.NewString())
-		}
-		result = map[string]any{"secret": secret, "uri": "otpauth://totp/" + url.PathEscape("岁宁:"+p.Role+":"+strconv.FormatInt(p.ID, 10)) + "?secret=" + secret + "&issuer=" + url.QueryEscape("岁宁") + "&algorithm=SHA1&digits=6&period=30"}
+		result, err = h.setupFactor(ctx, tx, p.Role, p.ID, scope)
 	case "confirm", "disable":
 		if err == pgx.ErrNoRows || (req.Action == "confirm" && (enabled || time.Now().After(until))) || (req.Action == "disable" && !enabled) {
 			conflict409(w, "双因素认证状态不允许此操作")
@@ -223,16 +213,10 @@ func (h *Handler) securityFactor(w http.ResponseWriter, r *http.Request) {
 		if req.Action == "disable" {
 			_, err = tx.Exec(ctx, "DELETE FROM auth_factor WHERE role=$1 AND actor_id=$2", p.Role, p.ID)
 		} else {
-			codes, hashes := []string{}, []string{}
-			for range 8 {
-				b := make([]byte, 12)
-				if _, err = rand.Read(b); err != nil {
-					response.Error500(w, ref())
-					return
-				}
-				code := hex.EncodeToString(b)
-				codes = append(codes, code)
-				hashes = append(hashes, health.Digest([]byte(code)))
+			codes, hashes, codeErr := newRecoveryCodes()
+			if codeErr != nil {
+				response.Error500(w, ref())
+				return
 			}
 			b, _ := json.Marshal(hashes)
 			_, err = tx.Exec(ctx, "UPDATE auth_factor SET enabled=true,last_counter=$3,recovery_hashes=$4 WHERE role=$1 AND actor_id=$2", p.Role, p.ID, counter, json.RawMessage(b))
@@ -300,4 +284,32 @@ func (h *Handler) securityLoginAudit(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	response.OK(w, map[string]any{"items": items})
+}
+
+func (h *Handler) setupFactor(ctx context.Context, tx *db.Transaction, role string, actorID int64, scope string) (map[string]any, error) {
+	seed := make([]byte, 20)
+	if _, err := rand.Read(seed); err != nil {
+		return nil, err
+	}
+	secret := base32.StdEncoding.WithPadding(base32.NoPadding).EncodeToString(seed)
+	sealed, err := h.Box.Seal(secret, scope)
+	if err == nil {
+		_, err = tx.Exec(ctx, `INSERT INTO auth_factor(role,actor_id,secret,pending_until,recovery_hashes,generation) VALUES($1,$2,$3,$4,'[]',$5) ON CONFLICT(role,actor_id) DO UPDATE SET secret=EXCLUDED.secret,pending_until=EXCLUDED.pending_until,last_counter=-1,generation=EXCLUDED.generation`, role, actorID, sealed, time.Now().Add(10*time.Minute), uuid.NewString())
+	}
+	result := map[string]any{"secret": secret, "uri": "otpauth://totp/" + url.PathEscape("岁宁:"+role+":"+strconv.FormatInt(actorID, 10)) + "?secret=" + secret + "&issuer=" + url.QueryEscape("岁宁") + "&algorithm=SHA1&digits=6&period=30"}
+	return result, err
+}
+
+func newRecoveryCodes() ([]string, []string, error) {
+	codes, hashes := []string{}, []string{}
+	for range 8 {
+		b := make([]byte, 12)
+		if _, err := rand.Read(b); err != nil {
+			return nil, nil, err
+		}
+		code := hex.EncodeToString(b)
+		codes = append(codes, code)
+		hashes = append(hashes, health.Digest([]byte(code)))
+	}
+	return codes, hashes, nil
 }

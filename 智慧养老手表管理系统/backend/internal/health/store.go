@@ -69,28 +69,7 @@ func SaveBatch(ctx context.Context, tx *db.Transaction, o Owner, samples []Sampl
 	if err != nil {
 		return 0, 0, err
 	}
-	// Older stored versions cannot require equality/conflict comparison against
-	// any input in this batch. Keep their metadata but avoid serializing and
-	// transferring the JSON under the owner lock. Equal/newer versions retain
-	// payloads, including mixed-version and out-of-order batches.
-	ids[0] = minimumVersion
-	rows, err := tx.Query(ctx, batchSQL(batchLookup, len(ids)-1), ids...)
-	if err != nil {
-		return 0, 0, err
-	}
-	previous := make(map[string]storedSample, len(ids)-1)
-	for rows.Next() {
-		var id string
-		var item storedSample
-		if err = rows.Scan(&id, &item.version, &item.revision, &item.payload); err != nil {
-			break
-		}
-		previous[id] = item
-	}
-	if err == nil {
-		err = rows.Err()
-	}
-	rows.Close()
+	previous, err := loadStoredSamples(ctx, tx, ids, minimumVersion)
 	if err != nil {
 		return 0, 0, err
 	}
@@ -165,4 +144,33 @@ func changePayload(o Owner, id string, revision int64, sample []byte) []byte {
 	b = append(b, `,"sample":`...)
 	b = append(b, sample...)
 	return append(b, '}')
+}
+
+func loadStoredSamples(ctx context.Context, tx *db.Transaction, ids []any, minimumVersion int64) (map[string]storedSample, error) {
+	// Older stored versions cannot require equality/conflict comparison against
+	// any input in this batch. Keep their metadata but avoid serializing and
+	// transferring the JSON under the owner lock. Equal/newer versions retain
+	// payloads, including mixed-version and out-of-order batches.
+	ids[0] = minimumVersion
+	rows, err := tx.Query(ctx, batchSQL(batchLookup, len(ids)-1), ids...)
+	if err != nil {
+		return nil, err
+	}
+	previous := make(map[string]storedSample, len(ids)-1)
+	for rows.Next() {
+		var id string
+		var item storedSample
+		if err = rows.Scan(&id, &item.version, &item.revision, &item.payload); err != nil {
+			break
+		}
+		previous[id] = item
+	}
+	if err == nil {
+		err = rows.Err()
+	}
+	rows.Close()
+	if err != nil {
+		return nil, err
+	}
+	return previous, nil
 }

@@ -226,6 +226,7 @@
   "智慧养老手表管理系统/backend/internal/db/db_test.go": "db_test 自动化回归或验收脚本：检查对应模块的行为边界",
   "智慧养老手表管理系统/backend/internal/db/dbtest/mysql.go": "测试专用随机 MySQL 数据库的创建、迁移与清理",
   "智慧养老手表管理系统/backend/internal/db/idle_pool_ab_test.go": "用突发参数化查询测量 MySQL 空闲连接保留与池等待",
+  "智慧养老手表管理系统/backend/internal/db/mysql_dialect.go": "MySQL 方言语法改写、引号与注释分段及匹配规则",
   "智慧养老手表管理系统/backend/internal/db/mysql_migrations.go": "连接级迁移锁、校验和与可恢复 DDL 执行",
   "智慧养老手表管理系统/backend/internal/db/performance_test.go": "验证后端 performance／test 的行为、边界或回归",
   "智慧养老手表管理系统/backend/internal/db/pool_settings_test.go": "验证 MySQL 空闲连接配置的默认值、零值与上下界",
