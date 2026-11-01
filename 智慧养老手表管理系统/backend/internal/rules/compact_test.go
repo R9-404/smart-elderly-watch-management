@@ -194,3 +194,12 @@ func TestCompactSnapshotDoesNotReferenceMutableInputs(t *testing.T) {
 		t.Fatal("evidence retained mutable Value pointer")
 	}
 }
+
+// EvaluateCompact keeps the allocating baseline available to equivalence tests
+// and benchmarks. Production evaluates into caller-owned storage.
+func EvaluateCompact(p Policy, in Input) []CompactCandidate {
+	if !p.Enabled {
+		return nil
+	}
+	return EvaluateCompactInto(make([]CompactCandidate, 0, 7), p, in)
+}

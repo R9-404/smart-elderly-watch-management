@@ -4,7 +4,6 @@ package ratelimit
 import (
 	"fmt"
 	"io"
-	"net"
 	"net/http"
 	"net/netip"
 	"strings"
@@ -171,13 +170,6 @@ func (l *Limiter) shard(ip string) *limiterShard {
 		hash = (hash ^ uint32(ip[i])) * 16777619
 	}
 	return &l.shards[hash&(shardCount-1)]
-}
-
-func clientIP(r *http.Request) string {
-	if h, _, err := net.SplitHostPort(r.RemoteAddr); err == nil {
-		return h
-	}
-	return r.RemoteAddr
 }
 
 // Allow 检查并记录一次访问；返回 false 表示超限。
