@@ -30,7 +30,7 @@
         <h2>{{ item.name || '活动记录' }}</h2>
         <dl>
           <dt>今日步数</dt><dd>{{ item.step == null ? '暂无数据' : item.step + ' 步' }}</dd>
-          <dt>睡眠时长</dt><dd>{{ item.sleep || '暂无数据' }}</dd>
+          <dt>睡眠时长</dt><dd>{{ item.sleep == null ? '暂无数据' : item.sleep }}</dd>
           <dt>睡眠情况</dt><dd :class="stateClass(item.sleepSate)">{{ stateLabel(item.sleepSate) }}{{ item.sleepSate == 1 ? '，请查看详情' : '' }}</dd>
           <dt>记录时间</dt><dd>{{ item.createTime || '暂无时间信息' }}</dd>
         </dl>
