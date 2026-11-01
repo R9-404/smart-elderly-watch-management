@@ -17,6 +17,11 @@
 
 ## 构建与模拟器运行
 
+原生构建现支持 `scripts/build.ps1 -CommandLineHome <command-line-tools根目录>`，
+也支持原有 `-DevEcoHome`。脚本生成带状态、源码 SHA 和 HAP 哈希的构建报告；
+CI 另执行真实 Go/MySQL 断网恢复与 Windows SDK 编译，结果须查看当前提交。
+详见[无真机验证说明](../docs/patch-review/2026-11-01-harmonyos-without-device.md)。
+
 在 PowerShell 7 中执行构建脚本：
 
 ```powershell

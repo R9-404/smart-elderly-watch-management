@@ -6,6 +6,7 @@
 
 | 文件 | 职责 |
 | --- | --- |
+| [docs/patch-review/2026-11-01-harmonyos-without-device.md](../docs/patch-review/2026-11-01-harmonyos-without-device.md) | 无真机阶段的原生构建门槛、生命周期与真实断网恢复验证 |
 | [SuiningWatch/entry/src/main/ets/model/NativeSampling.ets](../SuiningWatch/entry/src/main/ets/model/NativeSampling.ets) | 原生心率与累计计步转换、观测时间和绑定基线隔离 |
 | [SuiningWatch/entry/src/main/ets/services/HealthSensors.ets](../SuiningWatch/entry/src/main/ets/services/HealthSensors.ets) | 鸿蒙传感器枚举、前台授权、一次性读取及超时取消 |
 | [SuiningWatch/entry/src/main/resources/base/profile/network_config.json](../SuiningWatch/entry/src/main/resources/base/profile/network_config.json) | HTTPS 默认策略和模拟器回环明文例外 |

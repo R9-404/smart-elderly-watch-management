@@ -11,6 +11,7 @@ export interface SensorRead {
 // falls back to generated measurements. Each one-shot listener has a timeout.
 export class HealthSensors {
   private generation: number = 0;
+  private active: boolean = true;
   private cancelHeart: (() => void) | undefined = undefined;
   private cancelSteps: (() => void) | undefined = undefined;
 
@@ -20,7 +21,16 @@ export class HealthSensors {
     this.cancelSteps?.();
   }
 
-  async read(context: common.UIAbilityContext): Promise<SensorRead> {
+  session(): number {
+    if (!this.active) { throw new Error('读取已取消'); }
+    return this.generation;
+  }
+
+  suspend(): void { this.active = false; this.cancel(); }
+  resume(): void { this.active = true; }
+
+  async read(context: common.UIAbilityContext, session: number = this.generation): Promise<SensorRead> {
+    if (!this.active || session !== this.generation) { throw new Error('读取已取消'); }
     this.cancel();
     const generation = this.generation;
     const list = await sensor.getSensorList();

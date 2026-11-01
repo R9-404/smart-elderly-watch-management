@@ -34,6 +34,7 @@ struct Index {
   private sampling: NativeSampling = new NativeSampling();
 
   aboutToAppear(): void {
+    this.sensors.resume();
     try {
       const context = this.getUIContext().getHostContext();
       if (!context) { throw new Error('无法取得应用上下文'); }
@@ -58,7 +59,12 @@ struct Index {
     }
   }
   aboutToDisappear(): void {
-    this.sensors.cancel();
+    this.sensors.suspend();
+    this.sampling.reset();
+  }
+  onPageShow(): void { this.sensors.resume(); }
+  onPageHide(): void {
+    this.sensors.suspend();
     this.sampling.reset();
   }
   private config(): WatchConfig { return normalizeConfig(this.server, this.deviceNo); }
@@ -138,13 +144,14 @@ struct Index {
     this.status = '已保存 2 条模拟采样，点击“上传记录”提交';
   }
   private async sampleNative(): Promise<void> {
+    const session = this.sensors.session();
     const binding = await this.liveBinding();
     const context = this.getUIContext().getHostContext();
     if (!context || !this.store) { throw new Error('应用上下文或本地存储尚未就绪'); }
     // Read before sensor access too: a failed persistence operation blocks new
     // deltas until Preferences is reloaded on application restart.
     const current = this.store.batch();
-    const result = await this.sensors.read(context as common.UIAbilityContext);
+    const result = await this.sensors.read(context as common.UIAbilityContext, session);
     const candidate = this.sampling.copy();
     let samples: HealthSample[] = [];
     for (const observation of result.observations) {
