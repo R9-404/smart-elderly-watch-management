@@ -45,7 +45,7 @@ func TestExtraAuditFamilyOnboarding(t *testing.T) {
 		t.Fatal("pre-created family could not activate and log in")
 	}
 	mustExec(t, p, "INSERT INTO invite_code(code,old_id,used) VALUES('AUDITRESET',1,0)")
-	retry := api(t, h.inviteJoin, map[string]any{"code": "AUDITRESET", "familyName": "其他人", "familyPhone": "13800000002", "familyPassword": "OtherPassword123!", "familyRelation": "子女", "familySex": "女", "familyAddress": "测试"})
+	retry := apiFailure(t, 400, h.inviteJoin, map[string]any{"code": "AUDITRESET", "familyName": "其他人", "familyPhone": "13800000002", "familyPassword": "OtherPassword123!", "familyRelation": "子女", "familySex": "女", "familyAddress": "测试"})
 	if retry["returnCode"] == "1111" {
 		t.Fatal("invitation reset an already active account")
 	}

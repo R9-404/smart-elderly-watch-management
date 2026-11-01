@@ -128,8 +128,7 @@ func (h *Handler) findDeviceByID(ctx context.Context, q oldQuerier, deviceID int
 	return d, nil
 }
 
-// hwAuth 硬件设备鉴权：按 deviceNo 查行 → 验密钥 → 验 status。
-// 失败返回 (nil, "0004", message)。
+// hwAuth checks the device number, secret and enabled status.
 func (h *Handler) hwAuth(ctx context.Context, q oldQuerier, deviceNo, secret, disabledMsg string) (*oldDevice, string, string, error) {
 	d, err := h.findDeviceByNo(ctx, q, deviceNo)
 	if err != nil {
@@ -141,7 +140,7 @@ func (h *Handler) hwAuth(ctx context.Context, q oldQuerier, deviceNo, secret, di
 // Both full and health-only projections use the same credential policy.
 func checkDeviceAuth(d *oldDevice, secret, disabledMsg string) (*oldDevice, string, string, error) {
 	if d == nil {
-		return nil, "0004", "设备号或密钥不正确", nil
+		return nil, "DEVICE_AUTH_FAILED", "设备号或密钥不正确", nil
 	}
 	code, msg := deviceCredentialFailure(secret, d.Secret, d.Status, disabledMsg)
 	if code != "" {
@@ -151,10 +150,10 @@ func checkDeviceAuth(d *oldDevice, secret, disabledMsg string) (*oldDevice, stri
 }
 func deviceCredentialFailure(supplied, stored string, status *int, disabledMsg string) (string, string) {
 	if !secretMatches(supplied, stored) {
-		return "0004", "设备号或密钥不正确"
+		return "DEVICE_AUTH_FAILED", "设备号或密钥不正确"
 	}
 	if status != nil && *status == 0 {
-		return "0004", disabledMsg
+		return "DEVICE_DISABLED", disabledMsg
 	}
 	return "", ""
 }

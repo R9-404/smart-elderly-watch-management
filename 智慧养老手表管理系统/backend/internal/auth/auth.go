@@ -42,9 +42,8 @@ func Middleware(store *session.Store, next http.Handler) http.Handler {
 		sess := store.FromRequest(r)
 		if sess == nil {
 			response.JSON(w, http.StatusUnauthorized, map[string]any{
-				"returnCode": "0000",
-				"code":       "AUTH_REQUIRED",
-				"message":    "请重新登录",
+				"code":    "AUTH_REQUIRED",
+				"message": "请重新登录",
 			})
 			return
 		}
@@ -66,9 +65,8 @@ func Middleware(store *session.Store, next http.Handler) http.Handler {
 
 func forbidden(w http.ResponseWriter) {
 	response.JSON(w, http.StatusForbidden, map[string]any{
-		"returnCode": "0000",
-		"code":       "ACCESS_DENIED",
-		"message":    "请求未获授权，请刷新页面后重试",
+		"code":    "ACCESS_DENIED",
+		"message": "请求未获授权，请刷新页面后重试",
 	})
 }
 

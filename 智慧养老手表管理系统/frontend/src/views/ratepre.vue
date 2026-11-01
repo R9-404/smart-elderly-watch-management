@@ -99,6 +99,8 @@
 </template>
 
 <script>
+import { apiErrorMessage } from '../api/httpContract'
+
 import axios from 'axios'
 import RecordCards from '@/components/RecordCards.vue'
 import HealthAlertDialog from '@/components/records/HealthAlertDialog.vue'
@@ -181,7 +183,7 @@ export default {
         _this.total = response.data.total ?? response.data.ratepreDtoList.length
       })
         .catch(function (error) {
-          console.log(error)
+          _this.$message.error(apiErrorMessage(error, '请求未完成，请重试'))
         })
     },
     getCount(){
@@ -200,7 +202,7 @@ export default {
         _this.preCount=response.data.pres.length
       })
         .catch(function (error) {
-          console.log(error)
+          _this.$message.error(apiErrorMessage(error, '请求未完成，请重试'))
         })
       // 红点数字用"未处理的异常条数"，而不是历史异常设备数
       this.loadAlertCount()
@@ -244,7 +246,7 @@ export default {
         this.bps = Array.isArray(response.data.bps) ? response.data.bps : []; this.hrs = Array.isArray(response.data.hrs) ? response.data.hrs : []; this.createTimes = Array.isArray(response.data.createTimes) ? response.data.createTimes : []; this.time = response.data.time;
         if (!this.hrs.length && !this.bps.length) { this.chartError = '暂无可展示的健康详情。'; return }
         this.drawLine(); this.drawLineTwo()
-      }).catch(() => { this.chartError = '详情暂时无法加载，请关闭后重试。' }).then(() => { this.chartLoading = false })
+      }).catch((error) => { this.chartError = apiErrorMessage(error, '详情暂时无法加载，请关闭后重试。') }).then(() => { this.chartLoading = false })
     },
 
   drawLine () {

@@ -38,7 +38,7 @@ func TestContinuousSleepCountUsesLatestDay(t *testing.T) {
 	if len(out["deviceIdList"].([]any)) != 0 {
 		t.Errorf("old abnormal sleep still counted: %v", out)
 	}
-	if total := api(t, h.stepGetAllCount, map[string]any{}); total["allCount"] != "0" {
+	if total := api(t, h.stepGetAllCount, map[string]any{}); total["allCount"] != float64(0) {
 		t.Errorf("overview retained recovered sleep alert: %v", total)
 	}
 	api(t, h.deviceReport, map[string]any{"deviceNo": "WATCH001", "secret": testSecret, "sleepState": "1", "beTime": "2026-10-20 09:00:00"})

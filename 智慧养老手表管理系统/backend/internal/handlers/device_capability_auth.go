@@ -15,13 +15,13 @@ type capabilityCredentials struct {
 // Device lock precedes command/fence locks, preventing old binding receipts and
 // deliveries. Authentication is repeated AFTER the lock to exclude key rotation.
 func (h *Handler) capabilityDevice(w http.ResponseWriter, r *http.Request, tx *db.Transaction, c capabilityCredentials) *oldDevice {
-	d, _, _, err := h.hwAuth(r.Context(), tx, c.DeviceNo, c.Secret, "设备已停用")
+	d, code, msg, err := h.hwAuth(r.Context(), tx, c.DeviceNo, c.Secret, "设备已停用")
 	if err != nil {
 		response.Error500(w, ref())
 		return nil
 	}
 	if d == nil {
-		response.JSON(w, 401, map[string]any{"message": "设备认证失败"})
+		hwFail(w, code, msg)
 		return nil
 	}
 	d, err = scanOldDevice(tx.QueryRow(r.Context(), `SELECT `+oldDeviceCols+` FROM device WHERE device_id=$1 FOR UPDATE`, d.ID))
@@ -29,8 +29,8 @@ func (h *Handler) capabilityDevice(w http.ResponseWriter, r *http.Request, tx *d
 		response.Error500(w, ref())
 		return nil
 	}
-	if !secretMatches(c.Secret, d.Secret) || (d.Status != nil && *d.Status == 0) {
-		response.JSON(w, 401, map[string]any{"message": "设备认证失败"})
+	if code, msg = deviceCredentialFailure(c.Secret, d.Secret, d.Status, "设备已停用"); code != "" {
+		hwFail(w, code, msg)
 		return nil
 	}
 	if d.OldID == nil || d.HealthEpoch != c.BindingVersion {

@@ -16,15 +16,10 @@ export class WatchApi {
         expectDataType: http.HttpDataType.STRING,
         connectTimeout: 5000, readTimeout: 10000
       });
-      if (response.responseCode < 200 || response.responseCode >= 300) {
-        if (response.responseCode === 409) {
-          throw new Error('绑定版本冲突，请重新认证；旧记录已保留');
-        }
-        throw new Error('服务返回 HTTP ' + response.responseCode + '，请检查服务状态');
-      }
       const reply = JSON.parse(response.result as string) as DeviceReply;
-      if (reply.returnCode !== '1111') {
-        throw new Error(reply.message || '设备请求未被接受，请检查设备号、密钥及绑定');
+      if (response.responseCode < 200 || response.responseCode >= 300 || reply.returnCode !== '1111') {
+        const message = reply.message || '服务返回 HTTP ' + response.responseCode;
+        throw new Error(message + (reply.reference ? '（编号：' + reply.reference + '）' : ''));
       }
       return reply;
     } finally {

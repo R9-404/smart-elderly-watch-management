@@ -13,24 +13,24 @@ run(async ({ page, context, base, report, setRole }) => {
   await context.route('**/api/v1/care/incidents', route => {
     const input = route.request().postDataJSON()
     taskRequests.push(input)
-    if (failList) return route.fulfill({ status: 503, json: {} })
+    if (failList) return route.fulfill({ status: 503, json: {returnCode:'0000',code:'SERVICE_UNAVAILABLE',message:'请求未完成',} })
     const filtered = tasks.filter(t => (t.state === 'verified') === (input.state === 'verified'))
     const start = (input.page - 1) * input.pageSize
-    return route.fulfill({ json: { items: filtered.slice(start, start + input.pageSize), total: filtered.length, page: input.page, pageSize: input.pageSize, duty, actorId } })
+    return route.fulfill({ json: {returnCode:'1111', items: filtered.slice(start, start + input.pageSize), total: filtered.length, page: input.page, pageSize: input.pageSize, duty, actorId } })
   })
   await context.route('**/api/v1/care/diagnostics', route => {
     diagnosticsRequests++
-    return route.fulfill({ json: { primaryEngine: 'mysql', analytics: { configured: true, ready: pgReady, pending: pgReady ? 0 : 205, lastSyncedAt: pgReady ? '2026-10-19T08:00:00Z' : null }, workerHealthy, notificationConfigured: false, receiptConfigured: false, pendingNotifications: 2, failedNotifications: 1, staleSending: 0, overdueIncidents: 1 } })
+    return route.fulfill({ json: {returnCode:'1111', primaryEngine: 'mysql', analytics: { configured: true, ready: pgReady, pending: pgReady ? 0 : 205, lastSyncedAt: pgReady ? '2026-10-19T08:00:00Z' : null }, workerHealthy, notificationConfigured: false, receiptConfigured: false, pendingNotifications: 2, failedNotifications: 1, staleSending: 0, overdueIncidents: 1 } })
   })
   await context.route('**/api/v1/care/events', route => {
     const input = route.request().postDataJSON()
-    return route.fulfill({ json: { events: Array.from({ length: 105 }, (_, i) => ({ action: '事件' + (i + 1), actor: '1', note: '测试记录', createdAt: '2026-10-19T08:00:00+08:00' })).slice((input.page - 1) * input.pageSize, input.page * input.pageSize), total: 105 } })
+    return route.fulfill({ json: {returnCode:'1111', events: Array.from({ length: 105 }, (_, i) => ({ action: '事件' + (i + 1), actor: '1', note: '测试记录', createdAt: '2026-10-19T08:00:00+08:00' })).slice((input.page - 1) * input.pageSize, input.page * input.pageSize), total: 105 } })
   })
   await context.route('**/api/v1/care/transition', route => {
     const input = route.request().postDataJSON()
     transitions.push(input)
     assert.equal(route.request().headers()['x-csrf-token'], 'mock-csrf-token')
-    if (failTransition) return route.fulfill({ status: 409, json: {} })
+    if (failTransition) return route.fulfill({ status: 409, json: {returnCode:'0000',code:'CONFLICT',message:'当前状态不允许此操作'} })
     const task = tasks.find(t => t.id === Number(input.id))
     task.state = { acknowledge: 'acknowledged', start: 'in_progress', resolve: 'resolved', verify: 'verified', reopen: 'in_progress' }[input.action]
     if (input.action === 'resolve') task.resolvedBy = String(actorId)
@@ -85,7 +85,7 @@ run(async ({ page, context, base, report, setRole }) => {
   await dialog.locator('textarea').fill('已联系现场核实安全')
   failTransition = true
   await dialog.getByRole('button', { name: '确认记录', exact: true }).click()
-  await dialog.getByRole('alert').filter({ hasText: '操作未确认成功' }).waitFor()
+  await dialog.getByRole('alert').filter({ hasText: '当前状态不允许此操作' }).waitFor()
   check('write failure preserves the note and task', await dialog.locator('textarea').inputValue() === '已联系现场核实安全' && tasks[0].state === 'in_progress')
   failTransition = false
   await dialog.getByRole('button', { name: '确认记录', exact: true }).click()
@@ -93,7 +93,7 @@ run(async ({ page, context, base, report, setRole }) => {
   check('successful transition refreshes its task', tasks[0].state === 'resolved')
   failList = true
   await inbox.getByRole('button', { name: '刷新任务', exact: true }).click()
-  await inbox.getByRole('alert').filter({ hasText: '照护任务暂时无法加载' }).waitFor()
+  await inbox.getByRole('alert').filter({ hasText: '请求未完成' }).waitFor()
   check('failed refresh removes stale task actions', await page.locator('.care-task').count() === 0)
   failList = false
   await inbox.getByRole('button', { name: '刷新任务', exact: true }).click()
@@ -117,14 +117,14 @@ run(async ({ page, context, base, report, setRole }) => {
   let failGuardianPage = true
   await context.route('**/api/v1/customer/select', route => {
     const { page: number = 1, pageSize = 20 } = route.request().postDataJSON()
-    if (failGuardianPage && number === 2) return route.fulfill({ status: 503, json: { message: 'temporarily unavailable' } })
+    if (failGuardianPage && number === 2) return route.fulfill({ status: 503, json: {returnCode:'0000',code:'SERVICE_UNAVAILABLE',message: 'temporarily unavailable' } })
     const start = (number - 1) * pageSize
-    return route.fulfill({ json: { customers: Array.from({ length: Math.max(0, Math.min(pageSize, 205 - start)) }, (_, i) => ({ customerId: start + i + 1, customerName: '监护人' + (start + i + 1) })), total: 205 } })
+    return route.fulfill({ json: {returnCode:'1111', customers: Array.from({ length: Math.max(0, Math.min(pageSize, 205 - start)) }, (_, i) => ({ customerId: start + i + 1, customerName: '监护人' + (start + i + 1) })), total: 205 } })
   })
   await page.goto(base + '/?large=0&architecture=guardians#/person')
   await page.getByRole('button', { name: '添加老人', exact: true }).click()
   const elder = page.getByRole('dialog', { name: '老人添加' })
-  await elder.getByRole('alert').filter({ hasText: '监护人选项暂时无法加载' }).waitFor()
+  await elder.getByRole('alert').filter({ hasText: 'temporarily unavailable' }).waitFor()
   await elder.locator('.el-select').click()
   check('failed guardian page does not expose a partial list', await page.getByRole('option').count() === 0)
   await elder.locator('.el-select').click()

@@ -1,3 +1,5 @@
+
+import { apiErrorMessage } from '../api/httpContract'
 import axios from 'axios'
 
 export const deviceListMethods = {
@@ -27,7 +29,7 @@ export const deviceListMethods = {
         this.deviceList = response.data.devices
         this.deviceTotal = response.data.total ?? this.deviceList.length
         this.serverOnlineCount = response.data.onlineCount ?? this.deviceList.filter(item => item.online === 1).length
-      }).catch(() => { this.deviceLoadError = '设备列表暂时无法更新，请重新加载。' })
+      }).catch((error) => { this.deviceLoadError = apiErrorMessage(error, '设备列表暂时无法更新，请重新加载。') })
       return Promise.all([devices, this.loadAlertCounts()]).then(() => { this.deviceLoading = false; if (this.reloadPending && !this.refreshDisposed) { this.reloadPending = false; this.loadDevices() } })
     },
     loadAlertCounts () {
@@ -39,6 +41,6 @@ export const deviceListMethods = {
         this.alertCounts = map
         this.alertTotals = { personTotal: response.data.personTotal || 0, rateTotal: response.data.rateTotal || 0, preTotal: response.data.preTotal || 0, total: response.data.total }
         this.alertsReady = true
-      }).catch(() => { this.alertsReady = false; this.alertLoadError = '异常统计暂时无法更新，请重新加载。' })
+      }).catch((error) => { this.alertsReady = false; this.alertLoadError = apiErrorMessage(error, '异常统计暂时无法更新，请重新加载。') })
     },
 }

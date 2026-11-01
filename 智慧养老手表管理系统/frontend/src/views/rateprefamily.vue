@@ -58,6 +58,8 @@
 </template>
 
 <script>
+import { apiErrorMessage } from '../api/httpContract'
+
 
 import axios from 'axios'
 import { recordCharts } from '@/charts'
@@ -127,7 +129,7 @@ export default {
       })
         .catch(function (error) {
 
-          _this.loadError = '记录暂时无法加载，请点击刷新重试。'
+          _this.loadError = apiErrorMessage(error, '记录暂时无法加载，请点击刷新重试。')
           _this.oldsList = []
         }).then(function () { _this.isLoading = false })
     },
@@ -162,7 +164,7 @@ export default {
 			})
 				.catch(function (error) {
 
-          _this.chartError = '详情暂时无法加载，请重试。'
+          _this.chartError = apiErrorMessage(error, '详情暂时无法加载，请重试。')
 				}).then(function () { _this.chartLoading = false })
 
     },

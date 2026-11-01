@@ -15,7 +15,6 @@ import (
 )
 
 // ---------------------------------------------------------------------------
-// DeviceController —— 后台管理端
 // ---------------------------------------------------------------------------
 
 // intOr400 body 整数字段校验（device/list 等用 @Valid 风格：失败一律通用 400 文案）。
@@ -124,7 +123,7 @@ func (h *Handler) deviceList(w http.ResponseWriter, r *http.Request) {
 	})
 }
 
-// toIntRanged 复刻 DeviceSupport.toInt(value,min,max)：非法/越界 → 0。
+// toIntRanged returns zero for invalid or out-of-range values.
 func toIntRanged(s string, min, max int) int {
 	n, err := strconv.Atoi(strings.TrimSpace(s))
 	if err != nil || n < min || n > max {
@@ -231,7 +230,7 @@ func (h *Handler) deviceBindCodeList(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	list := []map[string]any{}
-	// 非数字 → 返回空列表而非报错（复刻 Java 行为）。
+	// 非数字 → 返回空列表而非报错。
 	if validID(oldIDStr) {
 		oldID, _ := strconv.ParseInt(oldIDStr, 10, 64)
 		rows, err := h.DB.Query(r.Context(),

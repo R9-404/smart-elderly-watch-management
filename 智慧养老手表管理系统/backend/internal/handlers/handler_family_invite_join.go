@@ -54,8 +54,7 @@ func (h *Handler) inviteCheckCode(w http.ResponseWriter, r *http.Request) {
 		code).Scan(&used, &expire, &oldName)
 	if err != nil {
 		if isNotFound(err) {
-			response.JSON(w, http.StatusOK, map[string]any{
-				"returnCode": "0001", "message": "邀请码不存在，请向管理员确认"})
+			response.Error(w, http.StatusNotFound, "INVITE_NOT_FOUND", "邀请码不存在，请向管理员确认")
 			return
 		}
 		response.Error500(w, ref())
@@ -63,12 +62,10 @@ func (h *Handler) inviteCheckCode(w http.ResponseWriter, r *http.Request) {
 	}
 	switch inviteStatus(used, expire, time.Now()) {
 	case "used":
-		response.JSON(w, http.StatusOK, map[string]any{
-			"returnCode": "0002", "message": "该邀请码已被使用"})
+		response.Error(w, http.StatusConflict, "INVITE_USED", "该邀请码已被使用")
 		return
 	case "expired":
-		response.JSON(w, http.StatusOK, map[string]any{
-			"returnCode": "0003", "message": "该邀请码已过期，请向管理员重新获取"})
+		response.Error(w, http.StatusConflict, "INVITE_EXPIRED", "该邀请码已过期，请向管理员重新获取")
 		return
 	}
 	remain := -1

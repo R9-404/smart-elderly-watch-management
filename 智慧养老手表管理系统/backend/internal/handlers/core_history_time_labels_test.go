@@ -35,10 +35,8 @@ func TestContinuousVitalHistoryLabelsKeepFullObservationTime(t *testing.T) {
 			if !reflect.DeepEqual(out["createTimes"], times) || !reflect.DeepEqual(out["hrs"], hrs) || !reflect.DeepEqual(out["bps"], bps) || out["time"] != title {
 				t.Errorf("role=%s chart times or metric alignment incorrect: %v", principal.Role, out)
 			}
-			for i, row := range out["ratepreDtoListDetial"].([]any) {
-				if row.(map[string]any)["createTime"] != times[i] {
-					t.Errorf("detail time differs from chart label: %v", row)
-				}
+			if _, obsolete := out["ratepreDtoListDetial"]; obsolete {
+				t.Error("unused duplicate history field returned")
 			}
 		}
 	}

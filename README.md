@@ -16,7 +16,7 @@
 
 岁宁面向照护机构与家属，在同一工作台内集中管理长者档案、手表设备、健康记录、位置告警与照护任务。客户端与服务端基于 Tauri 2、Rust、Vue 3、Vite 与 Go 构建，使用独立部署的 MySQL 保存业务数据，并通过 PostgreSQL 异步处理统计分析。
 
-仓库根目录下的 [SuiningWatch](SuiningWatch/README.md) 是配套的 HarmonyOS 手表端工程，用于模拟器联网调试。其构建方式与测试边界见[手表端整合记录](docs/WATCH_INTEGRATION.md)，当前仅生成模拟数据，未接入真实硬件传感器，也未配置真机发布签名。
+仓库根目录下的 [SuiningWatch](SuiningWatch/README.md) 是配套的 HarmonyOS 手表端工程，包含前台心率与计步传感器读取、系统权限申请、设备认证、采样上传和 SOS。模拟采样保留为独立调试来源；构建与接入步骤见[手表接入说明](docs/WATCH_INTEGRATION.md)。
 
 ![岁宁管理员工作台：设备异常、位置告警与平台公告](docs/screenshots/overview-desktop.png)
 
@@ -203,3 +203,7 @@ go vet ./...
 本项目采用 [MIT 许可证](LICENSE) 开源，仓库包含的字体、地图及第三方依赖遵循各自原有许可证。
 
 > **接口不兼容变更提醒：** 当前 `preview` 分支仅暴露 `/api/v1/` 路由，已移除无版本号的 `/api/` 别名；浏览器端会话 Cookie 统一更名为 `SUINING_SESSION`。
+
+## 接口约定
+
+[接口合同与逐项差异处理](docs/API_CONTRACTS.md)列出 109 个路径的请求字段、成功响应字段和错误状态。JSON 成功响应使用 HTTP 200 与 `returnCode="1111"`；失败使用 HTTP 4xx/5xx 与 `returnCode="0000"`、`code`、`message`，内部错误保留 `reference`。图片下载返回图片字节，上传使用 multipart `file` 字段。

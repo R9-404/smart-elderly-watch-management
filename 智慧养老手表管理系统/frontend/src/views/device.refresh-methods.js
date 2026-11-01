@@ -1,3 +1,4 @@
+import { apiErrorMessage } from '../api/httpContract'
 import axios from 'axios'
 
 export const deviceRefreshMethods = {
@@ -9,7 +10,7 @@ export const deviceRefreshMethods = {
       }).then(function (response) {
         _this.oldPeople = response.data.oldPeople || []
       }).catch(function (error) {
-        console.log(error)
+        _this.$message.error(apiErrorMessage(error, '请求未完成，请重试'))
       })
     },
     startTimer () {

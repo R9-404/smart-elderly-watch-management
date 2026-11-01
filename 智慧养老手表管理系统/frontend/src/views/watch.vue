@@ -92,6 +92,8 @@
 </template>
 
 <script>
+import { apiErrorMessage } from '../api/httpContract'
+
 import axios from 'axios'
 import { checkThreshold } from './watch.validation'
 import RecordCards from '@/components/RecordCards.vue'
@@ -164,8 +166,8 @@ export default {
           _this.total = response.data.total ?? response.data.watchDtos.length
 
         })
-          .catch(function () {
-            _this.loadError = '监测阈值档案暂时无法加载，请检查服务连接后重试。'
+          .catch(function (error) {
+            _this.loadError = apiErrorMessage(error, '监测阈值档案暂时无法加载，请检查服务连接后重试。')
             _this.watchsList = []
             _this.total = 0
           }).finally(function () { _this.isLoading = false })
@@ -199,7 +201,7 @@ export default {
           }
         })
           .catch(function (error) {
-            console.log(error)
+            _this.$message.error(apiErrorMessage(error, '请求未完成，请重试'))
           })
       })
     },
@@ -233,7 +235,7 @@ export default {
           }
         })
           .catch(function (error) {
-            console.log(error)
+            _this.$message.error(apiErrorMessage(error, '请求未完成，请重试'))
           })
       })
     },
@@ -264,7 +266,7 @@ export default {
           _this.searchWatchs()
         })
           .catch(function (error) {
-            console.log(error)
+            _this.$message.error(apiErrorMessage(error, '请求未完成，请重试'))
           })
       } catch (err) {
         this.$message({
@@ -275,7 +277,7 @@ export default {
     },
     handleEditwatch (index, row) {
       this.watchEditDialogVisible = true
-      this.watchEditForm = Object.assign({}, row) // 解决修改弹出框数据时，表格数据会发生同步改变
+      this.watchEditForm = Object.fromEntries(['deviceId', 'bpf', 'bpl', 'hrf', 'hrl'].map(key => [key, row[key]])) // 解决修改弹出框数据时，表格数据会发生同步改变
 
     },
     handleSizeChange (val) { this.pageSize = val; this.currentPage = 1; this.searchWatchs(true)

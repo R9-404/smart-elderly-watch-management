@@ -54,6 +54,8 @@
 </template>
 
 <script>
+import { apiErrorMessage } from '../api/httpContract'
+
 import axios from 'axios'
 import RecordCards from '@/components/RecordCards.vue'
 
@@ -73,7 +75,7 @@ export default {
         if (!Array.isArray(response.data.oldPeople)) throw new Error('missing life records')
         this.OldPersonList = response.data.oldPeople
         this.total = response.data.total ?? this.OldPersonList.length
-      }).catch(() => { this.loadError = '生活资料暂时无法加载，请重新加载。'; this.OldPersonList = [] }).then(() => { this.isLoading = false })
+      }).catch((error) => { this.loadError = apiErrorMessage(error, '生活资料暂时无法加载，请重新加载。'); this.OldPersonList = [] }).then(() => { this.isLoading = false })
     }
   }
 }

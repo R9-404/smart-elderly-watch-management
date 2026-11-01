@@ -142,7 +142,7 @@ func (h *Handler) familyUpdate(w http.ResponseWriter, r *http.Request) {
 	if ct.RowsAffected() == 1 {
 		response.OK(w, nil)
 	} else {
-		failBare0000(w)
+		recordNotFound(w)
 	}
 }
 
@@ -176,7 +176,7 @@ func (h *Handler) familyDelete(w http.ResponseWriter, r *http.Request) {
 	}
 	if ct.RowsAffected() != 1 {
 		_ = tx.Rollback(ctx)
-		failBare0000(w)
+		recordNotFound(w)
 		return
 	}
 	if err := tx.Commit(ctx); err != nil {

@@ -7,7 +7,7 @@ run(async ({ page, context, base, report, setRole }) => {
   setRole('ADMIN');
   let requests = 0;
   let status = 409;
-  let body = {};
+  let body = { returnCode: '0000', code: 'CONFLICT', message: '请先解除该长者名下设备绑定' };
   let refreshes = 0;
   page.on('request', request => {
     if (request.url().includes('/api/v1/oldPerson/selectDetail')) refreshes++;
@@ -31,7 +31,7 @@ run(async ({ page, context, base, report, setRole }) => {
   };
   const initialRefreshes = refreshes;
   await confirm();
-  await message('请先解除该长者名下设备绑定，再删除长者');
+  await message('请先解除该长者名下设备绑定');
   assert.equal(refreshes, initialRefreshes);
   assert.equal(await page.locator('.el-message--success').count(), 0);
 
@@ -44,17 +44,18 @@ run(async ({ page, context, base, report, setRole }) => {
   status = 500;
   body = { message: 'SQL internal details must not be displayed' };
   await confirm();
-  await message('删除失败，请稍后重试');
+  await message('服务处理失败');
   assert.equal(await page.getByText(body.message).count(), 0);
   assert.equal(refreshes, initialRefreshes);
 
   await page.waitForFunction(() => document.querySelectorAll('.el-message--error').length === 0);
-  status = 200;
-  body = { returnCode: '0000' };
+  status = 400;
+  body = { returnCode: '0000', code: 'INVALID_REQUEST', message: 'record cannot be deleted' };
   await confirm();
-  await message('删除失败，请刷新列表后重试');
+  await message('record cannot be deleted');
   assert.equal(refreshes, initialRefreshes);
 
+  status = 200;
   body = { returnCode: '1111' };
   const refreshed = page.waitForRequest(request => request.url().includes('/api/v1/oldPerson/selectDetail'));
   await confirm();

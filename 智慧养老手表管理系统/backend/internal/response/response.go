@@ -1,6 +1,4 @@
-// Package response implements the native Go HTTP result envelope.
-// 成功 {"returnCode":"1111", ...}，业务失败 {"returnCode":"0000","message":...}。
-// 部分查询接口直接返回数据对象，客户端契约应按具体端点解析。
+// Package response defines the JSON contract shared by the web and watch clients.
 package response
 
 import (
@@ -13,33 +11,76 @@ const (
 	CodeFail = "0000"
 )
 
-// JSON 直接写任意 JSON（用于不带 returnCode 的查询接口）。
-func JSON(w http.ResponseWriter, status int, v any) {
+// JSON adds the result envelope without changing endpoint-specific data fields.
+func JSON(w http.ResponseWriter, status int, fields map[string]any) {
+	v := make(map[string]any, len(fields)+3)
+	for key, value := range fields {
+		v[key] = value
+	}
+	if status < 400 && v["returnCode"] != nil && v["returnCode"] != CodeOK {
+		status = http.StatusBadRequest
+	}
+	if status >= 400 {
+		v["returnCode"] = CodeFail
+		code, message := errorDefaults(status)
+		if v["code"] == nil || v["code"] == "" {
+			v["code"] = code
+		}
+		if v["message"] == nil || v["message"] == "" {
+			v["message"] = message
+		}
+	} else {
+		v["returnCode"] = CodeOK
+	}
 	w.Header().Set("Content-Type", "application/json;charset=UTF-8")
 	w.WriteHeader(status)
 	_ = json.NewEncoder(w).Encode(v)
 }
 
-// OK 写成功包络，可附带业务字段。
 func OK(w http.ResponseWriter, fields map[string]any) {
-	envelope := make(map[string]any, len(fields)+1)
-	for key, value := range fields {
-		envelope[key] = value
-	}
-	envelope["returnCode"] = CodeOK
-	JSON(w, http.StatusOK, envelope)
+	JSON(w, http.StatusOK, fields)
 }
 
-// Fail 写业务失败包络（HTTP 200，returnCode=0000）。
 func Fail(w http.ResponseWriter, message string) {
-	JSON(w, http.StatusOK, map[string]any{"returnCode": CodeFail, "message": message})
+	Error(w, http.StatusBadRequest, "INVALID_REQUEST", message)
 }
 
-// Error500 返回内部错误及用于排查的请求引用编号。
+func Error(w http.ResponseWriter, status int, code, message string) {
+	JSON(w, status, map[string]any{"code": code, "message": message})
+}
+
 func Error500(w http.ResponseWriter, reference string) {
 	JSON(w, http.StatusInternalServerError, map[string]any{
-		"returnCode": CodeFail,
-		"message":    "操作未完成，请重试；如仍失败，请提供此编号以便排查",
-		"reference":  reference,
+		"message":   "服务处理失败",
+		"reference": reference,
 	})
+}
+
+func errorDefaults(status int) (string, string) {
+	switch status {
+	case 400:
+		return "INVALID_REQUEST", "请求参数无效"
+	case 401:
+		return "AUTH_REQUIRED", "请登录后再操作"
+	case 403:
+		return "ACCESS_DENIED", "没有此操作权限"
+	case 404:
+		return "NOT_FOUND", "记录或接口不存在"
+	case 405:
+		return "METHOD_NOT_ALLOWED", "请求方法不受支持"
+	case 409:
+		return "CONFLICT", "数据状态已变化，请刷新后重试"
+	case 413:
+		return "PAYLOAD_TOO_LARGE", "请求数据超过允许大小"
+	case 415:
+		return "UNSUPPORTED_MEDIA_TYPE", "请求内容类型不受支持"
+	case 429:
+		return "RATE_LIMITED", "请求过于频繁，请稍后重试"
+	case 500:
+		return "INTERNAL_ERROR", "服务处理失败"
+	case 503:
+		return "SERVICE_UNAVAILABLE", "服务暂不可用"
+	default:
+		return "INTERNAL_ERROR", "服务处理失败"
+	}
 }

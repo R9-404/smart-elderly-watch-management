@@ -47,7 +47,7 @@ func TestNativeLoginResponseDoesNotExposeAccountDTOs(t *testing.T) {
 			if err := json.Unmarshal(w.Body.Bytes(), &body); err != nil {
 				t.Fatal(err)
 			}
-			if len(body) != 1 || body["authenticated"] != true {
+			if len(body) != 2 || body["authenticated"] != true || body["returnCode"] != "1111" {
 				t.Fatalf("account data leaked in login response: %#v", body)
 			}
 			cookies := w.Result().Cookies()

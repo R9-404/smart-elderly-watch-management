@@ -232,8 +232,7 @@ func (l *Limiter) Middleware(next http.Handler) http.Handler {
 		if !l.Allow(r) {
 			w.Header().Set("Retry-After", "600")
 			response.JSON(w, http.StatusTooManyRequests, map[string]any{
-				"returnCode": "0000",
-				"message":    "尝试次数较多，请稍后再试",
+				"message": "尝试次数较多，请稍后再试",
 			})
 			return
 		}

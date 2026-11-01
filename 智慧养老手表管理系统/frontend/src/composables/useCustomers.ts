@@ -1,3 +1,4 @@
+import { apiErrorMessage } from '../api/httpContract'
 import { ref, reactive, getCurrentScope, onScopeDispose } from 'vue'
 import { accepted, type Envelope, type PostClient } from '../api/client'
 import { createLatestRead } from './latestRead'
@@ -26,8 +27,8 @@ export function useCustomers(client: PostClient) {
       if (!Array.isArray(data.customers) || !Number.isInteger(data.total) || data.total < 0) throw new Error('invalid list')
       customerList.value = data.customers; total.value = data.total; loadError.value = ''
     },
-    () => {
-      customerList.value = []; total.value = 0; loadError.value = '监护人信息暂时无法加载，请检查服务连接后重试。'
+    error => {
+      customerList.value = []; total.value = 0; loadError.value = apiErrorMessage(error, '监护人信息暂时无法加载，请检查服务连接后重试。')
     },
     value => { isLoading.value = value }
   )
@@ -48,14 +49,14 @@ export function useCustomers(client: PostClient) {
       if (edit) oldEditDialogVisible.value = false
       else { customerDialogVisible.value = false; Object.assign(customerForm, emptyCustomer()) }
       await searchCustomers(true); return true
-    } catch (error) { mutationError.value = error instanceof Error ? error.message : '操作未确认成功，请重试'; return false }
+    } catch (error) { mutationError.value = apiErrorMessage(error, '未收到保存确认，请核对记录'); return false }
     finally { saving.value = false }
   }
   async function remove(id: number | string) {
     if (saving.value) return false
     saving.value = true; mutationError.value = ''
     try { const { data } = await client.post<Envelope>('api/v1/customer/delete', { customerId: id }); accepted(data); await searchCustomers(true); return true }
-    catch { mutationError.value = '删除未确认成功，记录仍保留，请重新核实'; return false }
+    catch (error) { mutationError.value = apiErrorMessage(error, '未收到删除确认，请刷新记录'); return false }
     finally { saving.value = false }
   }
   function handleEditRole(_index: unknown, row: Customer) { Object.assign(oldEditForm, emptyCustomer(), row); oldEditDialogVisible.value = true; mutationError.value = '' }

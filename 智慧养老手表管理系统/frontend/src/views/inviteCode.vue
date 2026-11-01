@@ -71,6 +71,8 @@
 </template>
 
 <script>
+import { apiErrorMessage } from '../api/httpContract'
+
 import axios from 'axios'
 
 export default {
@@ -113,7 +115,7 @@ export default {
         if (!Array.isArray(response.data.inviteCodes)) throw new Error('missing invites')
         this.inviteCodeList = response.data.inviteCodes
         this.total = response.data.total ?? this.inviteCodeList.length
-      }).catch(() => { if (state === this.state) this.listError = '邀请记录暂时无法更新，请重试。' }).then(() => { if (state === this.state) this.listLoading = false })
+      }).catch((error) => { if (state === this.state) this.listError = apiErrorMessage(error, '邀请记录暂时无法更新，请重试。') }).then(() => { if (state === this.state) this.listLoading = false })
     },
     loadOldPeople () {
       this.oldPeopleError = ''
@@ -125,7 +127,7 @@ export default {
         }).then(function (response) {
         _this.oldPeople = response.data.oldPeople || []
       }).catch(function (error) {
-        _this.oldPeopleError = '长者列表暂时无法加载'
+        _this.oldPeopleError = apiErrorMessage(error, '长者列表暂时无法加载')
       })
     },
     openCreateDialog () {
@@ -177,8 +179,7 @@ export default {
             })
           }
         }).catch(function (error) {
-          console.log(error)
-          _this.$message({ type: 'error', message: '生成邀请码失败，请稍后重试' })
+          _this.$message({ type: 'error', message: apiErrorMessage(error, '生成邀请码失败，请稍后重试') })
         }).then(function () { _this.creating = false })
       })
     },
@@ -205,7 +206,7 @@ export default {
           }
           _this.searchInviteCodes()
         }).catch(function (error) {
-          console.log(error)
+          _this.$message.error(apiErrorMessage(error, '请求未完成，请重试'))
         })
       } catch (err) {
         _this.$message({ type: 'info', message: '已取消操作' })

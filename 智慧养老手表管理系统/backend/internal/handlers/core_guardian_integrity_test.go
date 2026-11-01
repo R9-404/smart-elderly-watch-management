@@ -11,7 +11,7 @@ func TestContinuousElderGuardianMustExist(t *testing.T) {
 	mustExec(t, h.DB, "INSERT INTO customer(customer_id,customer_name) VALUES(1,'甲'),(2,'乙')")
 	body := elderPayload()
 	body["customerId"] = 999
-	if out := api(t, h.oldPersonAdd, body); out["returnCode"] == "1111" {
+	if out := apiFailure(t, 400, h.oldPersonAdd, body); out["returnCode"] == "1111" {
 		t.Error("elder creation accepted a nonexistent guardian")
 	}
 	var count int
@@ -27,7 +27,7 @@ func TestContinuousElderGuardianMustExist(t *testing.T) {
 		t.Fatal(err)
 	}
 	body["oldId"], body["customerId"], body["name"] = oldID, 999, "不应写入"
-	if out := api(t, h.oldPersonUpdate, body); out["returnCode"] == "1111" {
+	if out := apiFailure(t, 400, h.oldPersonUpdate, body); out["returnCode"] == "1111" {
 		t.Error("elder edit accepted a nonexistent guardian")
 	}
 	var guardian int64
@@ -49,7 +49,7 @@ func TestContinuousGuardianDeleteKeepsAssignedProfiles(t *testing.T) {
 	h := extraAuditHandler(t)
 	mustExec(t, h.DB, "INSERT INTO customer(customer_id,customer_name) VALUES(1,'甲'),(2,'乙')")
 	mustExec(t, h.DB, "INSERT INTO oldperson(old_id,name,customer_id) VALUES(1,'长者',1)")
-	if out := api(t, h.customerDelete, map[string]any{"customerId": 1}); out["returnCode"] == "1111" {
+	if out := apiFailure(t, 400, h.customerDelete, map[string]any{"customerId": 1}); out["returnCode"] == "1111" {
 		t.Error("deleted a guardian still assigned to an elder")
 	}
 	var count int
@@ -114,7 +114,7 @@ func TestContinuousGuardianCreateAndDeleteKeepReferencesValid(t *testing.T) {
 	}()
 	close(start)
 	createResponse, deleteResponse := <-created, <-deleted
-	if createResponse.Code != 200 || deleteResponse.Code != 200 {
+	if (createResponse.Code != 200 && createResponse.Code != 400) || (deleteResponse.Code != 200 && deleteResponse.Code != 400) {
 		t.Fatalf("concurrent requests must finish without server errors: create=%d %s delete=%d %s", createResponse.Code, createResponse.Body.String(), deleteResponse.Code, deleteResponse.Body.String())
 	}
 	createResult, deleteResult := architectureBody(t, createResponse), architectureBody(t, deleteResponse)

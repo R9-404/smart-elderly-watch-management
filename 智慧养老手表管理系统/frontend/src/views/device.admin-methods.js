@@ -1,3 +1,5 @@
+
+import { apiErrorMessage } from '../api/httpContract'
 export const deviceAdminMethods = {
     createDevice () {
       if (this.creating) return
@@ -17,8 +19,7 @@ export const deviceAdminMethods = {
           _this.$message({ type: 'error', message: response.data.message || '登记失败' })
         }
       }).catch(function (error) {
-        console.log(error)
-        _this.$message({ type: 'error', message: '登记失败' })
+        _this.$message({ type: 'error', message: apiErrorMessage(error, '登记失败') })
       }).then(function () { _this.creating = false })
     },
     closeCreateDialog () {
@@ -43,7 +44,7 @@ export const deviceAdminMethods = {
       this.post('bindCodeList', { oldId: oldId }).then(function (response) {
         _this.bindCodeList = response.data.bindCodes || []
       }).catch(function (error) {
-        console.log(error)
+        _this.$message.error(apiErrorMessage(error, '请求未完成，请重试'))
       })
     },
     createBindCode () {
@@ -68,7 +69,7 @@ export const deviceAdminMethods = {
           _this.$message({ type: 'error', message: response.data.message || '生成失败' })
         }
       }).catch(function (error) {
-        console.log(error)
+        _this.$message.error(apiErrorMessage(error, '请求未完成，请重试'))
       })
     },
     deleteBindCode (row) {
@@ -81,7 +82,7 @@ export const deviceAdminMethods = {
           _this.$message({ type: 'error', message: response.data.message || '作废失败' })
         }
       }).catch(function (error) {
-        console.log(error)
+        _this.$message.error(apiErrorMessage(error, '请求未完成，请重试'))
       })
     },
     resetSecret (row) {
@@ -91,7 +92,7 @@ export const deviceAdminMethods = {
         cancelButtonText: '取消',
         type: 'warning'
       }).then(function () {
-        _this.post('resetSecret', { deviceId: row.deviceId }).then(function (response) {
+        return _this.post('resetSecret', { deviceId: row.deviceId }).then(function (response) {
           if (response.data.returnCode === '1111') {
             _this.$alert('新密钥：' + response.data.secret, '密钥已重置', { confirmButtonText: '知道了' })
             _this.loadDevices()
@@ -99,7 +100,7 @@ export const deviceAdminMethods = {
             _this.$message({ type: 'error', message: response.data.message || '重置失败' })
           }
         })
-      }).catch(function () {})
+      }).catch(function (error) { if (error !== 'cancel' && error !== 'close') _this.$message.error(apiErrorMessage(error, '设备操作未完成，请重试')) })
     },
     unbind (row) {
       var _this = this
@@ -108,7 +109,7 @@ export const deviceAdminMethods = {
         cancelButtonText: '取消',
         type: 'warning'
       }).then(function () {
-        _this.post('unbind', { deviceId: row.deviceId }).then(function (response) {
+        return _this.post('unbind', { deviceId: row.deviceId }).then(function (response) {
           if (response.data.returnCode === '1111') {
             _this.$message({ type: 'success', message: '已解绑' })
             _this.loadDevices()
@@ -116,7 +117,7 @@ export const deviceAdminMethods = {
             _this.$message({ type: 'error', message: response.data.message || '解绑失败' })
           }
         })
-      }).catch(function () {})
+      }).catch(function (error) { if (error !== 'cancel' && error !== 'close') _this.$message.error(apiErrorMessage(error, '设备操作未完成，请重试')) })
     },
     deleteDevice (row) {
       var _this = this
@@ -125,7 +126,7 @@ export const deviceAdminMethods = {
         cancelButtonText: '取消',
         type: 'warning'
       }).then(function () {
-        _this.post('delete', { deviceId: row.deviceId }).then(function (response) {
+        return _this.post('delete', { deviceId: row.deviceId }).then(function (response) {
           if (response.data.returnCode === '1111') {
             _this.$message({ type: 'success', message: '已删除' })
             _this.loadDevices()
@@ -133,7 +134,7 @@ export const deviceAdminMethods = {
             _this.$message({ type: 'error', message: response.data.message || '删除失败' })
           }
         })
-      }).catch(function () {})
+      }).catch(function (error) { if (error !== 'cancel' && error !== 'close') _this.$message.error(apiErrorMessage(error, '设备操作未完成，请重试')) })
     },
     copy (text) {
       var input = document.createElement('input')

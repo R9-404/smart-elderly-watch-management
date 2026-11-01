@@ -75,7 +75,7 @@ func (h *Handler) inviteList(w http.ResponseWriter, r *http.Request) {
 		cond = "AND ic.used=0 AND ic.expire_time IS NOT NULL AND ic.expire_time <= now()"
 	default:
 		response.JSON(w, http.StatusBadRequest,
-			map[string]any{"returnCode": response.CodeFail, "message": "邀请状态不正确"})
+			map[string]any{"message": "邀请状态不正确"})
 		return
 	}
 	p, ps := bodyPage(m)

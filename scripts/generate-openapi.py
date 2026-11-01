@@ -1,7 +1,7 @@
 """Deterministic route inventory plus explicit schemas for the incremental API.
 
-Legacy operations with unknown DTO shapes are labelled as such instead of
-inventing contracts. --check fails if the committed document drifts from routes.
+Root field inventories accompany endpoint DTO schemas. --check detects drift in
+routes, OpenAPI output and frontend HTTP status definitions.
 """
 import copy
 import difflib
@@ -100,7 +100,7 @@ for file in sorted((backend / "internal/handlers").glob("*.go")):
                 "both are required together when platform is supplied. Authenticated success returns "
                 "protocolVersion=1 and maxBatchSize=200 plus the existing bindingVersion/owner. "
                 "Unsupported platform/version returns 400. Omit platform for the legacy login contract. "
-                "Invalid credentials retain the existing HTTP 200 failure envelope; inspect returnCode."
+                "Invalid credentials return 401 with code=DEVICE_AUTH_FAILED; disabled devices return 403."
             )
         if path == "/api/v1/health/latest":
             schema["properties"]["oldId"]["minimum"] = 1
@@ -137,7 +137,62 @@ for file in sorted((backend / "internal/handlers").glob("*.go")):
                 },
             }
         paths.setdefault(path, {})[method.lower()] = operation
+# Service status is mounted before the database router.
+paths['/api/v1/service/status'] = {'get': {
+    'summary': 'service/status', 'security': [], 'tags': ['v1'],
+    'responses': {'200': {'description': 'Service database status'}},
+}}
+contracts = json.loads((folder / 'contracts.json').read_text(encoding='utf-8'))
+actual = {method.upper() + ' ' + path for path, methods in paths.items() for method in methods}
+if set(contracts) != actual:
+    raise ValueError(f'Contract inventory differs from routes: {set(contracts) ^ actual}')
+error_schema = {
+    'type': 'object', 'required': ['returnCode', 'code', 'message'],
+    'properties': {'returnCode': {'const': '0000', 'type': 'string'},
+        'code': {'type': 'string'}, 'message': {'type': 'string'}, 'reference': {'type': 'string'}},
+    'additionalProperties': True,
+}
+for key, contract in contracts.items():
+    method, path = key.split(' ', 1)
+    op = paths[path][method.lower()]
+    op['x-request-fields'] = contract['request']
+    op['x-success-fields'] = contract['response']
+    if method != 'GET' and path != '/api/v1/image/saveImage':
+        request_schema = op['requestBody']['content']['application/json']['schema']
+        for name in contract['request']:
+            request_schema.setdefault('properties', {}).setdefault(name, {})
+    for status in (400, 401, 403, 404, 405, 409, 413, 415, 429, 500, 503):
+        op['responses'][str(status)] = {'$ref': '#/components/responses/ApiError'}
+    if path != '/api/v1/image/download':
+        response_schema = op['responses']['200'].setdefault('content', {}).setdefault('application/json', {}).setdefault('schema', {'type': 'object', 'additionalProperties': True})
+        for name in contract['response']:
+            response_schema.setdefault('properties', {}).setdefault(name, {})
+        response_schema.setdefault('properties', {})['returnCode'] = {'type': 'string', 'const': '1111'}
+        response_schema['required'] = sorted(set(response_schema.get('required', [])) | {'returnCode'})
+    elif path == '/api/v1/image/download':
+        op['parameters'] = [{'name': 'name', 'in': 'query', 'required': True, 'schema': {'type': 'string'}}]
+        op['responses']['200'] = {'description': 'Image bytes', 'content': {'image/*': {'schema': {'type': 'string', 'format': 'binary'}}}}
+    if path in {'/api/v1/text/add', '/api/v1/text/update', '/api/v1/picshow/add'}:
+        op['requestBody']['content']['application/json']['schema']['properties']['fileListName'] = {'type': 'array', 'items': {'type': 'string'}}
+    if path == '/api/v1/step/getAllCount':
+        op['responses']['200']['content']['application/json']['schema']['properties']['allCount'] = {'type': 'integer', 'minimum': 0}
+    if path == '/api/v1/image/saveImage':
+        op['requestBody'] = {'required': True, 'content': {'multipart/form-data': {'schema': {'type': 'object', 'required': ['file'], 'properties': {'file': {'type': 'string', 'format': 'binary'}}}}}}
+
+# The frontend status fallback is generated from the owning Go definition.
+source = (backend / 'internal/response/response.go').read_text(encoding='utf-8')
+definitions = {status: {'code': code, 'message': message} for status, code, message in re.findall(r'case (\d+):\s*return "([^"]+)", "([^"]+)"', source)}
+status_target = root / '智慧养老手表管理系统/frontend/src/api/status-errors.json'
+status_data = (json.dumps(definitions, ensure_ascii=False, indent=2) + '\n').encode('utf-8')
+if '--check' in sys.argv:
+    if not status_target.exists() or status_target.read_bytes() != status_data:
+        raise SystemExit('Frontend status definitions are stale; run scripts/generate-openapi.py')
+else:
+    status_target.write_bytes(status_data)
 spec = {"openapi": "3.1.0", "info": {"title": "岁宁后端 API", "version": (backend / "VERSION").read_text(encoding="utf-8").strip(), "description": "Native Go API v1 route inventory. No Java or legacy HTTP entry points."}, "components": {"securitySchemes": {"sessionCookie": {"type": "apiKey", "in": "cookie", "name": "SUINING_SESSION"}}}, "paths": dict(sorted(paths.items()))}
+spec['components']['schemas'] = {'ApiError': error_schema}
+spec['components']['responses'] = {'ApiError': {'description': 'API failure; HTTP status identifies the error category', 'content': {'application/json': {'schema': {'$ref': '#/components/schemas/ApiError'}}}}}
+
 data = (json.dumps(spec, ensure_ascii=False, indent=2) + "\n").encode("utf-8")
 target = folder / "openapi.json"
 if "--check" in sys.argv:

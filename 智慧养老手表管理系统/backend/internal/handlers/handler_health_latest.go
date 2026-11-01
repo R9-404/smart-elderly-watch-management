@@ -53,7 +53,7 @@ func (h *Handler) healthLatest(w http.ResponseWriter, r *http.Request) {
 	for rows.Next() {
 		candidates++
 		if candidates > 10000 {
-			response.JSON(w, http.StatusRequestEntityTooLarge, map[string]any{"returnCode": "0000", "message": "最新采样候选超过 10000 条，请通过增量接口读取"})
+			response.JSON(w, http.StatusRequestEntityTooLarge, map[string]any{"message": "最新采样候选超过 10000 条，请通过增量接口读取"})
 			return
 		}
 		record := health.Record{OldID: oldID}

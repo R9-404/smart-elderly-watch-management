@@ -1,3 +1,5 @@
+
+import { apiErrorMessage } from '../api/httpContract'
 import axios from 'axios'
 
 // Alert queries and resolution share the page's dialog and list state.
@@ -11,7 +13,7 @@ export const healthAlertMethods = {
         _this.rateCount = response.data.rateTotal
         _this.preCount = response.data.preTotal
       }).catch(function (error) {
-        console.log(error)
+        _this.$message.error(apiErrorMessage(error, '请求未完成，请重试'))
       })
     },
     // 点表格里的"查看原因"
@@ -68,7 +70,6 @@ export const healthAlertMethods = {
         _this.alertDialog.occurTime = d.occurTime || ''
         _this.alertDialog.advice = d.advice || ''
       }).catch(function (error) {
-        console.log(error)
         _this.alertDialog.loading = false
         _this.alertDialog.hasAlert = 0
         _this.alertDialog.message = '读取失败，请稍后重试'
@@ -94,9 +95,8 @@ export const healthAlertMethods = {
             _this.$message({ type: 'error', message: response.data.message || '处理失败' })
           }
         }).catch(function (error) {
-          console.log(error)
           _this.alertDialog.resolving = false
-          _this.$message({ type: 'error', message: '处理失败' })
+          _this.$message({ type: 'error', message: apiErrorMessage(error, '处理失败') })
         })
     },
     // 表格里直接点"标记已处理"
@@ -114,8 +114,7 @@ export const healthAlertMethods = {
         _this.searchOlds()
         _this.getCount()
       }).catch(function (error) {
-        console.log(error)
-        _this.$message({ type: 'error', message: '处理失败' })
+        _this.$message({ type: 'error', message: apiErrorMessage(error, '处理失败') })
       })
     },
     postConfig () {

@@ -43,6 +43,7 @@
   <SecurityPanel />
 </template>
 <script setup>
+import { apiErrorMessage } from '../api/httpContract'
 import {ref,onMounted,onBeforeUnmount} from 'vue'
 import axios from 'axios'
 import SecurityPanel from './SecurityPanel.vue'
@@ -69,22 +70,22 @@ async function refresh(){
     authorized.value=false
     diagnostics.value=null
     if(e?.response?.status===403){forbidden.value=true;error.value=''}
-    else{error.value='服务诊断不可用，请检查后端和数据库。'}
+    else{error.value=apiErrorMessage(e, '服务诊断暂不可用')}
   }finally{loading.value=false}
 }
 async function loadStaff(){
   try{const {data}=await post('staff');staff.value=data.staff||[]}
-  catch(_){staff.value=[];error.value='人员权限列表无法加载。'}
+  catch(cause){staff.value=[];error.value=apiErrorMessage(cause, '人员权限列表未能加载')}
 }
 async function assign(person,duty){
   if(person.duty===duty)return
-  try{await post('assignDuty',{adminId:String(person.id),duty});await loadStaff();error.value=''}
-  catch(_){error.value='岗位更改失败，请检查当前权限。';await loadStaff()}
+  try{error.value='';await post('assignDuty',{adminId:String(person.id),duty});await loadStaff()}
+  catch(cause){error.value=apiErrorMessage(cause, '岗位更改失败');await loadStaff()}
 }
 async function ifAudit(){
   if(!showAudit.value)return
   try{const {data}=await post('accessAudit');accesses.value=data.accesses||[]}
-  catch(_){error.value='审计记录暂不可用。'}
+  catch(cause){error.value=apiErrorMessage(cause, '审计记录暂不可用')}
 }
 let timer
 onMounted(()=>{refresh();timer=setInterval(()=>{if(!document.hidden)refresh()},15000)})

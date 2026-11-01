@@ -39,7 +39,7 @@ func (h *Handler) authorizeCareAction(w http.ResponseWriter, r *http.Request, ac
 	}
 	allowed := duty == "supervisor" || (duty == "caregiver" && (action == "acknowledge" || action == "start" || action == "resolve"))
 	if !allowed {
-		response.JSON(w, http.StatusForbidden, map[string]any{"returnCode": "0000", "message": "岗位无此操作权限"})
+		response.JSON(w, http.StatusForbidden, map[string]any{"message": "岗位无此操作权限"})
 		return false
 	}
 	return true
@@ -71,7 +71,7 @@ func (h *Handler) careDiagnostics(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	if duty != "supervisor" {
-		response.JSON(w, http.StatusForbidden, map[string]any{"returnCode": "0000", "message": "只有主管可查看服务诊断"})
+		response.JSON(w, http.StatusForbidden, map[string]any{"message": "只有主管可查看服务诊断"})
 		return
 	}
 	if !h.auditCareAccess(w, r, actor, "service_diagnostics", nil) {

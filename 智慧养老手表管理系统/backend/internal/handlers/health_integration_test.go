@@ -223,7 +223,7 @@ func TestHealthBadSecretDoesNotWaitForClock(t *testing.T) {
 	r := httptest.NewRequest("POST", "/api/v1/device/healthBatch", strings.NewReader(string(b))).WithContext(ctx)
 	w := httptest.NewRecorder()
 	h.healthBatch(w, r)
-	if ctx.Err() != nil || !strings.Contains(w.Body.String(), `"0004"`) {
+	if ctx.Err() != nil || w.Code != 401 || !strings.Contains(w.Body.String(), `"code":"DEVICE_AUTH_FAILED"`) {
 		t.Fatalf("unauthenticated request waited for write lock: %s", w.Body.String())
 	}
 }

@@ -1,3 +1,5 @@
+
+import { apiErrorMessage } from '../api/httpContract'
 export const deviceAlertMethods = {
     alertOf (deviceId) {
       return this.alertCounts[deviceId] || { personCount: 0, rateCount: 0, preCount: 0 }
@@ -26,9 +28,8 @@ export const deviceAlertMethods = {
         _this.alertDialog.advice = d.advice || ''
         _this.alertDialog.recordId = d.recordId === undefined ? null : d.recordId
       }).catch(function (error) {
-        console.log(error)
         _this.alertDialog.loading = false
-        _this.$message({ type: 'error', message: '读取异常详情失败' })
+        _this.$message({ type: 'error', message: apiErrorMessage(error, '读取异常详情失败') })
       })
     },
     // 消除红点
@@ -49,9 +50,8 @@ export const deviceAlertMethods = {
           _this.$message({ type: 'error', message: response.data.message || '处理失败' })
         }
       }).catch(function (error) {
-        console.log(error)
         _this.alertDialog.resolving = false
-        _this.$message({ type: 'error', message: '处理失败' })
+        _this.$message({ type: 'error', message: apiErrorMessage(error, '处理失败') })
       })
     },
     // 工作台里的"已处理"
@@ -67,7 +67,7 @@ export const deviceAlertMethods = {
             _this.$message({ type: 'error', message: response.data.message || '处理失败' })
           }
         }).catch(function (error) {
-          console.log(error)
+          _this.$message.error(apiErrorMessage(error, '请求未完成，请重试'))
         })
     },
     // 打开"全部待处理异常"

@@ -38,7 +38,7 @@ func (h *Handler) healthDeviceAuth(ctx context.Context, q oldQuerier, deviceNo, 
 		return nil, "", "", err
 	}
 	if d == nil {
-		return nil, "0004", "设备号或密钥不正确", nil
+		return nil, "DEVICE_AUTH_FAILED", "设备号或密钥不正确", nil
 	}
 	code, msg := deviceCredentialFailure(secret, d.Secret, d.Status, disabledMsg)
 	if code != "" {

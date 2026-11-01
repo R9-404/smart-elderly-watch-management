@@ -62,7 +62,7 @@ func (h *Handler) healthStatistics(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	if candidates > 10000 {
-		response.JSON(w, 413, map[string]any{"returnCode": "0000", "message": "候选采样超过 10000 条，请缩短统计范围"})
+		response.JSON(w, 413, map[string]any{"message": "候选采样超过 10000 条，请缩短统计范围"})
 		return
 	}
 	out, err := health.Aggregate(samples, req.From, req.To)

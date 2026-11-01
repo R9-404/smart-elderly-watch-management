@@ -1,5 +1,6 @@
 import { reactive } from 'vue'
 import axios from 'axios'
+import { apiErrorMessage, assertApiResponse } from './api/httpContract'
 
 export const authState = reactive({ account: null, csrfToken: '', csrfHeader: 'X-CSRF-TOKEN', setupRequired: false, databaseReady: null, configError: '' })
 let loaded = false
@@ -55,7 +56,8 @@ export function installHttpSecurity (router, app) {
       return config
     })
   })
-  axios.interceptors.response.use(response => response, error => {
+  axios.interceptors.response.use(assertApiResponse, error => {
+    error.message = apiErrorMessage(error, error.message || '连接中断')
     if (error.response?.data?.code === 'DATABASE_UNAVAILABLE') {
       loaded = false
       authState.databaseReady = false

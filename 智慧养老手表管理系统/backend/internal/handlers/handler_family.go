@@ -4,7 +4,7 @@ import (
 	"net/http"
 )
 
-// routeFamily 注册 FamilyController / InviteCodeController 路由。
+// routeFamily registers family profiles and invitations.
 func (h *Handler) routeFamily(mux *http.ServeMux) {
 	mux.HandleFunc("POST /api/v1/family/select", h.familySelect)
 	mux.HandleFunc("POST /api/v1/family/add", h.familyAdd)

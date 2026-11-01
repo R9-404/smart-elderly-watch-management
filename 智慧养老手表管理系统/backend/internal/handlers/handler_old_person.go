@@ -71,7 +71,7 @@ func (h *Handler) oldPersonAdd(w http.ResponseWriter, r *http.Request) {
 		response.OK(w, nil)
 		return
 	}
-	failCodeOnly(w)
+	recordNotFound(w)
 }
 
 // POST /api/v1/oldPerson/update —— 更新老人档案（ADMIN；不更新 be_time）。
@@ -157,7 +157,7 @@ func (h *Handler) oldPersonUpdate(w http.ResponseWriter, r *http.Request) {
 		response.OK(w, nil)
 		return
 	}
-	failCodeOnly(w)
+	recordNotFound(w)
 }
 
 // POST /api/v1/oldPerson/delete —— 删除老人（ADMIN，事务）。
@@ -187,7 +187,7 @@ func (h *Handler) oldPersonDelete(w http.ResponseWriter, r *http.Request) {
 	}
 	if !exists {
 		rollback()
-		failCodeOnly(w)
+		recordNotFound(w)
 		return
 	}
 	var devCount int64

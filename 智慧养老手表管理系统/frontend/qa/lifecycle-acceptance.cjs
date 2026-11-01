@@ -7,8 +7,8 @@ run(async({page,base,report,setRole,setSignedIn})=>{
  await page.route('**/api/v1/customer/select',route=>{
   customerRequests.push(route.request());
   if(customerMode==='hold')return;
-  if(customerMode==='error')return route.fulfill({status:503,json:{}});
-  return route.fulfill({json:{customers:[{customerId:1,customerName:'F02当前监护人',customerPhone:'19912345678',customerAge:70}],total:1}});
+  if(customerMode==='error')return route.fulfill({status:503,json:{returnCode:'0000',code:'SERVICE_UNAVAILABLE',message:'请求未完成',}});
+  return route.fulfill({json:{returnCode:'1111',customers:[{customerId:1,customerName:'F02当前监护人',customerPhone:'19912345678',customerAge:70}],total:1}});
  });
  await visit('/customer','ADMIN');
  await page.getByText('F02当前监护人',{exact:true}).first().waitFor();
@@ -32,7 +32,7 @@ run(async({page,base,report,setRole,setSignedIn})=>{
  await page.getByText('F02当前监护人',{exact:true}).first().waitFor();
  check('A fresh query recovers after timeout',await page.getByRole('alert').filter({hasText:'监护人信息暂时无法加载'}).count()===0);
  customerMode='error';await searchCustomer('F02当前错误');
- await page.getByRole('alert').filter({hasText:'监护人信息暂时无法加载'}).waitFor();
+ await page.getByRole('alert').filter({hasText:'请求未完成'}).waitFor();
  check('A current HTTP failure ends loading and remains visible',await page.locator('.roles').getAttribute('aria-busy')==='false');
  customerMode='hold';const leaving=await searchCustomer('F02离页');
  const unmounted=page.waitForEvent('requestfailed',{predicate:r=>r===leaving});
@@ -42,7 +42,7 @@ run(async({page,base,report,setRole,setSignedIn})=>{
  check('Navigation aborts the guardian read without starting a replacement',customerRequests.length===countAfterLeaving);
  await page.unroute('**/api/v1/customer/select');
 
- await page.route('**/api/v1/care/incidents',route=>route.fulfill({json:{items:[{id:1,oldPersonName:'F02照护任务',state:'received'}],total:1,duty:'supervisor',actorId:1}}));
+ await page.route('**/api/v1/care/incidents',route=>route.fulfill({json:{returnCode:'1111',items:[{id:1,oldPersonName:'F02照护任务',state:'received'}],total:1,duty:'supervisor',actorId:1}}));
  const historyRequests=[];
  await page.route('**/api/v1/care/events',route=>{historyRequests.push(route.request())});
  await visit('/main','ADMIN');await page.locator('.care-task').first().waitFor();
@@ -66,7 +66,7 @@ run(async({page,base,report,setRole,setSignedIn})=>{
  await page.waitForTimeout(250);
  let release,started,requests=0;
  const gate=new Promise(resolve=>{release=resolve}),pending=new Promise(resolve=>{started=resolve});
- await page.route('**/api/v1/device/list',async route=>{requests++;started();await gate;await route.fulfill({contentType:'application/json',body:JSON.stringify({devices:[]})});});
+ await page.route('**/api/v1/device/list',async route=>{requests++;started();await gate;await route.fulfill({contentType:'application/json',body:JSON.stringify({returnCode:'1111',devices:[]})});});
  await Promise.race([pending,new Promise((_,reject)=>setTimeout(()=>reject(new Error('Refresh did not run')),12000))]);
  await page.locator('a[href="#/main"]').first().click();
  await page.getByRole('heading',{name:'运营总览',exact:true}).waitFor();
@@ -81,7 +81,7 @@ run(async({page,base,report,setRole,setSignedIn})=>{
  ]){
   await visit(route,role);await page.waitForTimeout(200);
   let resume,arrived;const hold=new Promise(r=>{resume=r}),request=new Promise(r=>{arrived=r});
-  await page.route('**/api/v1/'+endpoint,async r=>{arrived();await hold;await r.fulfill({contentType:'application/json',body:JSON.stringify(body)});});
+  await page.route('**/api/v1/'+endpoint,async r=>{arrived();await hold;await r.fulfill({contentType:'application/json',body:JSON.stringify({returnCode:'1111',...body})});});
   await page.getByRole('button',{name:button}).first().click();await request;
   await page.evaluate(hash=>{location.hash=hash},home);
   await page.waitForURL(url=>url.hash==='#'+home);await page.locator('.el-dialog:visible').waitFor({state:'hidden'});

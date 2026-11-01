@@ -1,6 +1,6 @@
 import { expect, it, vi } from 'vitest'
 const mock = vi.hoisted(() => ({ request: null as any, responseError: null as any, get: vi.fn() }))
-vi.mock('axios', () => ({ default: {
+vi.mock('axios', async (importOriginal) => ({ ...await importOriginal<typeof import('axios')>(), default: {
   defaults: {}, get: mock.get,
   interceptors: { request: { use: (fn: unknown) => { mock.request = fn } }, response: { use: (_success: unknown, error: unknown) => { mock.responseError = error } } }
 } }))

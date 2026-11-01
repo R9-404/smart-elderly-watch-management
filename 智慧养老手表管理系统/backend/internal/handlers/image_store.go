@@ -52,5 +52,5 @@ func (h *Handler) lockImages(w http.ResponseWriter, ctx context.Context, tx *db.
 }
 
 func imageUnavailable(w http.ResponseWriter) {
-	response.JSON(w, http.StatusServiceUnavailable, map[string]any{"returnCode": "0000", "message": "图片存储暂不可用，请稍后重试"})
+	response.JSON(w, http.StatusServiceUnavailable, map[string]any{"message": "图片存储暂不可用，请稍后重试"})
 }

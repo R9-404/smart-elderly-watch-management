@@ -31,7 +31,7 @@ func careAdmin(w http.ResponseWriter, r *http.Request) (string, bool) {
 		return "", false
 	}
 	if p.Role != auth.RoleAdmin {
-		response.JSON(w, http.StatusForbidden, map[string]any{"returnCode": "0000", "message": "无照护管理权限"})
+		response.JSON(w, http.StatusForbidden, map[string]any{"message": "无照护管理权限"})
 		return "", false
 	}
 	return strconv.FormatInt(p.ID, 10), true
@@ -167,12 +167,12 @@ func (h *Handler) careTransition(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	if action == "verify" && resolver != nil && *resolver == actor {
-		response.JSON(w, http.StatusForbidden, map[string]any{"returnCode": "0000", "message": "处置人与复核人必须不同"})
+		response.JSON(w, http.StatusForbidden, map[string]any{"message": "处置人与复核人必须不同"})
 		return
 	}
 	next := nextCareState(before, action)
 	if next == "" {
-		response.JSON(w, http.StatusConflict, map[string]any{"returnCode": "0000", "message": "当前状态不允许此操作"})
+		response.JSON(w, http.StatusConflict, map[string]any{"message": "当前状态不允许此操作"})
 		return
 	}
 	if (action == "resolve" || action == "verify" || action == "reopen") && note == "" {

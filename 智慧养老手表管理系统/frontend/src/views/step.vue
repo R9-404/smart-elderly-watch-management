@@ -73,6 +73,8 @@
 </template>
 
 <script>
+import { apiErrorMessage } from '../api/httpContract'
+
 import axios from 'axios'
 import RecordCards from '@/components/RecordCards.vue'
 
@@ -132,7 +134,7 @@ export default {
         _this.total = response.data.total ?? response.data.stepDtos.length
       })
         .catch(function (error) {
-          console.log(error)
+          _this.$message.error(apiErrorMessage(error, '请求未完成，请重试'))
         })
     },
 		getCount(){
@@ -151,7 +153,7 @@ export default {
 				_this.stepCount=response.data.deviceIdList.length
 			})
 				.catch(function (error) {
-					console.log(error)
+					_this.$message.error(apiErrorMessage(error, '请求未完成，请重试'))
 				})
 		},
 
@@ -177,7 +179,7 @@ export default {
         this.sleep = Array.isArray(response.data.sleep) ? response.data.sleep : []; this.createTime = Array.isArray(response.data.createTime) ? response.data.createTime : [];
         if (!this.sleep.length) { this.chartError = '暂无可展示的睡眠详情。'; return }
         this.drawLine()
-      }).catch(() => { this.chartError = '详情暂时无法加载，请关闭后重试。' }).then(() => { this.chartLoading = false })
+      }).catch((error) => { this.chartError = apiErrorMessage(error, '详情暂时无法加载，请关闭后重试。') }).then(() => { this.chartLoading = false })
     },
 
 	drawLine () {

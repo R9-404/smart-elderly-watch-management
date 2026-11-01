@@ -65,7 +65,7 @@ func TestContinuousThresholdCreationRequiresRegisteredDevice(t *testing.T) {
 	pool := testDatabase(t)
 	h := testHandler(t, pool)
 	request := map[string]any{"deviceId": 999, "hrf": 100, "hrl": 60, "bpf": 150, "bpl": 90}
-	out := api(t, h.watchInfoAdd, request)
+	out := apiFailure(t, 400, h.watchInfoAdd, request)
 	if out["returnCode"] == "1111" {
 		t.Error("threshold profile created for an unregistered device")
 	}
@@ -78,7 +78,7 @@ func TestContinuousThresholdCreationRequiresRegisteredDevice(t *testing.T) {
 	if created := api(t, h.watchInfoAdd, request); created["returnCode"] != "1111" {
 		t.Fatal(created)
 	}
-	if duplicate := api(t, h.watchInfoAdd, request); duplicate["returnCode"] == "1111" {
+	if duplicate := apiFailure(t, 409, h.watchInfoAdd, request); duplicate["returnCode"] == "1111" {
 		t.Fatal("duplicate profile accepted")
 	}
 }

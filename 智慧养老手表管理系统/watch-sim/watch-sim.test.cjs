@@ -13,7 +13,8 @@ async function fixture (t) {
   const server = http.createServer((request, response) => {
     requests++; request.resume()
     response.setHeader('Content-Type', 'application/json')
-    response.end(JSON.stringify({ returnCode: '0004', message: '验收设备未注册' }))
+    response.statusCode = 401;
+    response.end(JSON.stringify({ returnCode: '0000', code: 'DEVICE_AUTH_FAILED', message: '验收设备未注册' }))
   })
   await new Promise(resolve => server.listen(0, '127.0.0.1', resolve))
   const origin = 'http://127.0.0.1:' + server.address().port
