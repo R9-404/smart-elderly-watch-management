@@ -3576,6 +3576,178 @@
         "description": "Implementation: 智慧养老手表管理系统/backend/internal/handlers/handler_capability_routes.go. Go API DTOs without explicit schemas remain open objects; consult implementation."
       }
     },
+    "/api/v1/health/latest": {
+      "post": {
+        "summary": "health/latest",
+        "deprecated": false,
+        "tags": [
+          "v1"
+        ],
+        "responses": {
+          "200": {
+            "description": "Go JSON response; payload varies by operation.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "returnCode",
+                    "oldId",
+                    "items"
+                  ],
+                  "additionalProperties": false,
+                  "properties": {
+                    "returnCode": {
+                      "type": "string",
+                      "const": "1111"
+                    },
+                    "oldId": {
+                      "type": "integer"
+                    },
+                    "items": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "additionalProperties": false,
+                        "required": [
+                          "oldId",
+                          "bindingVersion",
+                          "revision",
+                          "sampleId",
+                          "deviceId",
+                          "sample"
+                        ],
+                        "properties": {
+                          "oldId": {
+                            "type": "integer"
+                          },
+                          "bindingVersion": {
+                            "type": "integer"
+                          },
+                          "revision": {
+                            "type": "integer"
+                          },
+                          "sampleId": {
+                            "type": "string"
+                          },
+                          "deviceId": {
+                            "type": [
+                              "integer",
+                              "null"
+                            ]
+                          },
+                          "sample": {
+                            "type": "object",
+                            "additionalProperties": true,
+                            "properties": {
+                              "recordId": {
+                                "type": "string"
+                              },
+                              "source": {
+                                "type": "string"
+                              },
+                              "sourceDevice": {
+                                "type": "string"
+                              },
+                              "sourceVersion": {
+                                "type": "string"
+                              },
+                              "metric": {
+                                "type": "string"
+                              },
+                              "semantics": {
+                                "type": "string"
+                              },
+                              "unit": {
+                                "type": "string"
+                              },
+                              "stage": {
+                                "type": "string"
+                              },
+                              "timeBasis": {
+                                "type": "string"
+                              },
+                              "value": {
+                                "type": [
+                                  "number",
+                                  "null"
+                                ]
+                              },
+                              "start": {
+                                "type": "string",
+                                "format": "date-time"
+                              },
+                              "end": {
+                                "type": "string",
+                                "format": "date-time"
+                              },
+                              "version": {
+                                "type": "integer"
+                              }
+                            }
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid request"
+          },
+          "401": {
+            "description": "Session, device credential or MFA required"
+          },
+          "403": {
+            "description": "Role, duty or CSRF denied"
+          },
+          "409": {
+            "description": "Version, binding or state conflict"
+          },
+          "503": {
+            "description": "Required storage/configuration unavailable"
+          },
+          "413": {
+            "description": "More than 10000 latest-time candidates; use health/changes"
+          }
+        },
+        "security": [
+          {
+            "sessionCookie": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "X-CSRF-TOKEN",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "additionalProperties": false,
+                "properties": {
+                  "oldId": {
+                    "type": "integer",
+                    "minimum": 1
+                  }
+                }
+              }
+            }
+          }
+        },
+        "description": "Latest nondeleted stored sample per exact source/sourceDevice/metric/semantics. Order by exact sample.start descending, then revision descending. Intervals retain both endpoints; daily totals are snapshots, not today's aggregate. FAMILY may omit oldId and is checked against current ownership; ADMIN supplies oldId. Historical binding/version and sampling time are preserved; no freshness guarantee or cross-source merging."
+      }
+    },
     "/api/v1/health/statistics": {
       "post": {
         "summary": "health/statistics",

@@ -44,6 +44,7 @@ var sharedPaths = map[string]bool{
 	"POST /api/v1/health/daily-query":          true,
 	"POST /api/v1/health/changes":              true,
 	"POST /api/v1/health/statistics":           true,
+	"POST /api/v1/health/latest":               true,
 	"POST /api/v1/auth/logout":                 true,
 	"POST /api/v1/family/selectTwo":            true,
 	"POST /api/v1/family/updateTwo":            true,

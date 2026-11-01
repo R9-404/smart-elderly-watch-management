@@ -58,6 +58,7 @@ fields = {
     "/api/v1/device-command-profiles": {"deviceId": "integer", "wireType": "string", "protocol": "string", "enabled": "boolean"},
     "/api/v1/device-commands/search": {"deviceId": "integer", "after": "integer"},
     "/api/v1/health/daily-query": {"oldId": "integer", "source": "string", "sourceDevice": "string", "metric": "string", "semantics": "string", "day": "string", "offsetMinutes": "integer", "days": "integer"},
+    "/api/v1/health/latest": {"oldId": "integer"},
     "/api/v1/alert-reviews": {"recordId": "integer", "kind": "string", "verdict": "string", "reason": "string", "expectedReviewId": "integer"},
     "/api/v1/alert-reviews/search": {"entity": "string", "recordId": "integer", "kind": "string", "after": "integer"},
 }
@@ -90,6 +91,40 @@ for file in sorted((backend / "internal/handlers").glob("*.go")):
                 schema["additionalProperties"] = path in {"/api/v1/auth/login", "/api/v1/device/report", "/api/v1/device/sos"}
             operation["requestBody"] = {"required": True, "content": {"application/json": {"schema": schema}}}
         operation["description"] = f"Implementation: {file.relative_to(root).as_posix()}. " + ("Device body authentication or signed gateway receipt; not anonymous access." if access == "Device" else "Go API DTOs without explicit schemas remain open objects; consult implementation.")
+        if path == "/api/v1/health/latest":
+            schema["properties"]["oldId"]["minimum"] = 1
+            operation["description"] = (
+                "Latest nondeleted stored sample per exact source/sourceDevice/metric/semantics. "
+                "Order by exact sample.start descending, then revision descending. "
+                "Intervals retain both endpoints; daily totals are snapshots, not today's aggregate. "
+                "FAMILY may omit oldId and is checked against current ownership; ADMIN supplies oldId. "
+                "Historical binding/version and sampling time are preserved; no freshness guarantee or cross-source merging."
+            )
+            operation["responses"]["413"] = {"description": "More than 10000 latest-time candidates; use health/changes"}
+            sample_properties = {name: {"type": "string"} for name in (
+                "recordId", "source", "sourceDevice", "sourceVersion", "metric", "semantics", "unit", "stage", "timeBasis"
+            )}
+            sample_properties.update({
+                "value": {"type": ["number", "null"]},
+                "start": {"type": "string", "format": "date-time"},
+                "end": {"type": "string", "format": "date-time"},
+                "version": {"type": "integer"},
+            })
+            record_properties = {name: {"type": "integer"} for name in ("oldId", "bindingVersion", "revision")}
+            record_properties.update({
+                "sampleId": {"type": "string"},
+                "deviceId": {"type": ["integer", "null"]},
+                "sample": {"type": "object", "additionalProperties": True, "properties": sample_properties},
+            })
+            operation["responses"]["200"]["content"]["application/json"]["schema"] = {
+                "type": "object", "required": ["returnCode", "oldId", "items"], "additionalProperties": False,
+                "properties": {
+                    "returnCode": {"type": "string", "const": "1111"},
+                    "oldId": {"type": "integer"},
+                    "items": {"type": "array", "items": {"type": "object", "additionalProperties": False,
+                        "required": list(record_properties), "properties": record_properties}},
+                },
+            }
         paths.setdefault(path, {})[method.lower()] = operation
 spec = {"openapi": "3.1.0", "info": {"title": "岁宁后端 API", "version": (backend / "VERSION").read_text(encoding="utf-8").strip(), "description": "Native Go API v1 route inventory. No Java or legacy HTTP entry points."}, "components": {"securitySchemes": {"sessionCookie": {"type": "apiKey", "in": "cookie", "name": "SUINING_SESSION"}}}, "paths": dict(sorted(paths.items()))}
 data = (json.dumps(spec, ensure_ascii=False, indent=2) + "\n").encode("utf-8")

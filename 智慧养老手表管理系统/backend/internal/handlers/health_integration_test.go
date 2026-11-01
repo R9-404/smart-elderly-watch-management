@@ -149,7 +149,7 @@ func TestHealthRoutesKeepAuthenticationAndCSRF(t *testing.T) {
 	mux := http.NewServeMux()
 	h.routeHealth(mux)
 	app := csrf.Middleware(h.Sessions, auth.Middleware(h.Sessions, mux))
-	for _, path := range []string{"changes", "statistics"} {
+	for _, path := range []string{"changes", "statistics", "latest"} {
 		r := httptest.NewRequest("POST", "/api/v1/health/"+path, strings.NewReader(`{}`))
 		w := httptest.NewRecorder()
 		app.ServeHTTP(w, r)

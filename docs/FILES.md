@@ -6,6 +6,12 @@
 
 | 文件 | 职责 |
 | --- | --- |
+| [docs/patch-review/2026-11-01-huawei-health-reference.md](../docs/patch-review/2026-11-01-huawei-health-reference.md) | 华为运动健康静态证据复核、设计取舍与最新采样接口合同 |
+| [智慧养老手表管理系统/backend/internal/handlers/handler_health_latest.go](../智慧养老手表管理系统/backend/internal/handlers/handler_health_latest.go) | 按来源、设备、指标与语义读取最新采样并保留精确时间及绑定归属 |
+| [智慧养老手表管理系统/backend/internal/handlers/health_latest_test.go](../智慧养老手表管理系统/backend/internal/handlers/health_latest_test.go) | 最新采样来源隔离、精确时间、订正删除与家属归属回归 |
+| [智慧养老手表管理系统/frontend/src/api/health.ts](../智慧养老手表管理系统/frontend/src/api/health.ts) | 最新健康采样的类型与会话接口调用 |
+| [智慧养老手表管理系统/frontend/src/components/LatestHealthPanel.vue](../智慧养老手表管理系统/frontend/src/components/LatestHealthPanel.vue) | 家属首页按来源展示最新健康采样、原采样时间与读取状态 |
+| [智慧养老手表管理系统/frontend/src/components/LatestHealthPanel.test.ts](../智慧养老手表管理系统/frontend/src/components/LatestHealthPanel.test.ts) | 最新采样面板来源、零值、区间与读取生命周期回归 |
 | [docs/patch-review/2026-10-31-pr50-position-context.md](../docs/patch-review/2026-10-31-pr50-position-context.md) | PR50 元数据与明确类型接续设计、验收和未关闭范围 |
 | [evidence/pr50-context-20261031/acceptance.txt](../evidence/pr50-context-20261031/acceptance.txt) | 元数据旧版失败、首次接线失败及定向验证原始输出 |
 | [智慧养老手表管理系统/backend/docs/position-context.md](../智慧养老手表管理系统/backend/docs/position-context.md) | 位置采样、精度、来源、有效性与事件类型增量 API 契约 |
