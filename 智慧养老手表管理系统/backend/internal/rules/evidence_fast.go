@@ -4,6 +4,8 @@ import (
 	"math"
 	"strconv"
 	"time"
+
+	"suining-care/internal/jsonscan"
 )
 
 // appendEvidenceFast reuses caller-owned bytes for the common evidence format.
@@ -147,15 +149,7 @@ func fastJSONTime(t time.Time) bool {
 	_, offset := t.Zone()
 	return y >= 0 && y <= 9999 && offset%60 == 0 && offset > -24*3600 && offset < 24*3600
 }
-func fastJSONString(s string) bool {
-	for i := 0; i < len(s); i++ {
-		c := s[i]
-		if c < 0x20 || c >= 0x80 || c == '"' || c == '\\' || c == '<' || c == '>' || c == '&' {
-			return false
-		}
-	}
-	return true
-}
+func fastJSONString(s string) bool { return jsonscan.Safe(s) }
 func appendFloatEvidence(b []byte, value float64) []byte {
 	// Physiological observations and configured limits commonly are integers.
 	// Preserve negative zero and scientific-notation thresholds exactly.

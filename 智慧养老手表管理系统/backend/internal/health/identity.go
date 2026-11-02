@@ -5,6 +5,8 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"strconv"
+
+	"suining-care/internal/jsonscan"
 )
 
 // identityDigest hashes exactly the JSON array used by the previous
@@ -36,15 +38,7 @@ func identityDigest(o Owner, s Sample) string {
 
 func appendJSONStringIdentity(b []byte, value string) []byte {
 	b = append(b, ',', '"')
-	safe := true
-	for i := 0; i < len(value); i++ {
-		c := value[i]
-		if c < 0x20 || c >= 0x80 || c == '"' || c == '\\' || c == '<' || c == '>' || c == '&' {
-			safe = false
-			break
-		}
-	}
-	if safe {
+	if jsonscan.Safe(value) {
 		return append(append(b, value...), '"')
 	}
 	b = b[:len(b)-1]

@@ -5,6 +5,8 @@ import (
 	"math"
 	"strconv"
 	"time"
+
+	"suining-care/internal/jsonscan"
 )
 
 // marshalSampleFast matches encoding/json's struct-field ordering and bytes
@@ -44,15 +46,7 @@ func marshalSampleFast(s Sample) ([]byte, error) {
 	return append(b, '}'), nil
 }
 
-func safeSampleString(s string) bool {
-	for i := 0; i < len(s); i++ {
-		c := s[i]
-		if c < 0x20 || c >= 0x80 || c == '"' || c == '\\' || c == '<' || c == '>' || c == '&' {
-			return false
-		}
-	}
-	return true
-}
+func safeSampleString(s string) bool { return jsonscan.Safe(s) }
 func safeSampleTime(t time.Time) bool {
 	year := t.Year()
 	_, offset := t.Zone()
