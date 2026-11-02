@@ -1,3 +1,4 @@
+import { copyText } from '../utils/clipboard'
 
 import { apiErrorMessage } from '../api/httpContract'
 export const deviceAdminMethods = {
@@ -136,17 +137,12 @@ export const deviceAdminMethods = {
         })
       }).catch(function (error) { if (error !== 'cancel' && error !== 'close') _this.$message.error(apiErrorMessage(error, '设备操作未完成，请重试')) })
     },
-    copy (text) {
-      var input = document.createElement('input')
-      input.value = text
-      document.body.appendChild(input)
-      input.select()
+    async copy (text) {
       try {
-        document.execCommand('copy')
+        await copyText(text)
         this.$message({ type: 'success', message: '已复制：' + text })
-      } catch (e) {
+      } catch {
         this.$message({ type: 'warning', message: '复制失败，请手动记录：' + text })
       }
-      document.body.removeChild(input)
     }
 }

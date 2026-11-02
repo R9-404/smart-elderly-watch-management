@@ -77,7 +77,7 @@
 <script>
 import { apiErrorMessage } from '../api/httpContract'
 
-import axios from 'axios'
+import { invitations } from '../api/invitations'
 
 export default {
   data () {
@@ -163,83 +163,75 @@ export default {
     },
     // 验证邀请码，并显示该邀请码绑定的老人
     checkCode () {
-      var _this = this
-      var code = (_this.registerForm.code || '').trim()
-      _this.codeMessage = ''
-      _this.codeOk = false
+      var code = (this.registerForm.code || '').trim()
+      this.codeMessage = ''
+      this.codeOk = false
       if (code === '') {
         return
       }
-      axios.post('api/v1/inviteCode/checkCode', { 'code': code }, {
-        headers: { 'content-type': 'application/json' },
-        withCredentials: true
-      }).then(function (response) {
+      invitations.checkCode({ 'code': code }).then((response) => {
         var data = response.data
         if (data.returnCode === '1111') {
-          _this.codeOk = true
+          this.codeOk = true
           if (data.remainDays === -1) {
-            _this.codeMessage = '邀请码有效，绑定老人：' + data.oldPersonName + '（长期有效）'
+            this.codeMessage = '邀请码有效，绑定老人：' + data.oldPersonName + '（长期有效）'
           } else {
-            _this.codeMessage = '邀请码有效，绑定老人：' + data.oldPersonName + '（剩余 ' + data.remainDays + ' 天）'
+            this.codeMessage = '邀请码有效，绑定老人：' + data.oldPersonName + '（剩余 ' + data.remainDays + ' 天）'
           }
         } else {
-          _this.codeOk = false
-          _this.codeMessage = data.message ? data.message : '邀请码无效'
+          this.codeOk = false
+          this.codeMessage = data.message ? data.message : '邀请码无效'
         }
-      }).catch(function (error) {
-        _this.codeOk = false
-        _this.codeMessage = '邀请码验证失败，请稍后重试'
+      }).catch((error) => {
+        this.codeOk = false
+        this.codeMessage = '邀请码验证失败，请稍后重试'
       })
     },
     submitForm () {
-      var _this = this
-      _this.$refs.registerForm.validate(function (valid) {
+      this.$refs.registerForm.validate((valid) => {
         if (!valid) {
           return false
         }
-        if (!_this.codeOk) {
-          _this.$message({
+        if (!this.codeOk) {
+          this.$message({
             type: 'warning',
             message: '请先验证邀请码是否可用'
           })
           return false
         }
-        _this.submitting = true
+        this.submitting = true
         var params = {
-          code: _this.registerForm.code.trim(),
-          familyName: _this.registerForm.familyName,
-          familyRelation: _this.registerForm.familyRelation,
-          familySex: _this.registerForm.familySex,
-          familyPhone: _this.registerForm.familyPhone,
-          familyPassword: _this.registerForm.familyPassword,
-          familyAddress: _this.registerForm.familyAddress
+          code: this.registerForm.code.trim(),
+          familyName: this.registerForm.familyName,
+          familyRelation: this.registerForm.familyRelation,
+          familySex: this.registerForm.familySex,
+          familyPhone: this.registerForm.familyPhone,
+          familyPassword: this.registerForm.familyPassword,
+          familyAddress: this.registerForm.familyAddress
         }
-        axios.post('api/v1/inviteCode/join', params, {
-          headers: { 'content-type': 'application/json' },
-          withCredentials: true
-        }).then(function (response) {
-          _this.submitting = false
+        invitations.join(params).then((response) => {
+          this.submitting = false
           var data = response.data
           if (data.returnCode === '1111') {
-            _this.$message({
+            this.$message({
               type: 'success',
               message: '注册成功！已绑定老人：' + data.oldPersonName + '，请使用手机号登录'
             })
-            localStorage.setItem('login_phone', _this.registerForm.familyPhone)
-            setTimeout(function () {
-              _this.$router.push({ path: '/login' })
+            localStorage.setItem('login_phone', this.registerForm.familyPhone)
+            setTimeout(() => {
+              this.$router.push({ path: '/login' })
             }, 1500)
           } else {
-            _this.$message({
+            this.$message({
               type: 'error',
               message: data.message ? data.message : '注册失败，请稍后重试'
             })
             // 邀请码被占用或过期时重新校验一次，避免用户重复提交
-            _this.checkCode()
+            this.checkCode()
           }
-        }).catch(function (error) {
-          _this.submitting = false
-          _this.$message({
+        }).catch((error) => {
+          this.submitting = false
+          this.$message({
             type: 'error',
             message: apiErrorMessage(error, '注册失败，请检查后端服务是否已启动')
           })

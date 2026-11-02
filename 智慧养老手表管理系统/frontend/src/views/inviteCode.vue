@@ -71,9 +71,10 @@
 </template>
 
 <script>
+import { copyText } from '../utils/clipboard'
 import { apiErrorMessage } from '../api/httpContract'
 
-import axios from 'axios'
+import { invitations } from '../api/invitations'
 
 export default {
   data () {
@@ -110,7 +111,7 @@ export default {
       this.listLoading = true
       this.listError = ''
       var state = this.state
-      return axios.post('api/v1/inviteCode/list', { page: this.currentPage, pageSize: this.pageSize,  state: state }, { withCredentials: true }).then((response) => {
+      return invitations.list({ page: this.currentPage, pageSize: this.pageSize,  state: state }).then((response) => {
         if (state !== this.state) return
         if (!Array.isArray(response.data.inviteCodes)) throw new Error('missing invites')
         this.inviteCodeList = response.data.inviteCodes
@@ -119,15 +120,10 @@ export default {
     },
     loadOldPeople () {
       this.oldPeopleError = ''
-      var _this = this
-      axios.post('api/v1/inviteCode/oldPersonList', {},
-        {
-          headers: { 'content-type': 'application/json' },
-          withCredentials: true
-        }).then(function (response) {
-        _this.oldPeople = response.data.oldPeople || []
-      }).catch(function (error) {
-        _this.oldPeopleError = apiErrorMessage(error, '长者列表暂时无法加载')
+      invitations.oldPersonList().then((response) => {
+        this.oldPeople = response.data.oldPeople || []
+      }).catch((error) => {
+        this.oldPeopleError = apiErrorMessage(error, '长者列表暂时无法加载')
       })
     },
     openCreateDialog () {
@@ -144,87 +140,71 @@ export default {
     },
     createInviteCode (formName) {
       if (this.creating) return
-      var _this = this
-      _this.$refs[formName].validate(function (valid) {
+      this.$refs[formName].validate((valid) => {
         if (!valid) {
           return false
         }
-        var expireDays = (_this.createForm.expireDays || '').toString().trim()
+        var expireDays = (this.createForm.expireDays || '').toString().trim()
         if (expireDays !== '' && !/^\d+$/.test(expireDays)) {
-          _this.$message({ type: 'warning', message: '有效天数只能填数字，留空表示长期有效' })
+          this.$message({ type: 'warning', message: '有效天数只能填数字，留空表示长期有效' })
           return false
         }
-        if (_this.creating) return
-        _this.creating = true
-        axios.post('api/v1/inviteCode/create',
+        if (this.creating) return
+        this.creating = true
+        invitations.create(
           {
-            oldId: _this.createForm.oldId,
-            count: _this.createForm.count,
+            oldId: this.createForm.oldId,
+            count: this.createForm.count,
             expireDays: expireDays,
             createUser: localStorage.getItem('user_name') || '管理员'
-          },
-          {
-            headers: { 'content-type': 'application/json' },
-            withCredentials: true
-          }).then(function (response) {
+          }).then((response) => {
           if (response.data.returnCode === '1111') {
-            _this.createdCodes = response.data.codes || []
-            _this.createDialogVisible = false
-            _this.resultDialogVisible = true
-            _this.searchInviteCodes()
+            this.createdCodes = response.data.codes || []
+            this.createDialogVisible = false
+            this.resultDialogVisible = true
+            this.searchInviteCodes()
           } else {
-            _this.$message({
+            this.$message({
               type: 'error',
               message: response.data.message ? response.data.message : '生成邀请码失败'
             })
           }
-        }).catch(function (error) {
-          _this.$message({ type: 'error', message: apiErrorMessage(error, '生成邀请码失败，请稍后重试') })
-        }).then(function () { _this.creating = false })
+        }).catch((error) => {
+          this.$message({ type: 'error', message: apiErrorMessage(error, '生成邀请码失败，请稍后重试') })
+        }).finally(() => { this.creating = false })
       })
     },
     async deleteInviteCode (id) {
-      var _this = this
       try {
-        await _this.$confirm('作废后该邀请码将无法再用于注册，是否继续？', '提示', {
+        await this.$confirm('作废后该邀请码将无法再用于注册，是否继续？', '提示', {
           confirmButtonText: '确定',
           cancelButtonText: '取消',
           type: 'warning'
         })
-        axios.post('api/v1/inviteCode/delete', { 'id': id },
-          {
-            headers: { 'content-type': 'application/json' },
-            withCredentials: true
-          }).then(function (response) {
+        invitations.delete({ 'id': id }).then((response) => {
           if (response.data.returnCode === '1111') {
-            _this.$message({ type: 'success', message: '已作废' })
+            this.$message({ type: 'success', message: '已作废' })
           } else {
-            _this.$message({
+            this.$message({
               type: 'error',
               message: response.data.message ? response.data.message : '作废失败'
             })
           }
-          _this.searchInviteCodes()
-        }).catch(function (error) {
-          _this.$message.error(apiErrorMessage(error, '请求未完成，请重试'))
+          this.searchInviteCodes()
+        }).catch((error) => {
+          this.$message.error(apiErrorMessage(error, '请求未完成，请重试'))
         })
       } catch (err) {
-        _this.$message({ type: 'info', message: '已取消操作' })
+        this.$message({ type: 'info', message: '已取消操作' })
       }
     },
-    copyCode (code) {
-      var _this = this
-      var input = document.createElement('input')
-      input.value = code
-      document.body.appendChild(input)
-      input.select()
+    async copyCode (code) {
       try {
-        document.execCommand('copy')
-        _this.$message({ type: 'success', message: '已复制邀请码：' + code })
-      } catch (e) {
-        _this.$message({ type: 'warning', message: '复制失败，请手动记录：' + code })
+        await copyText(code)
+        this.$message({ type: 'success', message: '已复制邀请码：' + code })
+      } catch {
+        this.$message({ type: 'warning', message: '复制失败，请手动记录：' + code })
       }
-      document.body.removeChild(input)
     },
     handleSizeChange (val) {
       this.pageSize = val
