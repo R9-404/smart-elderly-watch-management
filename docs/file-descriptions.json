@@ -64,11 +64,9 @@
   "docs/patch-review/2026-11-01-harmonyos-adaptation.md": "鸿蒙接入结构、逐项改动、通信流程及验证边界",
   "docs/patch-review/2026-11-01-harmonyos-without-device.md": "无真机阶段的原生构建门槛、生命周期与真实断网恢复验证",
   "docs/patch-review/2026-11-01-huawei-health-reference.md": "华为运动健康静态证据复核、设计取舍与最新采样接口合同",
-  "docs/preview-remediation-validation.json": "preview-remediation-validation.json：为 docs 提供构建、依赖或运行配置",
+  "docs/preview-remediation-validation.json": "2026-10-16 历史源码 SHA 的远程验证证据；不代表当前提交状态",
   "docs/releases/2.1.0.md": "说明 2.1.0 完整交付、后端改进、升级步骤、配置及验证限制",
   "docs/runbooks/backup-restore.md": "backup restore：记录对应模块的使用、架构或维护说明",
-  "docs/runbooks/release.md": "release：记录对应模块的使用、架构或维护说明",
-  "docs/runbooks/rollback.md": "rollback：记录对应模块的使用、架构或维护说明",
   "docs/runbooks/signing.md": "signing：记录对应模块的使用、架构或维护说明",
   "docs/screenshots/login-desktop.png": "桌面登录实拍：山水背景、原选定 Logo 与手机号密码表单。（docs/screenshots/login-desktop.png）",
   "docs/screenshots/overview-desktop.png": "管理员总览实拍：测试数据下的异常类别、告警和平台公告。（docs/screenshots/overview-desktop.png）",
@@ -384,5 +382,7 @@
   "智慧养老手表管理系统/frontend/src/views/writeContract.test.ts": "编辑请求字段与设备写入失败的单次发送回归",
   "智慧养老手表管理系统/watch-sim/watch-sim.config.json": "模拟手表的服务地址与设备凭据配置模板，使用前填入实际设备密钥。（智慧养老手表管理系统/watch-sim/watch-sim.config.json）",
   "智慧养老手表管理系统/watch-sim/watch-sim.js": "模拟手表登录、心跳与数据上报的 Node 联调入口；不代表真实硬件验证。（智慧养老手表管理系统/watch-sim/watch-sim.js）",
-  "智慧养老手表管理系统/watch-sim/watch-sim.test.cjs": "手表模拟器接口协议和请求行为的自动化测试，不代替真实硬件联调。"
+  "智慧养老手表管理系统/watch-sim/watch-sim.test.cjs": "手表模拟器接口协议和请求行为的自动化测试，不代替真实硬件联调。",
+  "docs/reliability/release-governance.md": "仓库分支保护、当前 CI 发布门槛、来源追溯与签名边界",
+  "docs/reliability/environment-and-rollback.md": "隔离环境复现、验证命令、Git 与数据库回滚边界"
 }
