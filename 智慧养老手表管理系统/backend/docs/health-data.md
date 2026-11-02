@@ -21,7 +21,7 @@
     "unit": "count/min",
     "value": 72,
     "start": "2026-11-02T09:00:00+08:00",
-    "end": "2026-10-19T09:00:00+08:00",
+    "end": "2026-11-02T09:00:00+08:00",
     "semantics": "instant",
     "version": 1
   }]
@@ -64,7 +64,7 @@ MySQL 的 `mysql/0007_cluster_scheduling.sql` 引入按老人锁定的修订时�
 
 ## 兼容性与限制
 
-设备通过 `POST /api/v1/device/healthBatch` 提交采样，写入必须携带采集时取得的 `bindingVersion`。家属端当前通过 `GET /api/v1/health/latest` 读取最新采样；增量变更和统计接口分别用于游标同步与时间窗口聚合，不能将写入回执 `writeRevision` 当作读取游标。
+设备通过 `POST /api/v1/device/healthBatch` 提交采样，写入必须携带采集时取得的 `bindingVersion`。家属端当前通过 `POST /api/v1/health/latest` 读取最新采样；增量变更和统计接口分别用于游标同步与时间窗口聚合，不能将写入回执 `writeRevision` 当作读取游标。
 
 健康采样数据保存在 MySQL 业务库。PostgreSQL 是可选分析投影，不能把它视为健康采样原始记录的替代主库。数据库继续独立部署；迁移需要相应 DDL 权限。修订记录目前没有自动清理策略；按老人锁及全局独占号段保证游标一致性，吞吐量须以实际持久化和集群测量结果为准。
 
