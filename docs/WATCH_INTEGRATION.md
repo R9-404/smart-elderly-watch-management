@@ -16,10 +16,7 @@
 ## 开发与验收
 
 - [构建、模拟器端口转发和联调命令](../SuiningWatch/README.md)
-- [采样模块与授权实现](patch-review/2026-11-01-harmonyos-adaptation.md)
-- [无真机阶段的生命周期与断网恢复检查](patch-review/2026-11-01-harmonyos-without-device.md)
-- [华为运动健康参考资料分析](patch-review/2026-11-01-huawei-health-reference.md)
 
-当前实现包含前台原生传感器读取与模拟采样；原生 SDK 编译、签名安装和实表传感器验收需要对应工具及设备。旧版本的原生构建记录保存在 `evidence/watch-import-20261026/`，其源码版本由记录中的 SHA 标识。
+当前实现包含前台原生传感器读取与模拟采样；原生 SDK 编译、签名安装和实表传感器验收需要对应工具及设备。历史构建记录可从 Git 历史查阅。
 
 手表密钥驻留内存，采样队列保存在应用私有 Preferences。后台自动采样、GPS、睡眠阶段检测和本地队列加密尚未实现。

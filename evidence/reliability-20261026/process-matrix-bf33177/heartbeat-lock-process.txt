@@ -1,1 +1,0 @@
-HEARTBEAT_ROW_LOCKED (no task state changed)

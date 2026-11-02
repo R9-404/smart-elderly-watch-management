@@ -13,7 +13,7 @@ SUFFIXES = {".go", ".rs", ".js", ".cjs", ".mjs", ".ts", ".ets", ".vue",
             ".html", ".json", ".json5", ".yml", ".yaml", ".toml",
             ".py", ".ps1", ".sh", ".md", ".txt"}
 HISTORY = ("docs/decisions/", "docs/releases/", "docs/performance/",
-           "docs/patch-review/", "docs/refactoring/", "evidence/")
+           "docs/refactoring/", "evidence/")
 PREFIXES = ("README.md", "README.en.md", "docs/",
             "智慧养老手表管理系统/backend/",
             "智慧养老手表管理系统/frontend/",

@@ -1,1 +1,0 @@
-OpenAPI: 107 paths

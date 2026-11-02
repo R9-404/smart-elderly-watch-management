@@ -70,7 +70,6 @@ go run ./cmd/server
 
 - 规则判定生成的证据 JSON 按单次设备上报调用复用 512 B 私有缓冲区，仅在 `tx.Exec` 同步返回后回收复用。
 - 在 Linux cgroup v2 容器环境中，设置 `SUINING_RUNTIME_AUTOTUNE=1` 可让进程在启动时自动读取 `cpu.max` 与 `memory.max` 并调整运行参数（若管理员已显式设置 `GOMAXPROCS` 或 `GOMEMLIMIT`，则以显式配置为准）。
-- 可在仓库根目录运行 `python3 scripts/go123-memory-scheduling.py`，离线验证健康规则逻辑与 `GOMAXPROCS` 配额计算。
 
 ## 事务流转与存量数据迁移
 

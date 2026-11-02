@@ -11,8 +11,7 @@
 分配器开销，保留内存量级由 K、S 上限决定，为 O(K+S)，不会随新增来源无限增长。
 Go runtime、在途 HTTP 请求、请求 header、其他缓存不属于这项 limiter 预算，不能把整个应用
 RSS 宣称固定 6 MiB。需在反代限制请求/并发，在运行容器设置合理内存预算并监测高水位。
-实际微压测证据见 limiter-memory-bf33177：三轮共 30 万模拟来源、IPv4/IPv6、256 goroutine，
-key 保持 8192；观测 RSS 峰值约 23.09 MiB。单次观测不是生产内存上限或吞吐承诺。
+历史微压测记录已从当前分支清理，可从 Git 历史查阅；当前内存峰值需按部署负载重新测量。
 NAT 共享、高频单 IP、伪造 header、trusted proxy、关闭生命周期与容量拒绝另有 race 回归测试。
 
 TRUSTED_PROXY_CIDRS 最多 64 项，只有 TCP peer 在其中才解析 Forwarded/XFF，最多 4096 字节

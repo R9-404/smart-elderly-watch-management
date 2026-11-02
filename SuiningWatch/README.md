@@ -1,6 +1,6 @@
 # 岁宁守护 · HUAWEI WATCH 5 穿戴端工程
 
-本目录是岁宁配套的 HarmonyOS 原生穿戴端应用，基于 ArkTS、ArkUI 与 Stage 模型开发，目标设备为 HUAWEI WATCH 5。0.2.0 新增前台原生心率与计步传感器接入及系统权限申请；模拟采样保留在“记录”页供调试，两种来源分开保存。新增代码尚未通过当前机器上的 DevEco 编译或真表验收，详见 [本轮适配与验证边界](../docs/patch-review/2026-11-01-harmonyos-adaptation.md)。
+本目录是岁宁配套的 HarmonyOS 原生穿戴端应用，基于 ArkTS、ArkUI 与 Stage 模型开发，目标设备为 HUAWEI WATCH 5。0.2.0 新增前台原生心率与计步传感器接入及系统权限申请；模拟采样保留在“记录”页供调试，两种来源分开保存。新增代码尚未通过当前机器上的 DevEco 编译或真表验收，详见 [开发与验收边界](../docs/WATCH_INTEGRATION.md#开发与验收)。
 
 ## 主要功能
 
@@ -20,7 +20,7 @@
 原生构建现支持 `scripts/build.ps1 -CommandLineHome <command-line-tools根目录>`，
 也支持原有 `-DevEcoHome`。脚本生成带状态、源码 SHA 和 HAP 哈希的构建报告；
 CI 强制执行真实 Go/MySQL 断网恢复；独立 Windows SDK 编译入口需提供工具包地址与预期哈希，结果须查看对应运行。
-详见[无真机验证说明](../docs/patch-review/2026-11-01-harmonyos-without-device.md)。
+详见[开发与验收说明](../docs/WATCH_INTEGRATION.md#开发与验收)。
 
 在 PowerShell 7 中执行构建脚本：
 
