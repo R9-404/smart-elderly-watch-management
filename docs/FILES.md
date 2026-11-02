@@ -24,7 +24,7 @@
 | [Go 后端](../智慧养老手表管理系统/backend/README.md) | 业务接口、数据库迁移和后台任务 |
 | [Vue 前端](../智慧养老手表管理系统/frontend/README.md) | 管理端与家属端网页 |
 | [手表工程](../SuiningWatch/README.md) | ArkTS 应用、传感器和本地采样队列 |
-| [职责数据](file-descriptions.json) | 按完整仓库路径查找当前模块说明 |
+| [职责数据](file-descriptions.json) | 按完整仓库路径查找已登记模块说明 |
 | [当前发布说明](releases/2.1.0.md) | 当前预览版本的范围与限制 |
 | [测试指南](TESTING.md) | 当前前后端、手表和桌面测试入口 |
 | [运维手册](runbooks/backup-restore.md) | 备份与恢复操作 |
