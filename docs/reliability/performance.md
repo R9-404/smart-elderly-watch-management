@@ -1,6 +1,6 @@
-# 本机性能与内存证据
+# 历史本机性能与内存测量
 
-这里全部是本机 microbenchmark 或 loopback HTTP benchmark，不是 staging/production。
+本文件记录特定历史源码 SHA 的本机 microbenchmark 与 loopback HTTP benchmark，不代表当前提交的性能基线，也不是 staging/production 验收。
 没有改事务、审计、响应前持久化、数据库 durability 或照护状态机来改善数字。
 
 ## 统计与锁
