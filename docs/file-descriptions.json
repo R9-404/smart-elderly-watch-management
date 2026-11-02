@@ -42,7 +42,7 @@
   "deploy/platform.nginx.conf": "Nginx 应用网关和反向代理配置",
   "deploy/prometheus.yml": "Prometheus 指标采集配置",
   "deploy/suining-care.service": "Go 照护服务 systemd 常驻运行及进程重启配置",
-  "docs/ABOUT.md": "可用于项目介绍的中英文 About 文案，说明产品用途、当前技术栈与交付范围",
+  "docs/ABOUT.md": "中英文项目简介、当前产品定位、技术架构和受支持交付范围",
   "docs/API_CONTRACTS.md": "接口合同、逐项差异处理、状态码和路径字段清单",
   "docs/ARCHITECTURE.md": "说明 Tauri、Go、Vue 与双库之间的进程边界、请求流程和故障行为",
   "docs/BUILD.md": "Windows 桌面源码的依赖、版本检查、构建步骤和产物位置",
