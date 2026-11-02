@@ -1,10 +1,52 @@
-# 测试分层 · 2.0.6
+# 测试分层 · 当前 preview
 
-- Go 回归：`go test ./...`、`go vet ./...`；专用双库配置 `TEST_MYSQL_DSN` 与 `TEST_DATABASE_URL` 后执行 `go test -race -count=1 -timeout 240s ./...`。事务竞争、外键、SOS 和真实接口必须使用实际数据库。
-- Vue：`npm ci && npm run build`；frontend/qa 使用 Playwright 的模拟接口验收布局和交互，不能充当后端验收。保留字体及窄屏检查。
-- Rust：准备 sidecar 与哈希后 `cargo test --locked`，Tauri 原生命令、窗口 origin 和进程生命周期还需运行验收，不能用编译替代。
-- Windows 安装：运行本版 Setup，确认真实安装路径、软件无数据库启动、恢复连接、首次初始化、登录、全屏与退出。当前轻量安装器缺失 WebView2 时联网静默补装；应分别验证已有组件和干净系统缺失组件两条路径。本机已有运行环境时，不能据此声称验证了缺失时的实际下载安装。
+## Go 后端
 
-禁止对生产数据库运行自动测试。MySQL 用例创建并清理随机测试数据库，PG 用例使用随机 schema 或独立分析库；账号需要对应权限。失败业务写入不得自动重放，分析事件允许幂等重试；退出必须结束 sidecar。
+在 `智慧养老手表管理系统/backend` 目录执行：
 
-2.0.6 健康采样整合保留版本冲突、整批回滚、家属隔离、游标提交顺序、绑定版本和统计校验。旧库导入额外覆盖 PG 0006／0007／0008 的预检查、健康记录与修订时钟保留、拒绝非空目标及失败回滚。执行证据见 [整合记录](INTEGRATION_2.0.6.md)，历史状态仍保留在 [VALIDATION](VALIDATION.md)。
+```sh
+go test -count=1 ./...
+go vet ./...
+```
+
+需要数据库集成测试时，使用专用、可销毁的测试数据库，配置 `TEST_MYSQL_DSN` 与 `TEST_DATABASE_URL`。竞态测试：
+
+```sh
+go test -race -count=1 -timeout 600s ./...
+```
+
+未配置测试数据库时，相关集成用例可能跳过；不得将跳过报告为真实数据库验收通过。禁止对生产数据库运行自动测试。
+
+## Vue 前端
+
+在 `智慧养老手表管理系统/frontend` 目录执行：
+
+```sh
+npm ci
+npm run build
+```
+
+浏览器端 Playwright 测试位于 `frontend/qa`，模拟接口测试不能替代真实后端集成测试。
+
+## HarmonyOS 手表端
+
+在 `SuiningWatch` 目录执行：
+
+```sh
+npm ci
+npm test
+```
+
+协议测试基于适配器转译生产 ArkTS 模型，不等价于 DevEco 原生编译、模拟器交互、传感器权限验证或真机验收。原生构建要求与当前验证边界见 [手表工程说明](../SuiningWatch/README.md)。
+
+## Windows 桌面端
+
+按 [Windows 构建说明](BUILD.md)准备 MSVC、Windows SDK、Rust、Go、Node.js 与 PowerShell。执行 Tauri 构建、sidecar 生命周期、安装/卸载及 WebView2 缺失补装检查。编译成功不能替代真实安装环境和可视交互验收。
+
+## 生产安全边界
+
+- 不对生产数据库执行自动化测试或迁移演练。
+- 业务写入失败不得自动重放；分析 outbox 按幂等语义重试。
+- 手表协议测试不代表真实硬件、SIM/网络或通知网关验收。
+- 网关接受请求不等于通知送达；送达和现场处置必须分别验证。
+- 当前提交的 CI 状态以 GitHub Actions 对应提交的完整检查结果为准。
