@@ -1,40 +1,36 @@
 # 仓库和发布保护
 
-本次只推送新分支 `codex/reliability-validation-20261026`。没有向 preview/main 合并，没有修改
-原 PR 分支、保护规则、tag 或 GitHub Release。`deploy/preview-ruleset.proposed.json` 是可审查的
-管理员提案，**未应用**。需独立维护者审批后由管理员导入，验证禁止普通直推、force push、删除，
-至少一名独立 reviewer、最后推送者不能自行批准、新推送使旧批准失效，以及 required checks。
+本指南说明仓库保护与预发布交付应满足的控制。当前规则集提案位于
+`deploy/preview-ruleset.proposed.json`，它是供维护者审查的配置，不代表 GitHub 已经启用保护。
+正式启用前由仓库管理员核对目标分支、检查名称和来源，并确认规则实际生效。
 
-提案字段依据 [GitHub rules REST 文档](https://docs.github.com/en/rest/repos/rules#create-a-repository-ruleset)。
-`integration_id=15368` 来自本仓库 bf331775 的实际 check-runs（slug=github-actions），不是假设。
-部署时再次核对 check 名称与来源；CodeQL 的 fork PR 权限限制不能用跳过代替完成，应由维护者
-在可信分支重新运行。无独立 reviewer 时不伪造批准。
+建议保护规则至少包括：禁止未经审查的直接推送、force push 和分支删除；要求独立 reviewer；
+最后推送者不能自行批准；新提交使旧批准失效；合并前必须通过当前 SHA 对应的必需检查。
+字段说明见 [GitHub rules REST 文档](https://docs.github.com/en/rest/repos/rules#create-a-repository-ruleset)。
+GitHub Actions 检查来源与名称应以仓库实际 check-runs 为准，不应硬编码未经复核的 integration ID。
+CodeQL 或依赖审查因 fork 权限、配置缺失而未运行时，应由维护者在可信分支重新执行，不能把跳过当成通过。
 
-## 实现的发布门槛
+## 当前发布门槛
 
-Preview CI 覆盖当前 head、真实 MySQL/PG、race、迁移及 rollback、S3 与真实恢复、build/vet、
-OpenAPI、前端 test/typecheck/build/audit、Windows sidecar、govulncheck；Release gate 聚合所有
-结果，任何失败/取消/缺项均不通过。数据库 skip 有单独审核，不能用缺少 DSN 变绿。
-Security 工作流执行 CodeQL；所有 codex 分支 push 与 preview/PR 都触发检查。
+Preview CI 与 Security 工作流分别验证当前提交的后端、数据库、race、迁移与恢复、S3、
+OpenAPI、前端 test/typecheck/build/audit、Windows sidecar 及漏洞扫描。具体执行范围以当前
+workflow 文件和对应 commit 的 job 结果为准；未配置的数据库测试、跳过的原生 SDK 编译、
+未进行的真实设备或生产环境演练不得报告为通过。
 
-release-gate.py 校验明确 40 位 SHA 等于当前 preview，两次读取防止验证期间分支移动；选择该
-SHA 最新运行，拒绝重跑失败后的旧绿灯；检查聚合 job 与每个 SHA 命名 artifact 的存在、有效期、
-SHA-256 digest。Release preparation 和真正 Windows installer 手动入口都要求此门槛；installer
-固定 checkout SHA，产物上传前再次检查。没有证据不进入打包。
+发布门禁应校验明确的 40 位 commit SHA 与目标分支 head 一致，防止验证期间分支移动；选择
+该 SHA 对应的最新工作流运行，拒绝用旧的成功运行覆盖新提交的失败/取消结果；同时核对聚合
+job、SHA 命名 artifact、有效期和 SHA-256 digest。Release preparation 与 Windows installer
+入口必须固定 checkout 到已验证 SHA，产物上传前再次核对来源。没有完整证据不得进入打包。
 
-这段逻辑仍须搭配管理员保护：拥有写权限的人在无保护分支可以改工作流或另开发布入口，不能
-声称 Python 脚本本身能约束仓库管理员。现存历史发布链也需发布者按此路径统一管理。
+这些自动化不能代替管理员保护：有写权限的人在未保护分支仍可能修改工作流或另开发布入口。
+仓库管理员必须独立启用分支规则、限制发布权限，并定期审查工作流来源和配置。
 
 ## 来源和依赖
 
-CI artifact 保存 source SHA、Go 版本与平台、原始测试 JSONL、逐项 skip、构建/vet、前端 audit
-和原生 sidecar SHA-256。GitHub artifact digest 是 ZIP 证据完整性，sidecar 文件 hash 是二进制
-完整性，两者用途不同。正式安装包还需 package-release.ps1 的清单、发布 SHA 和构建 run 链接。
-SDK 版本与校验和固定在 go.mod/go.sum；S3 测试服务固定镜像 digest。MySQL/PG 的 CI 标签属于
-持续获得补丁的环境，实际版本从测试日志/镜像元数据读取，不能把本地 8.0.43 混称 CI 8.4。
+CI artifact 应保存 source SHA、Go 版本与平台、原始测试日志、逐项 skip、构建/vet、前端 audit
+和原生 sidecar SHA-256。GitHub artifact digest 是归档完整性证据，sidecar 文件 hash 是二进制
+完整性证据，两者用途不同。正式安装包还需发布清单、发布 SHA 和构建 run 链接。
 
-本次不创建签名密钥、不声称 unsigned 提交已签名。生产还需维护者配置受托签名 tag、代码签名
-证书、时间戳服务、证书轮换、构建证明和留存策略。核心 CI/打包工作流的 setup-go 已固定到
-官方 v6.5.0 SHA；其他历史工作流、容器基础镜像仍需按补丁策略审核和固定来源。
-仓库 default branch 的 Dependabot 历史告警不等于本新分支当前依赖扫描结果，不能用本次 CI
-把默认分支旧漏洞声明为清零。
+签名密钥不进入仓库；未签名提交或附件不得描述为已签名。生产发布还需维护者配置受托签名
+tag、代码签名证书、时间戳服务、证书轮换、构建证明和留存策略。CI action、容器基础镜像、
+SDK 与依赖来源应固定版本或摘要，并按补丁策略持续审核。
