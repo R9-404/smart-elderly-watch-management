@@ -10,16 +10,16 @@ Use [GitHub Issues](https://github.com/WatchTestCs/smart-elderly-watch-managemen
 
 | Symptom | Check first |
 | --- | --- |
-| Database warning / 数据库未连接 | For 2.0.6 confirm MySQL readiness, the configured DSN and completed migrations. PG failures delay analytics. For historical binaries follow their own version-specific configuration. |
+| Database warning / 数据库未连接 | Confirm MySQL readiness, the configured DSN and completed migrations. PostgreSQL failures delay analytics but should not block core business. |
 | Cannot create or use an account / 无法初始化或登录 | There is no default password. First-admin setup requires the native desktop flow and a ready database. |
 | Portable app will not start / 免安装无法启动 | Extract the whole ZIP, keep both EXEs together, and confirm WebView2 is available; Setup can install the missing shared runtime. |
-| Old records are missing / 升级后没有旧记录 | Back up first. Legacy PG data requires explicit offline import into an empty MySQL target; images are copied separately. H2 is not converted automatically. |
-| Linux differs from Windows / Linux 行为不一致 | Record the exact attachment name. Supplied Linux binaries are not established as builds of current Windows source. |
-| Unknown publisher / 未知发布者 | Signing depends on the exact artifact: historical 2.0.2 uses local self-signing; earlier local 2.0.6 builds were unsigned. Neither provides public CA trust. |
+| Old records are missing / 升级后没有旧记录 | Back up first. Legacy PostgreSQL business data requires explicit offline import into an empty MySQL target; uploaded images are copied separately. No automatic legacy database conversion is performed. |
+| Linux differs from Windows / Linux 行为不一致 | The supported desktop delivery documented here targets Windows x64; do not assume an unverified Linux binary is equivalent. |
+| Unknown publisher / 未知发布者 | The current Windows preview artifacts are not signed by a publicly trusted certificate. Treat publisher warnings as expected and verify the downloaded SHA-256. |
 
 When sharing logs, include only a minimal redacted excerpt. Review screenshots for names, phone numbers, locations, and health information before posting them. Log collection is optional when it would reveal sensitive information.
 
-Current source, historical Setup and Linux attachments are listed separately in the [artifact index](DOWNLOADS.md). New health uploads returning a binding conflict must retain the binding version from acquisition time; do not relabel old records. Notification delivery is separate from care verification.
+Current Windows and source artifacts are listed in the [download index](DOWNLOADS.md). New health uploads returning a binding conflict must retain the binding version from acquisition time; do not relabel old records. Notification delivery is separate from care verification.
 
 ## Bug report template / 缺陷报告模板
 
