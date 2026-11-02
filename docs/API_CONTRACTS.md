@@ -55,11 +55,6 @@ JSON 成功使用 HTTP 200，根字段 `returnCode` 固定为字符串 `1111`。
 | 500 | INTERNAL_ERROR | 服务内部失败，保留 reference |
 | 503 | SERVICE_UNAVAILABLE | 数据库或必要服务暂不可用 |
 
-## 清理结果
-
-删除五份过时文件：根目录 `IMPLEMENTATION_PLAN.md`、`HANDOFF_RESULT.md`，以及 `docs/HANDOFF.md`、`docs/问题与任务交接文档.txt`、`docs/patch-review/2026-10-31-pr50-handoff.md`。这些文件包含旧版前端路径、旧数据库主库说明或过期分支任务。当前运维说明和带源码 SHA 的验收记录继续保留。
-
-修正 Dependabot 的前端目录，更新中英文 README 与手表接入流程，移除源码中只说明 Java/Controller 来源的注释，保留时间、锁序、数据归属和幂等说明。前端 65 个生产脚本与组件均可从 `main.js` 的静态或动态导入到达，7 项运行依赖均有调用。继续使用的字体、许可证、分片资源和桌面图标保留。
 
 ## 逐路径字段核对
 
