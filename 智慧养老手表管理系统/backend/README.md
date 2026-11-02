@@ -98,10 +98,7 @@ $env:TEST_DATABASE_URL='测试PG连接URL'
 go test -race -count=1 -timeout 240s ./...
 ```
 
-相关性能基线与故障排查文档：
-- [双库混合压测与冷热缓存报告](../../docs/performance/2026-10-22-backend-hybrid/README.md)
-- [微基准与耐久测试索引](../../docs/performance/2026-10-21-go123/README.md)
-- [MySQL 503 / 500 连接池与 SQL 排查指南](../../docs/MYSQL_503_500_CONTINUATION_20261021.md)
+运维与性能观察指标见 [性能运维指南](../../docs/reliability/performance.md)，双库连接、恢复与迁移边界见 [双库配置指南](../../docs/DUAL_DATABASES.md)。
 
 ## 接口路由与会话约定（破坏性变更）
 
