@@ -84,7 +84,6 @@
   "docs/screenshots/tauri-2.0.2-main.png": "2.0.2 实际安装后的 Tauri WebView 截图：真实登录后的管理员运营总览，使用临时测试库（docs/screenshots/tauri-2.0.2-main.png）",
   "docs/screenshots/tauri-2.0.2-offline.png": "2.0.2 实际安装后的 Tauri WebView 截图：数据库离线连接状态（docs/screenshots/tauri-2.0.2-offline.png）",
   "docs/verification.json": "此次预览版的测试数量、系统环境、签名状态和审计边界摘要。（docs/verification.json）",
-  "docs/verification/platform-2.0.6.md": "对应测试与性能实验的结构化验证数据：platform-2.0.6.md",
   "docs/verification/platform-tests.json": "对应测试与性能实验的结构化验证数据：platform-tests.json",
   "evidence/cluster-health-new4-t4.json": "附件提供的四节点、四线程健康上报测量。",
   "evidence/cluster-health-new4-t8.json": "附件提供的四节点、八线程健康上报测量。",
