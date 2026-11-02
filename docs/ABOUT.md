@@ -28,4 +28,3 @@ Windows 桌面端采用 Tauri 2、Rust 与 WebView2 构建，由 Vue 3 负责前
 | `preview` 分支源码 | 当前持续演进的开发分支，采用 MySQL 主库 + PostgreSQL 异步分析双库架构 |
 | v2.1.0 源码归档 (`Source ZIP`) | 对应 v2.1.0 发布标签的固定源码快照，与同版本 Windows 安装包完全匹配 |
 | v2.1.0 Windows 客户端 | 提供安装版（Setup）与免安装版（Portable ZIP），当前未附带商业代码签名 |
-| 历史 Linux 附件 | 早期版本留存的独立辅助工具归档，不包含在当前源码的持续构建矩阵中 |
