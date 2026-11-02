@@ -1,6 +1,6 @@
 # 备份与灾难恢复 · MySQL 主库 / 可选 PostgreSQL 分析
 
-适用于当前 `preview` 的 Go + MySQL / PostgreSQL 双库架构，取代早期将 PG 视为业务主库的 2.0.2 说明。**MySQL 及上传图片是业务恢复的必要来源；PG 是可重建的分析投影，不能拿它代替 MySQL 备份。**
+适用于当前 `preview` 的 Go + MySQL / PostgreSQL 双库架构。**MySQL 及上传图片是业务恢复的必要来源；PG 是可重建的分析投影，不能拿它代替 MySQL 备份。**
 
 ## 需要保护的资产
 
