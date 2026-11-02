@@ -1,6 +1,6 @@
 # 文件职责导航
 
-当前 preview 源码树包含 **1012 个文件**，其中 `docs/file-descriptions.json` 保留 **399 条有效路径说明**。此计数按当前 Git 树重新计算。
+当前 preview 源码树包含 **1006 个文件**，其中 `docs/file-descriptions.json` 保留 **394 条有效路径说明**。此计数按当前 Git 树重新计算。
 
 | 目录或入口 | 文件数 |
 | --- | ---: |
@@ -8,7 +8,7 @@
 | `根目录` | 9 |
 | `智慧养老手表管理系统` | 639 |
 | `deploy` | 13 |
-| `docs` | 56 |
+| `docs` | 50 |
 | `evidence` | 211 |
 | `scripts` | 23 |
 | `SuiningWatch` | 33 |
