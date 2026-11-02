@@ -1,61 +1,34 @@
-# 环境、重现与回滚
+# 环境验证与回滚边界
 
-## 本次隔离环境
+## 可重复验证
 
-Windows amd64，Go 1.26.10（官方 archive 校验），GCC 15.2.0 race，Node 运行时与 npm 11.6.2；
-MySQL 8.0.43，PG 16.15，SeaweedFS 4.51 S3，Prometheus 3.5.0，Alertmanager 0.28.1，
-Python TLS 演练依赖 cryptography 50.0.2。真实 CI 另使用 Linux MySQL 8.4/PG 16，Go 1.26.10
-和 1.27.2；当前源漏洞扫描 Go 1.27.3。CI artifact 保存实际数据库版本、镜像 ID、模块列表。
+验证必须在独立 clone、临时数据库和专用对象存储中执行。不要对生产库运行自动测试、故障注入或迁移演练；不要停止、清空或覆盖部署方现有数据库服务。
 
-源码独立 clone；原解压目录和原 MySQL Windows 服务均未修改。实验 MySQL 仅绑定 loopback。
-最初 E 盘 HDD 数据目录 DDL 超过 5 秒超时，因此保留失败，换独立 NVMe 数据目录重跑；不改
-事务确认或 fsync。33371 为基准套件，33372 为每次新 UUID 数据目录的进程故障库；55471 为
-独立测试 PG，18373 为专用私有 S3。原 Windows 服务不参与任何 stop/drop 操作。
-MySQL innodb_flush_log_at_trx_commit=1，PG fsync 保持启用。实际端口/路径见每次 environment.json。
-验收完成后已停止本次独立 MySQL/PG/S3 服务，数据与工具保留；原 MySQL2077 Windows 服务保持原状。
+后端在 `智慧养老手表管理系统/backend` 目录执行：
 
-凭据、临时 CA/私钥、数据库和 S3 数据位于 `.reliability-lab` 或专用 Temp 数据根，**不进入仓库**。
-临时 CA 只给演练 HTTP client，不安装系统信任，不使用 InsecureSkipVerify。所有设备、账号、
-号码和接收端均为合成 fixture；不会联系真实家属。工具下载/测试使用本机代理，子服务清除代理
-与继承的业务环境变量。数据库密码用环境传给客户端，不写命令行日志。
-
-## 重现入口
-
-CI 可直接在新分支 push/Actions 执行。配置真实 TEST_MYSQL_DSN、TEST_DATABASE_URL、
-TEST_S3_ENDPOINT/BUCKET/ACCESS_KEY/SECRET_KEY 后，在 backend 执行：
-
-```text
-go test -json -race -count=1 -timeout 600s ./...
+```sh
+go test -count=1 ./...
+go test -race -count=1 -timeout 600s ./...
 go build ./...
 go vet ./...
-python scripts/generate-openapi.py --check
-python -m unittest discover -s scripts/reliability -p test_*.py -v
 ```
 
-后两条从仓库根执行。PG-only 是单独运行 db/handlers/care/analytics，不用数据库缺省跳过
-冒充通过；audit-go-results.py 分别审核 mysql/postgres JSONL。前端从 `智慧养老手表管理系统/frontend` 运行 `npm ci`、
-test、typecheck、build、audit，具体命令以 reusable-frontend.yml 为准。
-Windows 使用 validate-version.ps1、PowerShell parser 和 native sidecar 构建；不是完整安装器/
-真实手表验收。完整 installer 是通过 release gate 后的 preview-candidate 手动入口。
+需要真实数据库集成测试时，配置专用的 `TEST_MYSQL_DSN` 与 `TEST_DATABASE_URL`。测试库必须允许测试初始化和销毁；未配置时跳过的测试不能算作数据库验收通过。
 
-进程矩阵脚本为 local-fault-drill.py，要求干净提交、由该提交构建的 server.exe/reliability.exe、
-私有 lab-config 和独立输出目录。当前脚本面向此 Windows 隔离根，主动拒绝其他数据根。
-它是真实破坏性测试库演练，不是对任意已存在生产库的通用运维脚本。默认不缩短实际任务
-lease/升级 deadline。`--smoke` 只验证 setup，complete=false，不能用于整矩阵验收。
+前端在 `智慧养老手表管理系统/frontend` 目录执行 `npm ci`、`npm test`、`npm run typecheck` 和 `npm run build`；具体脚本以当前 `package.json` 为准。仓库根目录执行 `python scripts/generate-openapi.py --check`。HarmonyOS 端执行 `npm ci` 与 `npm test`；便携协议测试不等价于 DevEco 原生 SDK 编译或真机验收。
 
-## 回滚
+CI 结果必须对应被审查的完整 commit SHA。每项检查按实际状态记录；跳过、blocked、未配置服务和未连接真实设备均不得写成通过。环境版本、数据库镜像和测试数据来源应从该次 CI artifact 或运行日志读取，不复用历史实验版本号作为当前环境声明。
 
-用户仓库只增加此新分支；未合并前可保持 preview 原样，无需重置用户已有工作。
-如果后续合并需回退，先维护停写/停发送并备份当前 DB+blob+key；按提交 revert，保留新写数据。
-事务/状态机/旧 worker CAS 不得为回退而删除。不要使用 reset --hard/force push 改写共享历史。
+## Git 回滚
 
-数据库回滚脚本在 migrations/rollback；0014 撤销索引，0013 保留目录与墓碑。回滚后需正向
-重复迁移测试。不能让旧二进制读取它不支持的 S3/keyring；详情见 storage-operations.md。
-移除网关/监控配置时先启用人工备用流程，不能只停 worker 消除告警。密钥错失必须失败关闭，
-恢复受托旧密钥或修复迁移，不能自动创建新 key 继续运行。
+未合并的预览改动应通过正常 revert 或修复提交回退，不要对共享分支执行 `reset --hard` 或 force push。合并后回退前，先确认当前分支、提交范围和是否已有新写入；保留审计记录，不要删除其他协作者的提交。
 
-## 仍待生产证据
+## 数据库与对象回滚
 
-真实硬件/渠道送达；独立人员接手和二人复核；异机寻呼与整机失效；生产体量恢复、RPO/RTO、
-最旧备份密钥恢复；明文历史迁移；多 ingress 全局限额；管理员应用保护规则与独立 review；
-签名 tag、代码签名证书。隔离环境的合成 actor 状态转换不等于真人救援。
+应用回滚不等于数据库回滚。切换旧二进制前，必须确认其支持当前 schema、对象存储格式和加密 keyring；不能让旧程序读取不兼容的新字段或密文。数据库结构回退必须按对应 migration 的 rollback 脚本评估，并在隔离副本验证后执行。
+
+生产恢复前先停止写入者与通知发送者，保留当前数据库、对象和密钥备份；恢复到隔离 MySQL 与独立对象空间，核对迁移版本、照护事件、审计、outbox、图片引用及内容哈希。新主启用前还要核对 SOS `requestId` 与网关幂等状态，防止重复联系真实人员。详细的协调备份与恢复步骤见 [备份与灾难恢复](../runbooks/backup-restore.md)。
+
+## 尚需独立生产验收
+
+真实手表与传感器、外部通知送达、独立人员接手和二人复核、异机寻呼、整机失效、生产体量恢复及 RPO/RTO、最旧密钥恢复、明文历史数据迁移、多 ingress 全局限额和受保护分支管理员规则，均须在对应生产环境单独验收。模拟 actor、回环故障代理和 CI 通过不能替代真人救援演练。
