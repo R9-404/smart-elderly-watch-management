@@ -155,29 +155,19 @@ The build script compiles the Vue frontend, embeds the assets into the Go binary
 
 Vital-alert resolution rejects invalid `kind` values to prevent clearing both heart-rate and blood-pressure alerts by mistake. When resolving a specific record, the returned reason belongs to that record. See the [fix and validation scope](docs/patch-review/2026-10-31-vitals-resolution.md).
 
-## Validation and performance
+## Validation
 
-| Area | Documentation and scope |
+| Area | Current reference |
 | --- | --- |
-| Branch CI status | [![Preview CI](https://github.com/WatchTestCs/smart-elderly-watch-management/actions/workflows/ci.yml/badge.svg?branch=preview)](https://github.com/WatchTestCs/smart-elderly-watch-management/actions/workflows/ci.yml) |
-| 2.1.0 release checks | [Release notes](docs/releases/2.1.0.md) and the bundled `release-manifest.json` |
-| Request boundaries and lifecycle | [2026-10-26 boundary refactor](docs/refactoring/2026-10-26-boundaries/README.md): session cancellation, shared access policy, JWT, field masking, and schema alignment |
-| Sleep phase aggregation | [2026-10-26 sleep optimization](docs/performance/2026-10-26-sleep/README.md): unified interval sorting and phase totals across out-of-order and duplicate samples |
-| Read scheduling and rate limiting | [2026-10-26 algorithm iteration](docs/performance/2026-10-26-algorithms/README.md): buffer reuse, sharded rate limiters, command lookup, and list pagination |
-| Sustained load and caching | [2026-10-22 hybrid load report](docs/performance/2026-10-22-backend-hybrid/README.md): latency and memory baselines in an isolated dual-database environment |
-| Endurance and GC experiments | [Go 1.23 endurance logs](docs/performance/2026-10-21-go123/README.md) and [CPU / GC tuning notes](docs/performance/2026-10-21-go123/README.md) |
+| Preview branch automation | [Preview CI](https://github.com/WatchTestCs/smart-elderly-watch-management/actions/workflows/ci.yml) |
+| Current release notes | [Version 2.1.0](docs/releases/2.1.0.md) and the release manifest |
+| Backend regression | Run `go test -count=1 ./...` and `go vet ./...` in `智慧养老手表管理系统/backend` |
+| Frontend build | Run `npm ci` and `npm run build` in `智慧养老手表管理系统/frontend` |
+| Watch protocol | Run `npm ci` and `npm test` in `SuiningWatch`; this does not replace native DevEco or physical-device validation |
 
-To run unit tests and static analysis in `智慧养老手表管理系统/backend`:
+Database integration and race tests require dedicated disposable test databases configured through `TEST_MYSQL_DSN` and `TEST_DATABASE_URL`. Tests must never target production databases. CI results must be read from the workflow run for the exact commit being assessed.
 
-```sh
-go test -count=1 ./...
-go vet ./...
-```
-
-To run the full database integration and race-detector suite, point `TEST_MYSQL_DSN` and `TEST_DATABASE_URL` at dedicated test databases and run `go test -race -count=1 -timeout 600s ./...` (database integration tests are skipped when those variables are unset).
-
-All automated checks in this repository run against isolated test databases and simulated gateways. Production deployments still require end-to-end verification with physical watches, live SMS or voice gateways, TLS certificates, backup restoration, and human on-call procedures. Note that an absence of new telemetry only means no new packets have arrived, and a gateway delivery receipt only confirms transmission rather than completed on-site care.
-
+Historical performance experiments and release-stage notes are not current-version acceptance evidence. Before production deployment, separately validate physical watch hardware, external notification gateways, production data migration, network TLS, and staffed incident response. Gateway acceptance does not prove notification delivery or completed care response.
 ## Troubleshooting
 
 | Symptom | What to check |
