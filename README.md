@@ -157,27 +157,17 @@ cd 智慧养老手表管理系统
 
 ## 验证与性能
 
-| 验证维度 | 记录与说明 |
+| 验证维度 | 当前依据 |
 | --- | --- |
-| 分支自动化检查 | [![Preview CI](https://github.com/WatchTestCs/smart-elderly-watch-management/actions/workflows/ci.yml/badge.svg?branch=preview)](https://github.com/WatchTestCs/smart-elderly-watch-management/actions/workflows/ci.yml) |
-| 2.1.0 发布验证 | [2.1.0 版本说明](docs/releases/2.1.0.md)与随包 `release-manifest.json` |
-| 请求边界与生命周期 | [2026-10-26 边界重构记录](docs/refactoring/2026-10-26-boundaries/README.md)：涵盖会话取消、统一权限表、JWT、字段脱敏与契约对齐 |
-| 睡眠分段统计 | [2026-10-26 睡眠统计优化](docs/performance/2026-10-26-sleep/README.md)：统一时间排序与阶段累计，覆盖乱序、跨窗口与重复样本测试 |
-| 算法与前端读取调度 | [2026-10-26 调度与算法迭代](docs/performance/2026-10-26-algorithms/README.md)：包含统计内存复用、限流分片、指令查找与分页优化 |
-| 后端混合负载与缓存 | [2026-10-22 混合压测报告](docs/performance/2026-10-22-backend-hybrid/README.md)：记录隔离环境下的延迟与内存基线 |
-| 耐久测试与 GC 实验 | [Go 1.23 耐久测试记录](docs/performance/2026-10-21-go123/README.md)与 [Go 运行时调优记录](docs/performance/2026-10-21-go123/README.md) |
+| 分支自动化检查 | [Preview CI](https://github.com/WatchTestCs/smart-elderly-watch-management/actions/workflows/ci.yml) |
+| 当前版本发布信息 | [2.1.0 版本说明](docs/releases/2.1.0.md)及发行附件中的 manifest |
+| 后端回归 | 在 `智慧养老手表管理系统/backend` 中执行 `go test -count=1 ./...` 与 `go vet ./...` |
+| 前端构建 | 在 `智慧养老手表管理系统/frontend` 中执行 `npm ci` 与 `npm run build` |
+| 手表协议 | 在 `SuiningWatch` 中执行 `npm ci` 与 `npm test`；这不等同于 DevEco 原生编译或真机验收 |
 
-在 `智慧养老手表管理系统/backend` 目录下可执行基础单元与静态检查：
+如需运行完整数据库集成与竞态测试，请先配置专用测试库环境变量 `TEST_MYSQL_DSN` 与 `TEST_DATABASE_URL`，再执行 `go test -race -count=1 -timeout 600s ./...`（未配置时数据库集成用例会自动跳过）。
 
-```sh
-go test -count=1 ./...
-go vet ./...
-```
-
-如需运行完整数据库集成与竞态测试，请先配置专用的测试库环境变量 `TEST_MYSQL_DSN` 与 `TEST_DATABASE_URL`，再执行 `go test -race -count=1 -timeout 600s ./...`（未配置时数据库集成用例会自动跳过）。
-
-仓库内的压测与自动化用例均在本地或容器隔离环境中完成。正式投入生产前，仍需针对真实穿戴硬件、外部短信或语音网关、生产数据迁移、跨网 TLS 证书及值班响应流程开展独立验收。同时请注意，无新增异常上报仅代表未收到新数据，通知发送成功也仅代表网关已受理，实际照护结果以人工跟进与复核记录为准。
-
+仓库当前 CI 结果以对应提交的 GitHub Actions 检查为准。性能实验、旧版本构建记录和阶段性补丁报告不再作为当前版本能力或验收结论；正式投入生产前，仍需针对真实穿戴硬件、外部短信或语音网关、生产数据迁移、跨网 TLS 证书及值班响应流程开展独立验收。通知发送成功仅代表网关已受理，实际照护结果以人工跟进与复核记录为准。
 ## 常见问题
 
 | 现象 | 排查方向 |
