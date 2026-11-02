@@ -1,3 +1,0 @@
-Command: go mod verify
-Exit: 0
-all modules verified
