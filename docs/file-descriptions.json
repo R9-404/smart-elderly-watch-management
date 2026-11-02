@@ -64,7 +64,6 @@
   "docs/patch-review/2026-11-01-harmonyos-adaptation.md": "鸿蒙接入结构、逐项改动、通信流程及验证边界",
   "docs/patch-review/2026-11-01-harmonyos-without-device.md": "无真机阶段的原生构建门槛、生命周期与真实断网恢复验证",
   "docs/patch-review/2026-11-01-huawei-health-reference.md": "华为运动健康静态证据复核、设计取舍与最新采样接口合同",
-  "docs/preview-remediation-validation.json": "2026-10-16 历史源码 SHA 的远程验证证据；不代表当前提交状态",
   "docs/releases/2.1.0.md": "说明 2.1.0 完整交付、后端改进、升级步骤、配置及验证限制",
   "docs/runbooks/backup-restore.md": "backup restore：记录对应模块的使用、架构或维护说明",
   "docs/runbooks/signing.md": "signing：记录对应模块的使用、架构或维护说明",
