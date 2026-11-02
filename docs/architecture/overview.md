@@ -35,7 +35,7 @@ flowchart LR
 | 层 | 入口 | 主要职责 |
 | --- | --- | --- |
 | 桌面 | [desktop](../../智慧养老手表管理系统/desktop) | 单实例、窗口、sidecar 哈希、原生命令、生命周期 |
-| 界面 | [oldIot/src](../../智慧养老手表管理系统/frontend/src) | 页面、路由、状态提示、图表与表单 |
+| 界面 | [frontend/src](../../智慧养老手表管理系统/frontend/src) | 页面、路由、状态提示、图表与表单 |
 | 服务 | [backend/cmd/server](../../智慧养老手表管理系统/backend/cmd/server) | 监听、后台连接恢复、API 发布与进程监护 |
 | 业务 | [backend/internal](../../智慧养老手表管理系统/backend/internal) | 鉴权、会话、请求防护、处理器与连接池 |
 | 数据变更 | [migrations](../../智慧养老手表管理系统/backend/migrations) | 内嵌 SQL、版本记录、关系约束 |
