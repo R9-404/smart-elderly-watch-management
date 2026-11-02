@@ -383,5 +383,7 @@
   "智慧养老手表管理系统/watch-sim/watch-sim.js": "模拟手表登录、心跳与数据上报的 Node 联调入口；不代表真实硬件验证。（智慧养老手表管理系统/watch-sim/watch-sim.js）",
   "智慧养老手表管理系统/watch-sim/watch-sim.test.cjs": "手表模拟器接口协议和请求行为的自动化测试，不代替真实硬件联调。",
   "docs/reliability/release-governance.md": "仓库分支保护、当前 CI 发布门槛、来源追溯与签名边界",
-  "docs/reliability/environment-and-rollback.md": "隔离环境复现、验证命令、Git 与数据库回滚边界"
+  "docs/reliability/environment-and-rollback.md": "独立环境验证命令、Git 回滚、数据库与对象存储恢复边界及生产验收限制",
+  "docs/reliability/performance.md": "特定历史源码 SHA 的本机微基准与 loopback HTTP 测量记录，不代表当前性能基线",
+  "docs/reliability/data-protection.md": "数据分级、字段加密范围、keyring 轮换与敏感副本保护要求"
 }
