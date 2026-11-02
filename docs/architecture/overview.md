@@ -35,13 +35,13 @@ flowchart LR
 | 层 | 入口 | 主要职责 |
 | --- | --- | --- |
 | 桌面 | [desktop](../../智慧养老手表管理系统/desktop) | 单实例、窗口、sidecar 哈希、原生命令、生命周期 |
-| 界面 | [oldIot/src](../../智慧养老手表管理系统/oldIot/src) | 页面、路由、状态提示、图表与表单 |
+| 界面 | [oldIot/src](../../智慧养老手表管理系统/frontend/src) | 页面、路由、状态提示、图表与表单 |
 | 服务 | [backend/cmd/server](../../智慧养老手表管理系统/backend/cmd/server) | 监听、后台连接恢复、API 发布与进程监护 |
 | 业务 | [backend/internal](../../智慧养老手表管理系统/backend/internal) | 鉴权、会话、请求防护、处理器与连接池 |
 | 数据变更 | [migrations](../../智慧养老手表管理系统/backend/migrations) | 内嵌 SQL、版本记录、关系约束 |
-| 验收工具 | [前端 QA](../../智慧养老手表管理系统/oldIot/qa) / [watch-sim](../../智慧养老手表管理系统/watch-sim) | 界面回归与手表协议模拟，不能替代实机 |
+| 验收工具 | [前端 QA](../../智慧养老手表管理系统/frontend/qa) / [watch-sim](../../智慧养老手表管理系统/watch-sim) | 界面回归与手表协议模拟，不能替代实机 |
 
-历史名称 `oldIot` 和 Go 模块名 `careold-go` 仅为兼容现有目录与导入；当前源码不使用 Java、Spring Boot、Electron、H2 或旧 Webpack 构建链。
+前端源码位于 `智慧养老手表管理系统/frontend`，Go 后端位于 `智慧养老手表管理系统/backend`。
 
 ## 生命周期与可用性
 
@@ -52,7 +52,7 @@ flowchart LR
 5. 连接恢复后检查会话与初始化状态。权限不因离线放宽，失败写入不进入重试队列。
 6. 窗口退出时由 Rust 请求 Go 安全退出，必要时终止子进程；Go 同时监测父进程是否存在。
 
-[数据库故障处理历史记录](../DATABASE_AVAILABILITY.md) 主要对应旧版 PG 单库与内存会话。当前退出登录仍须通过会话与 CSRF 校验；默认数据库会话的服务端撤销依赖 MySQL，主库断开时可能返回 503，不能将浏览器清除 Cookie 等同于服务端撤销成功。
+当前退出登录仍须通过会话与 CSRF 校验；默认数据库会话的服务端撤销依赖 MySQL，主库断开时可能返回 503，不能将浏览器清除 Cookie 等同于服务端撤销成功。
 
 ## 数据与安全边界
 
@@ -60,16 +60,16 @@ flowchart LR
 - `setup_admin` 仅向允许的主窗口提供，Rust 再检查实际页面 origin；网页不获取桌面令牌。
 - 业务接口在 Go 中执行会话、角色与 CSRF 校验，设备接口使用设备鉴权。
 - MySQL 迁移通过连接级锁与校验和协调，PG 分析迁移使用事务及 advisory lock；不自动删除遗留数据。
-- 旧 H2 数据不自动转换，前端资源与 SQL 被编入 Go 不等于数据库内置。
+- 数据库与图片分别备份；旧业务库迁移必须使用明确的离线导入流程，不能假设安装程序会自动转换数据。
 
 ## 构建与平台边界
 
 Vue 生产构建 → 嵌入 Go 前端资源 → Go 测试与编译 → sidecar 签名及哈希 → Tauri 编译 → NSIS 打包。Windows Setup 缺失 WebView2 时联网静默补装共享运行时，免安装 ZIP 使用系统已有运行时。
 
-Release 的 Linux 软件包是用户提供的 Go 服务配合浏览器启动包；Linux 数据库管理 DEB 是另一个组件，不包含 PostgreSQL 服务。不能用 Windows 源码或验收结果证明这些附件的实现一致性。[Linux 说明](../LINUX.md) 单独记录其依赖和限制。
+当前桌面交付目标为 Windows x64。其他操作系统的原生桌面打包与验收不在当前支持承诺内。
 
 ## 维护入口
 
 [构建](../BUILD.md) · [使用](../SETUP.md) · [测试](../TESTING.md) · [备份](../runbooks/backup-restore.md) · [文件职责](../FILES.md) · [ADR-0006](../decisions/0006-tauri-go-postgres.md)
 
-本轮只修改 `preview`，不移动既有 Release 标签或改动 `main`。历史 ADR 和旧验收保留为历史；新结论必须注明是源码核对、模拟回归还是真实运行验证。
+所有发布资产必须关联明确的源码提交，并区分自动化检查、模拟测试与真实设备/生产环境验收。
