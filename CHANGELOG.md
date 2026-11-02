@@ -13,12 +13,12 @@
 
 ## 2.0.6：界面统一、照护闭环与双库架构
 
-[2.0.6 改进与升级说明](docs/releases/2.0.6.md)
+[v2.0.6 Release](https://github.com/WatchTestCs/smart-elderly-watch-management/releases/tag/v2.0.6)
 
 - 统一导航栏与页面标题，支持按当前路由自动展开菜单分组，补齐窄屏资料卡片、加载提示与失败重试交互，优化宽屏总览栅格布局。
 - 修正建档与设备绑定先后依赖、设备归属一致性、监测阈值保留、饮食与用药字段对齐，以及未上报指标误显示为正常的问题。
 - 打通 SOS 紧急求助从接单、处置登记、另一名主管独立复核到关联告警关闭、总览刷新及分页履历查询的完整闭环。
-- 切换为 MySQL 业务主库加 PostgreSQL 异步分析库的双库架构，配套提供 Docker Compose 模板、旧版 PG 离线导入工具与分析投影回填命令，详见[整合说明](docs/INTEGRATION_2.0.6.md)。
+- 切换为 MySQL 业务主库加 PostgreSQL 异步分析库的双库架构，配套提供 Docker Compose 模板、旧版 PG 离线导入工具与分析投影回填命令，详见该版本对应的 Release 与源码标签。
 
 ## Unreleased — documentation on preview
 
