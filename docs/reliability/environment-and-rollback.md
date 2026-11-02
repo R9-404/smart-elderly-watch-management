@@ -33,7 +33,7 @@ python -m unittest discover -s scripts/reliability -p test_*.py -v
 ```
 
 后两条从仓库根执行。PG-only 是单独运行 db/handlers/care/analytics，不用数据库缺省跳过
-冒充通过；audit-go-results.py 分别审核 mysql/postgres JSONL。前端从 oldIot 运行 npm ci、
+冒充通过；audit-go-results.py 分别审核 mysql/postgres JSONL。前端从 `智慧养老手表管理系统/frontend` 运行 `npm ci`、
 test、typecheck、build、audit，具体命令以 reusable-frontend.yml 为准。
 Windows 使用 validate-version.ps1、PowerShell parser 和 native sidecar 构建；不是完整安装器/
 真实手表验收。完整 installer 是通过 release gate 后的 preview-candidate 手动入口。
