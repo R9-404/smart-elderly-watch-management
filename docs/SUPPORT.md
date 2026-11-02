@@ -19,7 +19,7 @@ Use [GitHub Issues](https://github.com/WatchTestCs/smart-elderly-watch-managemen
 
 When sharing logs, include only a minimal redacted excerpt. Review screenshots for names, phone numbers, locations, and health information before posting them. Log collection is optional when it would reveal sensitive information.
 
-Current Windows and source artifacts are listed in the [download index](DOWNLOADS.md). New health uploads returning a binding conflict must retain the binding version from acquisition time; do not relabel old records. Notification delivery is separate from care verification.
+Current Windows and source artifacts are listed in the [project downloads](../README.md#下载). New health uploads returning a binding conflict must retain the binding version from acquisition time; do not relabel old records. Notification delivery is separate from care verification.
 
 ## Bug report template / 缺陷报告模板
 

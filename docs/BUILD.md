@@ -18,7 +18,6 @@ cd 智慧养老手表管理系统
 
 Tauri 官方参考：[Windows 前置条件](https://v2.tauri.app/start/prerequisites/)、[Windows 安装包](https://v2.tauri.app/distribute/windows-installer/)、[sidecar](https://v2.tauri.app/develop/sidecar/)。
 
-
 2.1.0 的 `package-release.ps1` 在隔离临时目录检查免安装和安装后启动、内嵌页面、父进程终止清理及卸载保留资料；附件保存在 `outputs/v2.1.0-preview/release`。使用有 WebView2 的 Windows 构建环境。该检查不连接生产数据库，也不代表完整可视验收。
 
 ## 容器构建入口
@@ -30,3 +29,10 @@ docker build -f deploy/Dockerfile -t suining:preview .
 ```
 
 `deploy/platform.compose.yml` 已使用同一 Dockerfile 路径；完整平台配置与密钥准备见项目 README。
+
+## 签名
+
+默认不签名。`-SelfSign` 使用本机证书，不自动安装根证书，也不消除 SmartScreen。
+正式证书通过 `SUINING_SIGNING_THUMBPRINT` 和 `SUINING_TIMESTAMP_SERVER` 配置；`sign.ps1` 校验证书用途、私钥、有效期和时间戳。私钥、PFX 与密码不得进入仓库或 Release。
+
+顺序：签 sidecar → 计算内嵌哈希 → 签主程序 → bundler `--no-binary-patching` → 签 Setup → 生成校验和。

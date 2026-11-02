@@ -10,6 +10,10 @@
 GitHub Actions 检查来源与名称应以仓库实际 check-runs 为准，不应硬编码未经复核的 integration ID。
 CodeQL 或依赖审查因 fork 权限、配置缺失而未运行时，应由维护者在可信分支重新执行，不能把跳过当成通过。
 
+## 预览交付
+
+预发布只面向 `preview`，不自动更新 `main`。附件、源码快照和校验清单必须对应同一版本与提交；旧 Release 不包含后续分支改动。普通 PR/CI 不读取发布私钥，签名与发布只在明确的 release 流程执行。
+
 ## 当前发布门槛
 
 Preview CI 与 Security 工作流分别验证当前提交的后端、数据库、race、迁移与恢复、S3、

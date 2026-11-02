@@ -1,8 +1,6 @@
 # 实现架构 · Tauri / Go / Vue / MySQL / PostgreSQL
 
-本文与当前 `preview` 源码对应，解释实际进程、协议、数据和构建路径。产品入口见 [README](../README.md)，整体关系见 [架构总览](architecture/overview.md)，取代旧桌面设计的决定见 [ADR-0006](decisions/0006-tauri-go-postgres.md)。
-
-当前运行架构采用 **MySQL 业务主库 + PostgreSQL 异步分析库**；数据库职责、配置、迁移与恢复流程以 [双库配置指南](DUAL_DATABASES.md) 为准。
+本文说明进程、协议、数据和构建路径。部署见 [双库指南](DUAL_DATABASES.md)，产品入口见 [README](../README.md)。
 
 ## 组件职责
 
@@ -123,7 +121,7 @@ MySQL 迁移按文件执行，通过连接级锁及 `schema_migrations` 校验�
 | `SESSION_TTL_HOURS` | Go | 会话期限，默认 12 小时 |
 | `TEST_DATABASE_URL` | 回归测试 | 仅用于隔离测试库，不应指向生产数据库 |
 
-数据库可在独立服务器或本机独立服务运行。跨主机连接应由部署方验证 TLS 与访问控制，不把数据库凭据交给网页。默认桌面回环监听也不构成可供外部手表直接使用的公网接口；网关、受控转发或独立服务部署需要另行安排。
+数据库可在独立服务器或本机独立服务运行。跨主机连接应由部署方验证 TLS 与访问控制，不把数据库凭据交给网页。桌面退出会停止本地 Go 服务；全天候接收手表与 SOS 需按 [照护服务部署](CARE_SERVICE_DEPLOYMENT.md) 运行独立常驻服务。桌面回环端口不能直接供外部手表连接。
 
 ## 构建、分发与版本
 

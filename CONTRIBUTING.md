@@ -14,7 +14,7 @@ Base your work on `preview` and open pull requests against `preview`. Release ta
 
 ## Before changing code / 开始前准备
 
-1. Read the [architecture overview](docs/architecture/overview.md), the relevant module README, and related [Architecture Decision Records (ADRs)](docs/decisions/README.md).
+1. Read the [architecture](docs/ARCHITECTURE.md), the relevant module README, and the [UI requirements](docs/UI_UX.md) or [release gates](docs/reliability/release-governance.md) for the affected area.
 2. Check existing issues and follow the [issue templates](docs/SUPPORT.md). If you plan to change deployment topology, database responsibilities, or authentication boundaries, open an issue to discuss the design first.
 3. Keep each pull request focused. Avoid bundling unrelated refactors, dependency upgrades, or formatting sweeps.
 

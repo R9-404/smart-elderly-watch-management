@@ -9,7 +9,7 @@ go test -count=1 ./...
 go vet ./...
 ```
 
-需要数据库集成测试时，使用专用、可销毁的测试数据库，配置 `TEST_MYSQL_DSN` 与 `TEST_DATABASE_URL`。竞态测试：
+需要数据库集成测试时，配置 `TEST_MYSQL_DSN` 与 `TEST_DATABASE_URL`，使用专用、可销毁的测试实例；MySQL 测试账号需有创建和删除随机测试库的权限。竞态测试：
 
 ```sh
 go test -race -count=1 -timeout 600s ./...
@@ -23,10 +23,12 @@ go test -race -count=1 -timeout 600s ./...
 
 ```sh
 npm ci
+npm test
+npm run typecheck
 npm run build
 ```
 
-浏览器端 Playwright 测试位于 `frontend/qa`，模拟接口测试不能替代真实后端集成测试。
+浏览器端 Playwright 测试：`npm --prefix qa ci` 后执行 `npm --prefix qa test`。模拟接口测试不能替代真实后端集成测试。
 
 ## HarmonyOS 手表端
 

@@ -34,7 +34,7 @@
 
 校验与发布信息：[SHA-256](https://github.com/WatchTestCs/smart-elderly-watch-management/releases/download/v2.1.0/SHA256SUMS.txt) · [完整发布记录](https://github.com/WatchTestCs/smart-elderly-watch-management/releases/tag/v2.1.0)
 
-安装包不含数据库服务，运行客户端无需安装 Go、Rust 或 Node.js。当前 Windows 安装包与执行文件未做数字签名。
+安装包不含数据库服务，运行客户端无需安装 Go、Rust 或 Node.js。当前 Windows 安装包与执行文件未做数字签名。复现发行构建使用 Release 的命名源码附件与校验清单，GitHub 自动生成的源码 ZIP 目录结构可能不同；安装包不自动迁移旧数据库与本地图片。
 
 > [!NOTE]
 > v2.1.0 发行附件基于固定提交 [e3cf064](https://github.com/WatchTestCs/smart-elderly-watch-management/commit/e3cf064) 构建。如需体验后续提交的改动，请按下文说明从源码构建。
@@ -143,7 +143,7 @@ docs/            架构设计、部署手册、版本说明与验证记录
 evidence/        自动化测试与故障演练留档数据
 ```
 
-在 Windows 上执行完整桌面构建，需要安装 PowerShell 7、Node.js（`^20.19.0 || >=22.12.0`）、Go（`go.mod` 要求 `1.26.0+`）、Rust 1.85+、MSVC 生成工具与 Windows SDK。具体环境准备见[构建环境说明](docs/SETUP.md)。
+在 Windows 上执行完整桌面构建，需要安装 PowerShell 7、Node.js（`^20.19.0 || >=22.12.0`）、Go（`go.mod` 要求 `1.26.0+`）、Rust 1.85+、MSVC 生成工具与 Windows SDK。具体环境准备见[构建环境说明](docs/BUILD.md)。
 
 ```powershell
 cd 智慧养老手表管理系统
@@ -180,11 +180,11 @@ cd 智慧养老手表管理系统
 
 | 主题 | 相关文档 |
 | --- | --- |
-| 下载、版本与升级 | [下载索引](docs/DOWNLOADS.md) · [2.1.0 发布说明](docs/releases/2.1.0.md) · [更新日志](CHANGELOG.md) |
+| 下载、版本与升级 | [2.1.0 发布说明](docs/releases/2.1.0.md) · [更新日志](CHANGELOG.md) |
 | 数据库、迁移与备份 | [双库配置指南](docs/DUAL_DATABASES.md) · [备份与恢复手册](docs/runbooks/backup-restore.md) |
 | 设备接入与照护运维 | [照护服务部署](docs/CARE_SERVICE_DEPLOYMENT.md) · [支持与故障排查](docs/SUPPORT.md) |
 | 源码开发与模块说明 | [工程总览](智慧养老手表管理系统/README.md) · [前端说明](智慧养老手表管理系统/frontend/README.md) · [后端说明](智慧养老手表管理系统/backend/README.md) · [手表端说明](SuiningWatch/README.md) |
-| 架构设计与测试 | [架构总览](docs/architecture/overview.md) · [架构决策记录 (ADR)](docs/decisions/README.md) · [测试指南](docs/TESTING.md) |
+| 架构设计与测试 | [实现架构](docs/ARCHITECTURE.md) · [界面规范](docs/UI_UX.md) · [发布门禁](docs/reliability/release-governance.md) · [测试指南](docs/TESTING.md) |
 
 提交 [Issue](https://github.com/WatchTestCs/smart-elderly-watch-management/issues) 反馈问题时，请附上版本号或 Git 提交哈希、操作系统环境、网络拓扑结构以及脱敏后的应用日志。
 

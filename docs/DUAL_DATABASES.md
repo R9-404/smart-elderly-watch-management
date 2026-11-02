@@ -89,6 +89,8 @@ go run ./cmd/transfer-postgres --apply
 3. 在 PG 提交与主库确认之间崩溃会重放；`last_event_id` 忽略重复和旧事件。删除保留墓碑，旧事件不能使数据复活。
 4. PG 失败保留队列并重连重试；主管诊断显示配置状态、可用性、积压与最近同步时间。MySQL 失败才阻断业务；失败业务写入不自动重放。
 
+未配置 `PG_ANALYTICS_URL` 时同步作业直接退出。PG 连接池上限为 2，最小空闲连接为 0，连接超时为 3 秒；连续失败按 2、4、8、16、30 秒退避，成功后重置，满批积压排空间隔为 10 毫秒。
+
 队列依赖 MySQL 磁盘，长期 PG 故障需监控积压和容量，不承诺无限离线。多实例共用主库稳定的 `analytics_source.source_id`。克隆、换主库或从旧快照恢复时，使用独立分析库重建，避免陈旧的大事件号压制恢复后的记录。
 
 PG 丢失数据时，优先准备新的分析库、修改连接并重启，然后从当前主库回填：
@@ -108,25 +110,13 @@ SELECT * FROM suining_analytics.care_summary ORDER BY source_id,state;
 
 日统计分别统计心率/血压有效样本，NULL 不计入均值；照护汇总按状态分组。业务界面继续读主库当前数据。
 
-## 本地验证和限制
+## 验证入口
 
-独立 MySQL 8.0.46 与 PostgreSQL 16.4 实测：
+测试命令与测试库要求见 [测试指南](TESTING.md)。真实后端浏览器脚本需独立空 MySQL、服务 URL、桌面测试令牌与 `CARE_E2E_TEST_ONLY=1`，仅支持 `qa_arch_` 前缀测试库。
 
-- MySQL 上 Go 全套测试、竞争检测，覆盖原有照护、绑定、权限、通知与新增格式回归。
-- 双库测试覆盖回滚不泄露事件、PG 失败保留、恢复补偿、重放、删除及旧事件防复活、投影回填。
-- 迁移测试覆盖预检查不写入、ID/中文/NULL 保留、拒绝非空库和失败整笔回滚。
-- 生产前端 + 真实 Go + MySQL：PG 全程停机时完成 15 项建档到独立复核检查。随后启动 PG，实查自动重连、队列归零、已复核任务与缺测指标一致。
-- Vue 构建与浏览器回归检查双库提示、恢复及既有页面；Compose 做静态解析。未拉取模板镜像、未重建原生安装包。
+源码：[数据库适配](../智慧养老手表管理系统/backend/internal/db/database.go) · [同步](../智慧养老手表管理系统/backend/internal/analytics/sync.go) · [离线导入](../智慧养老手表管理系统/backend/cmd/transfer-postgres/main.go) · [回填](../智慧养老手表管理系统/backend/cmd/analytics-backfill/main.go)。
 
-MySQL 8.4 镜像、生产数据迁移、远程 TLS、真实硬件/短信以及长期大数据量未实测。原生环境变量桥已修改，未进行 Tauri 运行验收。
-
-入口：[数据库适配](../智慧养老手表管理系统/backend/internal/db/database.go)、[同步](../智慧养老手表管理系统/backend/internal/analytics/sync.go)、[导入工具](../智慧养老手表管理系统/backend/cmd/transfer-postgres/main.go)、[回填工具](../智慧养老手表管理系统/backend/cmd/analytics-backfill/main.go)。
-
-### 复跑与 CI
-
-在 backend 同时配置专用 `TEST_MYSQL_DSN` 和 `TEST_DATABASE_URL` 后执行 `go test -race -count=1 -timeout 240s ./...`、`go vet ./...`；MySQL 测试账号需要创建/删除随机测试数据库的权限。缺少变量时对应集成测试会跳过，不应把跳过视为双库验收通过。
-
-前端在 `智慧养老手表管理系统/frontend` 执行 `npm run build`、`npm --prefix qa test`。真实后端浏览器脚本需独立空 MySQL、启动后的服务 URL、桌面测试令牌与 `CARE_E2E_TEST_ONLY=1`；仅支持 `qa_arch_` 前缀测试库。源码中的后端 CI 与迁移工作流已增加 MySQL 服务和双库测试变量；本轮仅修改及静态校验，没有运行远程 Actions。
+## 业务连接调优
 
 MySQL 业务连接默认每条物理连接缓存最多 64 个预编译语句，减少重复 SQL 解析与大参数转义；20 条连接默认最多 1280 个服务器句柄/副本，须计入服务器语句预算。`MYSQL_STMT_CACHE_SIZE=0` 恢复插值/临时 prepare 路径；可设置 0..128。冷启动与 SQL 形状抖动可能变慢，最终延迟对照见 [PR #30](https://github.com/WatchTestCs/smart-elderly-watch-management/pull/30)。
 

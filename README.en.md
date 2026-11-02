@@ -39,6 +39,8 @@ The packages do not bundle a database server. End users do not need Go, Rust, or
 > [!NOTE]
 > The v2.1.0 release assets were built from commit [e3cf064](https://github.com/WatchTestCs/smart-elderly-watch-management/commit/e3cf064). To test newer changes on `preview`, build from source using the instructions below.
 
+Use the named source archive and checksums from the Release to reproduce its build; GitHub-generated source ZIPs may have a different layout. Installers do not migrate legacy databases or local images.
+
 ## Features
 
 | Area | What it covers |
@@ -143,7 +145,7 @@ docs/            Architecture guides, deployment runbooks, release notes, and te
 evidence/        Archived test outputs and fault-injection evidence
 ```
 
-Building the Windows desktop package requires PowerShell 7, Node.js (`^20.19.0 || >=22.12.0`), Go (`1.26.0+` per `go.mod`), Rust 1.85+, MSVC build tools, and the Windows SDK. See [Environment setup](docs/SETUP.md) for exact version constraints.
+Building the Windows desktop package requires PowerShell 7, Node.js (`^20.19.0 || >=22.12.0`), Go (`1.26.0+` per `go.mod`), Rust 1.85+, MSVC build tools, and the Windows SDK. See [Environment setup](docs/BUILD.md) for exact version constraints.
 
 ```powershell
 cd 智慧养老手表管理系统
@@ -180,11 +182,11 @@ Historical performance experiments and release-stage notes are not current-versi
 
 | Topic | Guides |
 | --- | --- |
-| Releases and upgrades | [Downloads](docs/DOWNLOADS.md) · [2.1.0 release notes](docs/releases/2.1.0.md) · [Changelog](CHANGELOG.md) |
+| Releases and upgrades | [2.1.0 release notes](docs/releases/2.1.0.md) · [Changelog](CHANGELOG.md) |
 | Databases and backups | [Dual-database guide](docs/DUAL_DATABASES.md) · [Backup and restore runbook](docs/runbooks/backup-restore.md) |
 | Operations and support | [Care service deployment](docs/CARE_SERVICE_DEPLOYMENT.md) · [Support and troubleshooting](docs/SUPPORT.md) |
 | Module guides | [Workspace overview](智慧养老手表管理系统/README.md) · [Frontend](智慧养老手表管理系统/frontend/README.md) · [Backend](智慧养老手表管理系统/backend/README.md) · [Watch app](SuiningWatch/README.md) |
-| Architecture and testing | [Architecture overview](docs/architecture/overview.md) · [Architecture Decision Records](docs/decisions/README.md) · [Testing guide](docs/TESTING.md) |
+| Architecture and testing | [Architecture](docs/ARCHITECTURE.md) · [UI requirements](docs/UI_UX.md) · [Release gates](docs/reliability/release-governance.md) · [Testing guide](docs/TESTING.md) |
 
 When opening an [issue](https://github.com/WatchTestCs/smart-elderly-watch-management/issues), include the application version or commit SHA, OS, network layout, and redacted logs.
 
