@@ -52,7 +52,6 @@
   "docs/DUAL_DATABASES.md": "MySQL 主库与 PostgreSQL 分析库的配置、迁移、离线导入和故障恢复说明",
   "docs/FILES.md": "按仓库当前 preview 树逐项列出文件与目录用途的完整索引",
   "docs/LINUX.md": "LINUX：记录对应模块的使用、架构或维护说明",
-  "docs/PUBLICATION.md": "PUBLICATION：记录对应模块的使用、架构或维护说明",
   "docs/SETUP.md": "SETUP：记录对应模块的使用、架构或维护说明",
   "docs/SUPPORT.md": "中英文问题反馈入口、复现模板、日志采集建议与隐私边界",
   "docs/TESTING.md": "TESTING：记录对应模块的使用、架构或维护说明",
