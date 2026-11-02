@@ -1,6 +1,6 @@
 # MySQL 主库与 PostgreSQL 分析库
 
-2026-10-19，2.0.6 整合源码。采用 **MySQL 核心业务 + PG 分析**，保留现有后台权限与远程健康采样能力；此次仅推送 preview 源码，不发布 Release，不改动本机已有 MySQL 服务或生产数据。先前本地安装包不含此次健康采样整合，使用时需从当前源码重建。
+当前部署采用 **MySQL 核心业务 + PostgreSQL 分析投影**。MySQL 保存业务事务和 outbox；PostgreSQL 为可选分析副库，其不可用不应阻断核心业务。
 
 ## 数据分工
 
@@ -80,7 +80,7 @@ go run ./cmd/transfer-postgres --apply
 
 默认只预检查及输出逐表行数。`--apply` 使用旧 PG 的只读、可重复读快照，按外键顺序导入 MySQL 单个事务，保留 ID、密码哈希、设备关联、时间和 NULL；逐表核对行数后提交。失败时目标业务数据及分析事件一同回滚，源库只读，目标非空拒绝导入。目标建表是独立阶段，导入失败不会删除已创建的空表。
 
-导入会生成分析事件，PG 恢复后补齐。图片需另行复制。本工具支持 PG 0001–0006 结构，以及带健康采样的 0007／0008；后两者同时导入采样、变更记录、修订时钟与设备绑定版本，不自动修复历史错误字段，也不直接支持旧 Java/H2。上线前核对行数、账号、设备归属、照护履历及图片，再切换配置。
+导入会生成分析事件，PG 恢复后补齐。图片需另行复制。本工具支持 PG 0001–0006 结构，以及带健康采样的 0007／0008；后两者同时导入采样、变更记录、修订时钟与设备绑定版本；迁移前必须完成预检查，不会自动修复来源库中的历史错误字段。上线前核对行数、账号、设备归属、照护履历及图片，再切换配置。
 
 ## 同步、故障与重建
 
@@ -126,8 +126,8 @@ MySQL 8.4 镜像、生产数据迁移、远程 TLS、真实硬件/短信以及�
 
 在 backend 同时配置专用 `TEST_MYSQL_DSN` 和 `TEST_DATABASE_URL` 后执行 `go test -race -count=1 -timeout 240s ./...`、`go vet ./...`；MySQL 测试账号需要创建/删除随机测试数据库的权限。缺少变量时对应集成测试会跳过，不应把跳过视为双库验收通过。
 
-前端在 oldIot 执行 `npm run build`、`npm --prefix qa test`。真实后端浏览器脚本需独立空 MySQL、启动后的服务 URL、桌面测试令牌与 `CARE_E2E_TEST_ONLY=1`；仅支持 `qa_arch_` 前缀测试库。源码中的后端 CI 与迁移工作流已增加 MySQL 服务和双库测试变量；本轮仅修改及静态校验，没有运行远程 Actions。
+前端在 `智慧养老手表管理系统/frontend` 执行 `npm run build`、`npm --prefix qa test`。真实后端浏览器脚本需独立空 MySQL、启动后的服务 URL、桌面测试令牌与 `CARE_E2E_TEST_ONLY=1`；仅支持 `qa_arch_` 前缀测试库。源码中的后端 CI 与迁移工作流已增加 MySQL 服务和双库测试变量；本轮仅修改及静态校验，没有运行远程 Actions。
 
 MySQL 业务连接默认每条物理连接缓存最多 64 个预编译语句，减少重复 SQL 解析与大参数转义；20 条连接默认最多 1280 个服务器句柄/副本，须计入服务器语句预算。`MYSQL_STMT_CACHE_SIZE=0` 恢复插值/临时 prepare 路径；可设置 0..128。冷启动与 SQL 形状抖动可能变慢，最终延迟对照见 [PR #30](https://github.com/WatchTestCs/smart-elderly-watch-management/pull/30)。
 
-MySQL 业务连接初始化时将 session 默认隔离设为 READ COMMITTED；正常业务 BeginTx 省去重复 SET TRANSACTION 往返，显式会话变更后恢复原设置路径。裸 SQL() 连接也继承此默认，需要其他隔离的工具须显式指定。[实现与验收方法](performance/2026-10-23-extreme/README.md)。
+MySQL 业务连接初始化时将 session 默认隔离设为 READ COMMITTED；正常业务 BeginTx 省去重复 SET TRANSACTION 往返，显式会话变更后恢复原设置路径。裸 SQL() 连接也继承此默认，需要其他隔离的工具须显式指定。[性能运维指南](reliability/performance.md)。
