@@ -16,7 +16,7 @@ cd 智慧养老手表管理系统
 
 数据库不需要为编译运行；设置专用 `TEST_MYSQL_DSN` 和 `TEST_DATABASE_URL` 后才会执行真实数据库集成测试，未设置时会明确跳过，不能称为集成验收通过。直接 Go 开发可使用纯 API 模式；桌面发布必须嵌入真实前端。
 
-源码不再要求 Maven、JDK 或 Electron。Tauri 官方参考：[Windows 前置条件](https://v2.tauri.app/start/prerequisites/)、[Windows 安装包](https://v2.tauri.app/distribute/windows-installer/)、[sidecar](https://v2.tauri.app/develop/sidecar/)。
+Tauri 官方参考：[Windows 前置条件](https://v2.tauri.app/start/prerequisites/)、[Windows 安装包](https://v2.tauri.app/distribute/windows-installer/)、[sidecar](https://v2.tauri.app/develop/sidecar/)。
 
 
 2.1.0 的 `package-release.ps1` 在隔离临时目录检查免安装和安装后启动、内嵌页面、父进程终止清理及卸载保留资料；附件保存在 `outputs/v2.1.0-preview/release`。使用有 WebView2 的 Windows 构建环境。该检查不连接生产数据库，也不代表完整可视验收。
