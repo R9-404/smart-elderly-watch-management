@@ -1,11 +1,7 @@
 [
   {
-    "file": "frontend/public/static/fonts/care-welcome-serif-OFL.txt",
-    "sha256": "64538aaa923b7e75559725ecf64eff7b18f623857b8e6d31a7347743ab27e907"
-  },
-  {
     "file": "frontend/public/static/fonts/font-notices.md",
-    "sha256": "03c78a76780c533c8d49f9b42ff297ebe3a22fb0bf95b94d7b6148593828ebe9"
+    "sha256": "f9372cd98b229e3ff64137d487e9f6ebd9373efbe7ab76bd95be65ef710e8bd7"
   },
   {
     "file": "frontend/public/static/fonts/source-han-serif-LICENSE.txt",
