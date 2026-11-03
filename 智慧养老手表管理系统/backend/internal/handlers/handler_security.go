@@ -259,23 +259,16 @@ func (h *Handler) securityLoginAudit(w http.ResponseWriter, r *http.Request) {
 		write400(w, "游标无效")
 		return
 	}
-	rows, err := h.DB.Query(r.Context(), "SELECT id,role,actor_id,outcome,request_id,created_at FROM login_audit WHERE id>$1 ORDER BY id LIMIT 100", req.After)
-	if internalError(w, err) {
-		return
-	}
-	defer rows.Close()
-	items := []map[string]any{}
-	for rows.Next() {
+	items, ok := queryRows(h, w, r.Context(), func(rows db.Rows) (map[string]any, error) {
 		var id, actor int64
 		var role, outcome, rid string
 		var at time.Time
-		if rows.Scan(&id, &role, &actor, &outcome, &rid, &at) != nil {
-			response.Error500(w, ref())
-			return
+		if err := rows.Scan(&id, &role, &actor, &outcome, &rid, &at); err != nil {
+			return nil, err
 		}
-		items = append(items, map[string]any{"id": id, "role": role, "actorId": actor, "outcome": outcome, "requestId": rid, "createdAt": at})
-	}
-	if !rowsOK(w, rows) {
+		return map[string]any{"id": id, "role": role, "actorId": actor, "outcome": outcome, "requestId": rid, "createdAt": at}, nil
+	}, "SELECT id,role,actor_id,outcome,request_id,created_at FROM login_audit WHERE id>$1 ORDER BY id LIMIT 100", req.After)
+	if !ok {
 		return
 	}
 	response.OK(w, map[string]any{"items": items})

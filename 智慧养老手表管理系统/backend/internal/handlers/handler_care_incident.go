@@ -81,20 +81,7 @@ func (h *Handler) careIncidents(w http.ResponseWriter, r *http.Request) {
 	if internalError(w, h.DB.QueryRow(r.Context(), `SELECT count(*) FROM care_incident WHERE (state='verified')=$1`, state == "verified").Scan(&total)) {
 		return
 	}
-	rows, err := h.DB.Query(r.Context(),
-		`SELECT i.id,i.old_id,i.device_id,i.kind,i.state,i.severity,i.created_at,i.due_at,
-          i.acknowledged_by,i.acknowledged_at,i.resolved_by,i.resolved_at,i.verified_by,i.verified_at,
-          o.name,
-          `+careNotificationStatusExpr(h.DB.IsMySQL())+`
-     FROM care_incident i LEFT JOIN oldperson o ON o.old_id=i.old_id
-     WHERE (i.state='verified')=$1 ORDER BY i.due_at ASC, i.id DESC
-     LIMIT $2 OFFSET $3`, state == "verified", ps, (page-1)*ps)
-	if internalError(w, err) {
-		return
-	}
-	defer rows.Close()
-	items := []map[string]any{}
-	for rows.Next() {
+	items, ok := queryRows(h, w, r.Context(), func(rows db.Rows) (map[string]any, error) {
 		var id, oldID, deviceID int64
 		var kind, state, severity string
 		var created, due time.Time
@@ -103,18 +90,23 @@ func (h *Handler) careIncidents(w http.ResponseWriter, r *http.Request) {
 		var ackAt, resAt, verAt *time.Time
 		if err := rows.Scan(&id, &oldID, &deviceID, &kind, &state, &severity, &created, &due,
 			&assigned, &ackAt, &resolved, &resAt, &verified, &verAt, &oldName, &deliveryStatus); err != nil {
-			response.Error500(w, ref())
-			return
+			return nil, err
 		}
-		items = append(items, map[string]any{
+		return map[string]any{
 			"id": id, "oldId": oldID, "deviceId": deviceID, "kind": kind, "state": state,
 			"severity": severity, "createdAt": created, "dueAt": due,
 			"oldPersonName": oldName, "notificationState": deliveryStatus,
 			"acknowledgedBy": assigned, "acknowledgedAt": ackAt,
 			"resolvedBy": resolved, "resolvedAt": resAt, "verifiedBy": verified, "verifiedAt": verAt,
-		})
-	}
-	if internalError(w, rows.Err()) {
+		}, nil
+	}, `SELECT i.id,i.old_id,i.device_id,i.kind,i.state,i.severity,i.created_at,i.due_at,
+          i.acknowledged_by,i.acknowledged_at,i.resolved_by,i.resolved_at,i.verified_by,i.verified_at,
+          o.name,
+          `+careNotificationStatusExpr(h.DB.IsMySQL())+`
+     FROM care_incident i LEFT JOIN oldperson o ON o.old_id=i.old_id
+     WHERE (i.state='verified')=$1 ORDER BY i.due_at ASC, i.id DESC
+     LIMIT $2 OFFSET $3`, state == "verified", ps, (page-1)*ps)
+	if !ok {
 		return
 	}
 	response.OK(w, map[string]any{"items": items, "total": total, "page": page, "pageSize": ps, "duty": duty, "actorId": auth.Principal(r).ID})

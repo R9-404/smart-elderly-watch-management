@@ -5,6 +5,7 @@ import (
 	"net/http"
 	"strings"
 	"suining-care/internal/commands"
+	dbstore "suining-care/internal/db"
 	"suining-care/internal/response"
 	"time"
 )
@@ -106,25 +107,18 @@ func (h *Handler) commandList(w http.ResponseWriter, r *http.Request) {
 		write400(w, "设备或游标无效")
 		return
 	}
-	rows, err := h.DB.Query(r.Context(), `SELECT id,action,status,attempts,created_at,expires_at,acked_at FROM device_command WHERE device_id=$1 AND id>$2 ORDER BY id LIMIT 100`, req.DeviceID, req.After)
-	if internalError(w, err) {
-		return
-	}
-	defer rows.Close()
-	items := []map[string]any{}
-	for rows.Next() {
+	items, ok := queryRows(h, w, r.Context(), func(rows dbstore.Rows) (map[string]any, error) {
 		var id int64
 		var action, status string
 		var attempts int
 		var created, expires time.Time
 		var ack *time.Time
-		if rows.Scan(&id, &action, &status, &attempts, &created, &expires, &ack) != nil {
-			response.Error500(w, ref())
-			return
+		if err := rows.Scan(&id, &action, &status, &attempts, &created, &expires, &ack); err != nil {
+			return nil, err
 		}
-		items = append(items, map[string]any{"commandId": id, "action": action, "status": status, "attempts": attempts, "createdAt": created, "expiresAt": expires, "ackedAt": ack})
-	}
-	if !rowsOK(w, rows) {
+		return map[string]any{"commandId": id, "action": action, "status": status, "attempts": attempts, "createdAt": created, "expiresAt": expires, "ackedAt": ack}, nil
+	}, `SELECT id,action,status,attempts,created_at,expires_at,acked_at FROM device_command WHERE device_id=$1 AND id>$2 ORDER BY id LIMIT 100`, req.DeviceID, req.After)
+	if !ok {
 		return
 	}
 	response.OK(w, map[string]any{"items": items})

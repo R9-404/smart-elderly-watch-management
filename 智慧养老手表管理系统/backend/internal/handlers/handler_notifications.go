@@ -3,6 +3,7 @@ package handlers
 import (
 	"net/http"
 	"suining-care/internal/auth"
+	dbstore "suining-care/internal/db"
 	"suining-care/internal/response"
 	"time"
 )
@@ -26,23 +27,16 @@ func (h *Handler) notifications(w http.ResponseWriter, r *http.Request) {
 		write400(w, "消息范围或游标无效")
 		return
 	}
-	rows, err := h.DB.Query(r.Context(), "SELECT id,topic,source_key,status,created_at FROM message_outbox WHERE family_id=$1 AND channel='in_app' AND id>$2 ORDER BY id LIMIT 100", req.FamilyID, req.After)
-	if internalError(w, err) {
-		return
-	}
-	defer rows.Close()
-	items := []map[string]any{}
-	for rows.Next() {
+	items, ok := queryRows(h, w, r.Context(), func(rows dbstore.Rows) (map[string]any, error) {
 		var id int64
 		var topic, key, state string
 		var at time.Time
-		if rows.Scan(&id, &topic, &key, &state, &at) != nil {
-			response.Error500(w, ref())
-			return
+		if err := rows.Scan(&id, &topic, &key, &state, &at); err != nil {
+			return nil, err
 		}
-		items = append(items, map[string]any{"id": id, "topic": topic, "sourceId": key, "state": state, "createdAt": at})
-	}
-	if !rowsOK(w, rows) {
+		return map[string]any{"id": id, "topic": topic, "sourceId": key, "state": state, "createdAt": at}, nil
+	}, "SELECT id,topic,source_key,status,created_at FROM message_outbox WHERE family_id=$1 AND channel='in_app' AND id>$2 ORDER BY id LIMIT 100", req.FamilyID, req.After)
+	if !ok {
 		return
 	}
 	response.OK(w, map[string]any{"items": items})

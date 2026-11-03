@@ -5,6 +5,7 @@ import (
 	"math"
 	"net/http"
 	"strings"
+	dbstore "suining-care/internal/db"
 	"time"
 	_ "time/tzdata"
 	"unicode/utf8"
@@ -235,25 +236,18 @@ func (h *Handler) fenceEvents(w http.ResponseWriter, r *http.Request) {
 		write400(w, "老人或游标无效")
 		return
 	}
-	rows, err := h.DB.Query(r.Context(), `SELECT id,fence_id,fence_revision,device_id,direction,lng,lat,accuracy,occurred_at,incident_id FROM fence_event WHERE old_id=$1 AND id>$2 ORDER BY id LIMIT 100`, req.OldID, req.After)
-	if internalError(w, err) {
-		return
-	}
-	defer rows.Close()
-	items := []map[string]any{}
-	for rows.Next() {
+	items, ok := queryRows(h, w, r.Context(), func(rows dbstore.Rows) (map[string]any, error) {
 		var id, fid, rev, did int64
 		var direction string
 		var lng, lat, accuracy float64
 		var at time.Time
 		var incident *int64
-		if rows.Scan(&id, &fid, &rev, &did, &direction, &lng, &lat, &accuracy, &at, &incident) != nil {
-			response.Error500(w, ref())
-			return
+		if err := rows.Scan(&id, &fid, &rev, &did, &direction, &lng, &lat, &accuracy, &at, &incident); err != nil {
+			return nil, err
 		}
-		items = append(items, map[string]any{"id": id, "fenceId": fid, "fenceRevision": rev, "deviceId": did, "direction": direction, "lng": lng, "lat": lat, "accuracy": accuracy, "occurredAt": at, "incidentId": incident})
-	}
-	if !rowsOK(w, rows) {
+		return map[string]any{"id": id, "fenceId": fid, "fenceRevision": rev, "deviceId": did, "direction": direction, "lng": lng, "lat": lat, "accuracy": accuracy, "occurredAt": at, "incidentId": incident}, nil
+	}, `SELECT id,fence_id,fence_revision,device_id,direction,lng,lat,accuracy,occurred_at,incident_id FROM fence_event WHERE old_id=$1 AND id>$2 ORDER BY id LIMIT 100`, req.OldID, req.After)
+	if !ok {
 		return
 	}
 	response.OK(w, map[string]any{"items": items})

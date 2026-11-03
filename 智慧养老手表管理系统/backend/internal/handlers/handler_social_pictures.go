@@ -97,22 +97,14 @@ func (h *Handler) listGallery(w http.ResponseWriter, r *http.Request) {
 	if _, ok := optBody(w, r); !ok {
 		return
 	}
-	rows, err := h.DB.Query(r.Context(), "SELECT id, pic_name FROM pic_show")
-	if internalError(w, err) {
-		return
-	}
-	defer rows.Close()
-	items := []galleryImage{}
-	for rows.Next() {
+	items, ok := queryRows(h, w, r.Context(), func(rows dbstore.Rows) (galleryImage, error) {
 		var d galleryImage
 		if err := rows.Scan(&d.ID, &d.PicName); err != nil {
-			rows.Close()
-			response.Error500(w, ref())
-			return
+			return d, err
 		}
-		items = append(items, d)
-	}
-	if !rowsOK(w, rows) {
+		return d, nil
+	}, "SELECT id, pic_name FROM pic_show")
+	if !ok {
 		return
 	}
 	response.JSON(w, http.StatusOK, map[string]any{"galleryImages": items})
