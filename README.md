@@ -16,7 +16,7 @@
 
 岁宁面向照护机构与家属，在同一工作台内集中管理长者档案、手表设备、健康记录、位置告警与照护任务。客户端与服务端基于 Tauri 2、Rust、Vue 3、Vite 与 Go 构建，使用独立部署的 MySQL 保存业务数据，并通过 PostgreSQL 异步处理统计分析。
 
-仓库根目录下的 [SuiningWatch](SuiningWatch/README.md) 是配套的 HarmonyOS 手表端工程，包含前台心率与计步传感器读取、系统权限申请、设备认证、采样上传和 SOS。模拟采样保留为独立调试来源；构建与接入步骤见[手表接入说明](docs/WATCH_INTEGRATION.md)。
+仓库根目录下的 [SuiningWatch](SuiningWatch/README.md) 是配套的 HarmonyOS 手表端工程，包含前台心率与计步传感器读取、系统权限申请、设备认证、采样上传和 SOS。模拟采样保留为独立调试来源；构建、端口转发与设备联调步骤统一见[手表工程说明](SuiningWatch/README.md)。
 
 ![岁宁管理员工作台：设备异常、位置告警与平台公告](docs/screenshots/overview-desktop.png)
 
@@ -163,7 +163,7 @@ cd 智慧养老手表管理系统
 | 前端构建 | 在 `智慧养老手表管理系统/frontend` 中执行 `npm ci` 与 `npm run build` |
 | 手表协议 | 在 `SuiningWatch` 中执行 `npm ci` 与 `npm test`；这不等同于 DevEco 原生编译或真机验收 |
 
-如需运行完整数据库集成与竞态测试，请先配置专用测试库环境变量 `TEST_MYSQL_DSN` 与 `TEST_DATABASE_URL`，再执行 `go test -race -count=1 -timeout 600s ./...`（未配置时数据库集成用例会自动跳过）。
+完整数据库集成与竞态测试须使用专用测试库 `TEST_MYSQL_DSN`、`TEST_DATABASE_URL`，按[测试分层指南](docs/TESTING.md)与当前 CI 工作流选择命令；数据库用例被跳过不能当成通过。
 
 仓库当前 CI 结果以对应提交的 GitHub Actions 检查为准。性能实验、旧版本构建记录和阶段性补丁报告不再作为当前版本能力或验收结论；正式投入生产前，仍需针对真实穿戴硬件、外部短信或语音网关、生产数据迁移、跨网 TLS 证书及值班响应流程开展独立验收。通知发送成功仅代表网关已受理，实际照护结果以人工跟进与复核记录为准。
 ## 常见问题
@@ -194,4 +194,4 @@ cd 智慧养老手表管理系统
 
 ## 接口约定
 
-[接口合同与逐项差异处理](docs/API_CONTRACTS.md)列出 109 个路径的请求字段、成功响应字段和错误状态。JSON 成功响应使用 HTTP 200 与 `returnCode="1111"`；失败使用 HTTP 4xx/5xx 与 `returnCode="0000"`、`code`、`message`，内部错误保留 `reference`。图片下载返回图片字节，上传使用 multipart `file` 字段。
+[接口契约与权威来源](docs/API_CONTRACTS.md)说明如何从 Go 路由、字段清单及 OpenAPI 获取当前路径与字段。JSON 成功响应使用 HTTP 200 与 `returnCode="1111"`；失败使用 HTTP 4xx/5xx 与 `returnCode="0000"`、`code`、`message`，内部错误保留 `reference`。图片下载返回图片字节，上传使用 multipart `file` 字段。
