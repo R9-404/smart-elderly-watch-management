@@ -5,8 +5,6 @@ import (
 	"suining-care/internal/response"
 
 	"net/http"
-	"strconv"
-	"strings"
 )
 
 type activityRecord struct {
@@ -41,54 +39,7 @@ func scanActivityRecord(rows dbstore.Rows) (activityRecord, error) {
 
 // POST /api/v1/activity/latest —— 按姓名+时间范围分页查询睡眠步数。
 func (h *Handler) listLatestActivity(w http.ResponseWriter, r *http.Request) {
-	m, ok := bodyMap(w, r)
-	if !ok {
-		return
-	}
-	page, pageSize, ok := strictPage(w, m)
-	if !ok {
-		return
-	}
-	name := str(m, "name")
-	timeFirst := str(m, "timeFirst")
-	timeLast := str(m, "timeLast")
-	sql := "SELECT * FROM (" + stepLatestSelect + ") t WHERE 1=1"
-	var args []any
-	if strings.TrimSpace(name) != "" {
-		sql += " AND t.name LIKE $" + strconv.Itoa(len(args)+1)
-		args = append(args, "%"+name+"%")
-	}
-	if strings.TrimSpace(timeFirst) != "" && strings.TrimSpace(timeLast) != "" {
-		sql += " AND t.createTime BETWEEN $" + strconv.Itoa(len(args)+1) + " AND $" + strconv.Itoa(len(args)+2)
-		args = append(args, timeFirst, timeLast)
-	}
-	sql += " ORDER BY t.createTime DESC, t.oldId"
-	total, ok := h.pagedTotal(w, r, sql, args)
-	if !ok {
-		return
-	}
-	limitSQL, fullArgs := pageArgs(args, page, pageSize)
-	rows, err := h.DB.Query(r.Context(), sql+limitSQL, fullArgs...)
-	if internalError(w, err) {
-		return
-	}
-	defer rows.Close()
-	items := []activityRecord{}
-	for rows.Next() {
-		d, err := scanActivityRecord(rows)
-		if err != nil {
-			rows.Close()
-			response.Error500(w, ref())
-			return
-		}
-		items = append(items, d)
-	}
-	if !rowsOK(w, rows) {
-		return
-	}
-	response.JSON(w, http.StatusOK, map[string]any{
-		"activityRecords": items, "total": total, "page": page, "pageSize": pageSize,
-	})
+	listLatestMeasurements(h, w, r, stepLatestSelect, "activityRecords", scanActivityRecord)
 }
 
 // POST /api/v1/activity/history —— 家属查询老人睡眠步数列表。
@@ -101,25 +52,11 @@ func (h *Handler) listActivityHistory(w http.ResponseWriter, r *http.Request) {
 	if !ok {
 		return
 	}
-	rows, err := h.DB.Query(r.Context(), `SELECT o.name AS name, o.old_id AS oldId, o.sex AS sex,`+
+	items, ok := queryMeasurements(h, w, r, scanActivityRecord, `SELECT o.name AS name, o.old_id AS oldId, o.sex AS sex,`+
 		` w.step AS step, w.sleep AS sleep, w.sleep_sate AS sleepAlertState, TO_CHAR(w.create_time,'YYYY-MM-DD') AS createTime`+
 		` FROM oldperson o INNER JOIN `+ownedDailyRecords+` w ON w.device_id=o.device_id AND w.old_id=o.old_id`+
 		` WHERE o.old_id=$1 ORDER BY w.create_time DESC, w.id DESC LIMIT 1`, oldID)
-	if internalError(w, err) {
-		return
-	}
-	defer rows.Close()
-	items := []activityRecord{}
-	for rows.Next() {
-		d, err := scanActivityRecord(rows)
-		if err != nil {
-			rows.Close()
-			response.Error500(w, ref())
-			return
-		}
-		items = append(items, d)
-	}
-	if !rowsOK(w, rows) {
+	if !ok {
 		return
 	}
 	response.JSON(w, http.StatusOK, map[string]any{"activityRecords": items})

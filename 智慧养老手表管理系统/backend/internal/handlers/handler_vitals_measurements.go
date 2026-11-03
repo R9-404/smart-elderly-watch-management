@@ -2,61 +2,12 @@ package handlers
 
 import (
 	"net/http"
-	"strconv"
-	"strings"
 	"suining-care/internal/response"
 )
 
 // POST /api/v1/vitals/latest —— 按姓名+时间范围分页查询。
 func (h *Handler) listLatestVitals(w http.ResponseWriter, r *http.Request) {
-	m, ok := bodyMap(w, r)
-	if !ok {
-		return
-	}
-	page, pageSize, ok := strictPage(w, m)
-	if !ok {
-		return
-	}
-	name := str(m, "name")
-	timeFirst := str(m, "timeFirst")
-	timeLast := str(m, "timeLast")
-	sql := "SELECT * FROM (" + latestVitalsQuery + ") t WHERE 1=1"
-	var args []any
-	if strings.TrimSpace(name) != "" {
-		sql += " AND t.name LIKE $" + strconv.Itoa(len(args)+1)
-		args = append(args, "%"+name+"%")
-	}
-	if strings.TrimSpace(timeFirst) != "" && strings.TrimSpace(timeLast) != "" {
-		sql += " AND t.createTime BETWEEN $" + strconv.Itoa(len(args)+1) + " AND $" + strconv.Itoa(len(args)+2)
-		args = append(args, timeFirst, timeLast)
-	}
-	sql += " ORDER BY t.createTime DESC, t.oldId"
-	total, ok := h.pagedTotal(w, r, sql, args)
-	if !ok {
-		return
-	}
-	limitSQL, fullArgs := pageArgs(args, page, pageSize)
-	rows, err := h.DB.Query(r.Context(), sql+limitSQL, fullArgs...)
-	if internalError(w, err) {
-		return
-	}
-	defer rows.Close()
-	items := []vitalRecord{}
-	for rows.Next() {
-		d, err := scanVitalRecord(rows)
-		if err != nil {
-			rows.Close()
-			response.Error500(w, ref())
-			return
-		}
-		items = append(items, d)
-	}
-	if !rowsOK(w, rows) {
-		return
-	}
-	response.JSON(w, http.StatusOK, map[string]any{
-		"vitalRecords": items, "total": total, "page": page, "pageSize": pageSize,
-	})
+	listLatestMeasurements(h, w, r, latestVitalsQuery, "vitalRecords", scanVitalRecord)
 }
 
 // POST /api/v1/vitals/history —— 家属查询自己老人的心率血压列表。
@@ -76,22 +27,8 @@ func (h *Handler) listVitalHistory(w http.ResponseWriter, r *http.Request) {
 		` FROM oldperson o` +
 		` INNER JOIN (SELECT * FROM ratepre WHERE old_id=$1 ORDER BY create_time DESC, id DESC LIMIT 1) r ON r.old_id=o.old_id` +
 		` ORDER BY createTime DESC`
-	rows, err := h.DB.Query(r.Context(), sql, oldID)
-	if internalError(w, err) {
-		return
-	}
-	defer rows.Close()
-	items := []vitalRecord{}
-	for rows.Next() {
-		d, err := scanVitalRecord(rows)
-		if err != nil {
-			rows.Close()
-			response.Error500(w, ref())
-			return
-		}
-		items = append(items, d)
-	}
-	if !rowsOK(w, rows) {
+	items, ok := queryMeasurements(h, w, r, scanVitalRecord, sql, oldID)
+	if !ok {
 		return
 	}
 	response.JSON(w, http.StatusOK, map[string]any{"vitalRecords": items})
