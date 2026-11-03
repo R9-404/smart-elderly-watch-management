@@ -104,39 +104,22 @@ func (h *Handler) positionSelectFamily(w http.ResponseWriter, r *http.Request) {
 	}
 	ctx := r.Context()
 	p := auth.Principal(r)
+	admin := p != nil && p.Role == auth.RoleAdmin
+	raw, _ := vstr(m, "oldId")
 	var oldID int64
-	if p != nil && p.Role == auth.RoleAdmin {
-		s, present := vstr(m, "oldId")
-		if !present || s == "" {
-			write400(w, "老人编号不正确")
-			return
-		}
-		n, err := strconv.ParseInt(s, 10, 64)
+	if raw == "" && !admin && p != nil && p.OldID != 0 {
+		oldID = p.OldID
+	} else {
+		id, err := strconv.ParseInt(raw, 10, 64)
 		if err != nil {
 			write400(w, "老人编号不正确")
 			return
 		}
-		oldID = n
-	} else {
-		// FAMILY：body oldId 优先，否则用登录家属账号绑定的 oldId；
-		// 每次请求都查库核对 oldperson.family_id，管理员解绑后旧会话立即失效。
-		s, present := vstr(m, "oldId")
-		if !present || s == "" {
-			if p == nil || p.OldID == 0 {
-				write400(w, "老人编号不正确")
-				return
-			}
-			oldID = p.OldID
-		} else {
-			n, err := strconv.ParseInt(s, 10, 64)
-			if err != nil {
-				write400(w, "老人编号不正确")
-				return
-			}
-			oldID = n
-		}
+		oldID = id
+	}
+	if !admin {
 		var familyID *int64
-		err := h.DB.QueryRow(ctx, `SELECT family_id FROM oldperson WHERE old_id=$1`, oldID).Scan(&familyID)
+		err := h.DB.QueryRow(ctx, "SELECT family_id FROM oldperson WHERE old_id=$1", oldID).Scan(&familyID)
 		if err != nil || familyID == nil || p == nil || *familyID != p.ID {
 			scopeDeny(w)
 			return

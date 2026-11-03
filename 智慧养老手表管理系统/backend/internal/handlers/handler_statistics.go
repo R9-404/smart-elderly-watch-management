@@ -8,6 +8,7 @@ import (
 	"time"
 
 	fastjson "github.com/goccy/go-json"
+	"suining-care/internal/db"
 	"suining-care/internal/health"
 	"suining-care/internal/observability"
 	"suining-care/internal/response"
@@ -131,7 +132,25 @@ func (h *Handler) loadStatisticsSamples(ctx context.Context, oldID int64, req he
 	if req.To.Nanosecond()%1000 != 0 {
 		upper++
 	}
-	rows, err := h.DB.Query(ctx, `SELECT payload FROM health_sample
+	samples := []health.Sample{}
+	candidates := 0
+	err := db.QueryEach(ctx, h.DB, func(rows db.Rows) error {
+		candidates++
+		var b []byte
+		var s health.Sample
+		if err := rows.Scan(&b); err != nil {
+			return err
+		}
+		// Stored samples use the compatible decoder; request validation and
+		// canonical/cache encoding retain encoding/json.
+		if err := fastjson.Unmarshal(b, &s); err != nil {
+			return err
+		}
+		if s.InWindow(req.From, req.To) {
+			samples = append(samples, s)
+		}
+		return nil
+	}, `SELECT payload FROM health_sample
 	 WHERE old_id=$1 AND `+sourceFilter+` AND NOT deleted
 	 AND sample_start<$7
 	 AND (sample_start>=$6 OR ($5='interval' AND sample_end>=$6))
@@ -139,28 +158,5 @@ func (h *Handler) loadStatisticsSamples(ctx context.Context, oldID int64, req he
 	if err != nil {
 		return nil, 0, err
 	}
-	defer rows.Close()
-	samples := []health.Sample{}
-	candidates := 0
-	for rows.Next() {
-		candidates++
-		var b []byte
-		var s health.Sample
-		if err = rows.Scan(&b); err != nil {
-			return nil, 0, err
-		}
-		// Stored samples use the compatible decoder; request validation and
-		// canonical/cache encoding retain encoding/json.
-		if err = fastjson.Unmarshal(b, &s); err != nil {
-			return nil, 0, err
-		}
-		if s.InWindow(req.From, req.To) {
-			samples = append(samples, s)
-		}
-	}
-	if err := rows.Err(); err != nil {
-		return nil, 0, err
-	}
-	rows.Close()
 	return samples, candidates, nil
 }

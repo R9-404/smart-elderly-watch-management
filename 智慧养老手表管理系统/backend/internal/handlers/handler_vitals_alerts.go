@@ -23,12 +23,14 @@ type vitalRecord struct {
 	CreateTime  *string `json:"createTime"`
 }
 
-// 按长者选出最新的心率和血压记录。
-const latestVitalsQuery = `SELECT o.name AS name, o.old_id AS oldId, o.sex AS sex,` +
+const vitalRecordSelect = `SELECT o.name AS name, o.old_id AS oldId, o.sex AS sex,` +
 	` r.rate_state AS rateState, r.pre_state AS preState, r.hr AS hr, r.bp AS bp, r.id AS recordId,` +
 	` CAST(r.rate_handled AS varchar) AS rateHandled, CAST(r.pre_handled AS varchar) AS preHandled,` +
 	` TO_CHAR(r.create_time,'YYYY-MM-DD HH24:MI:SS') AS createTime` +
-	` FROM oldperson o` +
+	` FROM oldperson o`
+
+// 按长者选出最新的心率和血压记录。
+const latestVitalsQuery = vitalRecordSelect +
 	` INNER JOIN (SELECT *, ROW_NUMBER() OVER (PARTITION BY old_id ORDER BY create_time DESC, id DESC) AS rn FROM ratepre) r` +
 	` ON r.old_id=o.old_id AND r.rn=1`
 

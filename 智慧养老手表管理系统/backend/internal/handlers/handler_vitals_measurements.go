@@ -2,6 +2,7 @@ package handlers
 
 import (
 	"net/http"
+	dbstore "suining-care/internal/db"
 	"suining-care/internal/response"
 )
 
@@ -16,11 +17,7 @@ func (h *Handler) listVitalHistory(w http.ResponseWriter, r *http.Request) {
 	if !ok {
 		return
 	}
-	sql := `SELECT o.name AS name, o.old_id AS oldId, o.sex AS sex,` +
-		` r.rate_state AS rateState, r.pre_state AS preState, r.hr AS hr, r.bp AS bp, r.id AS recordId,` +
-		` CAST(r.rate_handled AS varchar) AS rateHandled, CAST(r.pre_handled AS varchar) AS preHandled,` +
-		` TO_CHAR(r.create_time,'YYYY-MM-DD HH24:MI:SS') AS createTime` +
-		` FROM oldperson o` +
+	sql := vitalRecordSelect +
 		` INNER JOIN (SELECT * FROM ratepre WHERE old_id=$1 ORDER BY create_time DESC, id DESC LIMIT 1) r ON r.old_id=o.old_id` +
 		` ORDER BY createTime DESC`
 	items, ok := queryRows(h, w, r.Context(), scanVitalRecord, sql, oldID)
@@ -36,23 +33,16 @@ func (h *Handler) getVitalChart(w http.ResponseWriter, r *http.Request) {
 	if !ok {
 		return
 	}
-	rows, err := h.DB.Query(r.Context(), `SELECT r.hr AS hr, r.bp AS bp, TO_CHAR(r.create_time,'YYYY-MM-DD HH24:MI:SS') AS createTime
-		FROM (SELECT id, hr, bp, create_time FROM ratepre WHERE old_id=$1 ORDER BY create_time DESC, id DESC LIMIT 30) r
-		ORDER BY r.create_time ASC, r.id ASC`, oldID)
-	if internalError(w, err) {
-		return
-	}
-	defer rows.Close()
 	// The query returns at most 30 points, already in display order.
 	hrs := make([]*int64, 0, 30)
 	bps := make([]*int64, 0, 30)
 	createTimes := make([]string, 0, 30)
 	var timeStr, lastDay string
-	for rows.Next() {
+	err := dbstore.QueryEach(r.Context(), h.DB, func(rows dbstore.Rows) error {
 		var hr, bp *int64
 		var createTime *string
-		if internalError(w, rows.Scan(&hr, &bp, &createTime)) {
-			return
+		if err := rows.Scan(&hr, &bp, &createTime); err != nil {
+			return err
 		}
 		ct := ""
 		if createTime != nil {
@@ -67,8 +57,11 @@ func (h *Handler) getVitalChart(w http.ResponseWriter, r *http.Request) {
 		hrs = append(hrs, hr)
 		bps = append(bps, bp)
 		createTimes = append(createTimes, ct)
-	}
-	if !rowsOK(w, rows) {
+		return nil
+	}, `SELECT r.hr AS hr, r.bp AS bp, TO_CHAR(r.create_time,'YYYY-MM-DD HH24:MI:SS') AS createTime
+		FROM (SELECT id, hr, bp, create_time FROM ratepre WHERE old_id=$1 ORDER BY create_time DESC, id DESC LIMIT 30) r
+		ORDER BY r.create_time ASC, r.id ASC`, oldID)
+	if internalError(w, err) {
 		return
 	}
 	if lastDay != "" && lastDay != timeStr {

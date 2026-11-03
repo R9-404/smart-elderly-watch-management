@@ -25,28 +25,24 @@ func watchProfileParams(w http.ResponseWriter, m map[string]any) (deviceID int64
 		}
 		return n, ""
 	}
-	id, msg := num("deviceId", 1, 2147483647)
-	if msg != "" {
-		write400(w, msg)
-		return 0, 0, 0, 0, 0, false
+	var id int
+	for _, field := range [...]struct {
+		key      string
+		min, max int
+		target   *int
+	}{
+		{"deviceId", 1, 2147483647, &id},
+		{"hrf", 20, 250, &hrf}, {"hrl", 20, 250, &hrl},
+		{"bpf", 40, 300, &bpf}, {"bpl", 40, 300, &bpl},
+	} {
+		value, msg := num(field.key, field.min, field.max)
+		if msg != "" {
+			write400(w, msg)
+			return 0, 0, 0, 0, 0, false
+		}
+		*field.target = value
 	}
 	deviceID = int64(id)
-	if hrf, msg = num("hrf", 20, 250); msg != "" {
-		write400(w, msg)
-		return 0, 0, 0, 0, 0, false
-	}
-	if hrl, msg = num("hrl", 20, 250); msg != "" {
-		write400(w, msg)
-		return 0, 0, 0, 0, 0, false
-	}
-	if bpf, msg = num("bpf", 40, 300); msg != "" {
-		write400(w, msg)
-		return 0, 0, 0, 0, 0, false
-	}
-	if bpl, msg = num("bpl", 40, 300); msg != "" {
-		write400(w, msg)
-		return 0, 0, 0, 0, 0, false
-	}
 	if hrl >= hrf || bpl >= bpf {
 		write400(w, "低值必须小于高值")
 		return 0, 0, 0, 0, 0, false
