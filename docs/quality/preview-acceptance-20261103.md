@@ -20,16 +20,16 @@
 | 编号 | 任务 | 当前状态及退出条件 |
 | --- | --- | --- |
 | P0-01 | Go 格式和双版本 CI | 基线检查成功；每个后续 SHA 仍须重新运行完整检查 |
-| P0-02 | UI 路由、交互与视觉 | 路由断言已在基线更新；当前 SHA 的 UI Quality 待运行 |
+| P0-02 | UI 路由、交互与视觉 | b627f94 的桌面、窄屏、大字与交互检查通过；后续候选仍按对应 SHA 重新检查 |
 | P0-03 | 分支 Ruleset 与独立审查 | [规则 26444520](https://github.com/WatchTestCs/smart-elderly-watch-management/rules/26444520) 已 active：仅 preview、无绕过、1 名独立审查、末次推送需他人批准、13 项 GitHub Actions 检查；隔离 [验证 PR #75](https://github.com/WatchTestCs/smart-elderly-watch-management/pull/75) 的缺失/失败检查合并请求均被 HTTP 405 拒绝，已关闭未合并；不将合成检查算成功能测试，最终独立代码审查仍待完成 |
-| P0-04 | 原生 HarmonyOS 构建门禁 | 后续补丁固定 SDK/ETS/摘要并移除 native job 跳过条件；归档缓存也先校验；新 SHA 的远端原生构建和独立审查待完成 |
-| P0-05 | 聚合与正式发布门禁 | 本 PR 实现；回归、远端工作流与独立审查分别验收 |
+| P0-04 | 原生 HarmonyOS 构建门禁 | [PR #77](https://github.com/WatchTestCs/smart-elderly-watch-management/pull/77) 固定 SDK/ETS/摘要，移除 native 跳过条件；b627f94 的远端原生 HAP 已下载并核对源码、API 24、ETS 6.1.1.125 和哈希；最终独立审查待完成 |
+| P0-05 | 聚合与正式发布门禁 | b627f94 在真实 GitHub API 上通过 13 项 CI、2 项 CodeQL、10 份制品校验；Setup/Portable/源码与 HAP 的包内摘要及来源另行下载核对通过；这属于开发分支软件证据，最终独立审查与 Preview 固定候选仍待完成 |
 | P0-06 | 字段保护与历史迁移 | 待逐字段核查实现、索引、回填、双读和回滚证据 |
 | P0-07 | Keyring 历史轮换 | 待核查自动化 CAS 重加密、残留扫描、密钥退役与旧备份恢复 |
 | P0-08 | 协调备份与隔离恢复 | 待核查数据库、图片、密钥、审计、工单及 outbox 的完整恢复证据 |
 | P0-09 | 故障注入与恢复 | 待固定候选验证 MySQL、PG、网关、崩溃及重复回执矩阵 |
 | P1-01 | 第一方严格类型覆盖 | 全量审计发现 50 文件/819 诊断；首批迁移记录卡片及共享工具并扩大 include，见 [迁移记录](typescript-migration.md)；仍未覆盖全站，须逐模块完成 |
-| P1-02 | OpenAPI 与 TS 客户端一致性 | 待核查字段、状态、鉴权和生成检查的实际覆盖 |
+| P1-02 | OpenAPI 与 TS 客户端一致性 | 已建立实际 Go 文档→109 路径生成类型及 CI 漂移检查，最近健康采样接入；4 项反向编译测试通过；其余 DTO/客户端仍待逐项接入，见 [机制与边界](api-type-generation.md) |
 | P1-03 | UI 异常状态机 | 待覆盖加载、空、错误、成功、过期、取消和竞争 |
 | P1-04 | 浏览器 E2E 与无障碍 | 待按核心流程核查桌面、窄屏、大字与键盘证据 |
 | P1-05 | 大型页面边界 | 待按业务模块核查，不作无必要全站重写 |
