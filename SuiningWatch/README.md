@@ -1,6 +1,6 @@
 # 岁宁守护 · HUAWEI WATCH 5 穿戴端工程
 
-本目录是岁宁配套的 HarmonyOS 原生穿戴端应用，基于 ArkTS、ArkUI 与 Stage 模型开发，目标设备为 HUAWEI WATCH 5。0.2.0 新增前台原生心率与计步传感器接入及系统权限申请；模拟采样保留在“记录”页供调试，两种来源分开保存。新增代码尚未通过当前机器上的 DevEco 编译或真表验收，详见 [开发与验收边界](../docs/WATCH_INTEGRATION.md#开发与验收)。
+本目录是岁宁配套的 HarmonyOS 原生穿戴端应用，基于 ArkTS、ArkUI 与 Stage 模型开发，目标设备为 HUAWEI WATCH 5。0.2.0 新增前台原生心率与计步传感器接入及系统权限申请；模拟采样保留在“记录”页供调试，两种来源分开保存。当前提交仍须以其精确 SHA 的 DevEco 构建与真机证据验收；历史编译不能代替当前代码的真实手表验证。
 
 ## 主要功能
 
@@ -20,7 +20,7 @@
 原生构建现支持 `scripts/build.ps1 -CommandLineHome <command-line-tools根目录>`，
 也支持原有 `-DevEcoHome`。脚本生成带状态、源码 SHA 和 HAP 哈希的构建报告；
 CI 强制执行真实 Go/MySQL 断网恢复；独立 Windows SDK 编译入口需提供工具包地址与预期哈希，结果须查看对应运行。
-详见[开发与验收说明](../docs/WATCH_INTEGRATION.md#开发与验收)。
+验证层级和跳过条件详见[测试指南](../docs/TESTING.md)。
 
 在 PowerShell 7 中执行构建脚本：
 
@@ -48,6 +48,14 @@ cd '<仓库目录>\SuiningWatch'
 5. 真机使用可访问的 HTTPS 后台地址，首页点击“授权并读取传感器”；模拟器没有对应硬件时可在“记录”页点击“生成模拟采样（调试）”。随后点击“上传记录”，在家属首页“最近健康采样”核对来源与时间；旧版兼容的心率血压列表未必展示相同记录。
 6. 点击“SOS 求助”并确认发送，管理端运营总览将生成对应的紧急照护工单。若后端已挂载真实通知网关，此操作会触发外部通知，请仅在隔离测试环境中执行。
 
+## 服务端协议与响应约定
+
+- 首次认证调用 `POST /api/v1/device/login`，携带 `platform=harmonyos`、`protocolVersion=1`，读取最新 `bindingVersion`；完成 `device/bind` 后需重新认证，不要推测或复用旧版本。
+- 每条健康采样拥有稳定记录 ID，`device/healthBatch` 使用采样产生时的原绑定代次；重试保留 ID，换绑后的旧队列绝不改写成新长者数据。
+- SOS 的 `requestId` 在同一事件重试时保持不变；响应 `received` 是服务器接收而非短信送达或照护复核。无本次有效坐标时不能借用历史位置冒充现场。
+- 设备密钥错误、设备停用与绑定变化分别按服务端响应的 401、403、409 处理；保留原始错误消息/追踪编号，不将所有 409 当成同一错误。
+- 真实硬件、外部 HTTPS、短信网关必须另行验收；模拟器和本机端口转发仅用于受控测试环境。
+
 ## 协议测试
 
 ```powershell
@@ -57,7 +65,7 @@ npm test
 
 单元测试基于 `package-lock.json` 固定的 TypeScript 5.9.3 转译生产模型及服务，验证绑定隔离、重试幂等、计步转换、权限边界和队列持久化。SDK 边界由测试适配器代替；这些检查不等价于 ArkTS 编译或传感器硬件测试。
 
-如需针对真实后端运行端到端协议联调脚本 `tests/backend.e2e.cjs`，请先准备全新空库的独立测试后端实例，并设置环境变量 `WATCH_TEST_URL`（仅限本机 HTTP 地址）与 `WATCH_TEST_SETUP_TOKEN`。详细的集成验收记录见 [手表端同分支整合说明](../docs/WATCH_INTEGRATION.md)。
+如需针对真实后端运行端到端协议联调脚本 `tests/backend.e2e.cjs`，请先准备全新空库的独立测试后端实例，并设置环境变量 `WATCH_TEST_URL`（仅限本机 HTTP 地址）与 `WATCH_TEST_SETUP_TOKEN`。验证范围、隔离环境和真实硬件边界见[测试指南](../docs/TESTING.md)。
 
 ## 当前已知限制
 
