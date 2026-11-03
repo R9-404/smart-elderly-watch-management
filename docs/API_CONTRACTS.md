@@ -23,7 +23,7 @@ python3 scripts/generate-openapi.py --check
 
 ## 路由与客户端约定
 
-- 业务使用 `/api/v1/`。管理页面在 `/operations`，家属页面在 `/family-portal`，登录和家属注册入口分别为 `/sign-in`、`/join-family`。不恢复旧的 `/旧版未分层 HTTP/*` 或无版本号别名。
+- 业务使用 `/api/v1/`。管理页面在 `/operations`，家属页面在 `/family-portal`，登录和家属注册入口分别为 `/sign-in`、`/join-family`。不提供旧版无版本号的接口别名。
 - 浏览器依赖同源会话 `SUINING_SESSION` 与写请求 CSRF 校验；用户身份从服务端会话获得，不接受客户端提交的姓名、手机号替代权限校验。
 - 设备接口使用设备号和密钥认证，并按接口要求校验绑定版本、事件 ID 与重试语义。不同的网络异常、认证失败及绑定冲突不可混为“已接收”。
 - JSON 成功通常返回 HTTP 200 和根级字符串 `returnCode: "1111"`，业务字段直接位于根对象。业务错误使用相应 HTTP 4xx/5xx，并提供 `code`、`message`；内部错误带追踪 `reference`。不同业务端点的附加字段以 schema 与测试为准。
@@ -47,8 +47,6 @@ python3 scripts/generate-openapi.py --check
 ## 修改接口时的检查
 
 1. 修改 Go 路由、请求 DTO、响应或权限时，同步更新 `accesspolicy`、`contracts.json` 和必要的 OpenAPI schema。
-2. 更新前端调用、ArkTS/模拟器协议、状态码字典及相关回归用例，拒绝为兼容旧 Java/旧版未分层 HTTP 接口增设隐式适配层。
+2. 同步前端调用、穿戴协议、状态码字典和回归测试。
 3. 校验生成产物、后端测试、前端 typecheck/测试和实际受影响的协议集成路径；对数据库、签名、幂等及事件归属变更另外执行专门的隔离环境验证。
-4. 发布结论必须绑定准确的提交 SHA；没有执行或被跳过的检查不得描述为通过。
-
-
+4. 记录变更 SHA、实际验证项与测试结果。
