@@ -1,6 +1,6 @@
 # 前后端接口合同与差异处理
 
-接口路径以 Go 路由为准，当前共 109 个路径。`scripts/generate-openapi.py --check` 校验路由、OpenAPI 和网页状态码字典；字段清单保存在 `backend/internal/apidoc/contracts.json`。
+接口路径以 Go 路由为准，当前共 109 个路径。`scripts/generate-openapi.py --check` 校验路由、OpenAPI 和网页状态码字典；字段清单保存在 `backend/internal/apidoc/contracts.json`。仓库提交 `openapi-template.json`，服务在首次请求时补全共享错误响应，再通过 `GET /openapi.json` 返回完整契约。
 
 ## Preview 命名
 

@@ -207,39 +207,6 @@
                 }
               }
             }
-          },
-          "400": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "401": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "403": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "409": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "503": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "404": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "405": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "413": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "415": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "429": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "500": {
-            "$ref": "#/components/responses/ApiError"
           }
         },
         "security": [
@@ -293,39 +260,6 @@
                 }
               }
             }
-          },
-          "400": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "401": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "403": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "409": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "503": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "404": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "405": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "413": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "415": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "429": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "500": {
-            "$ref": "#/components/responses/ApiError"
           }
         },
         "security": [
@@ -381,39 +315,6 @@
                 }
               }
             }
-          },
-          "400": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "401": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "403": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "409": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "503": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "404": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "405": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "413": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "415": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "429": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "500": {
-            "$ref": "#/components/responses/ApiError"
           }
         },
         "security": [
@@ -470,39 +371,6 @@
                 }
               }
             }
-          },
-          "400": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "401": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "403": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "409": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "503": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "404": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "405": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "413": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "415": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "429": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "500": {
-            "$ref": "#/components/responses/ApiError"
           }
         },
         "security": [
@@ -580,39 +448,6 @@
                 }
               }
             }
-          },
-          "400": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "401": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "403": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "409": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "503": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "404": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "405": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "413": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "415": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "429": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "500": {
-            "$ref": "#/components/responses/ApiError"
           }
         },
         "security": [
@@ -679,39 +514,6 @@
         "responses": {
           "200": {
             "$ref": "#/components/responses/ItemsSuccess"
-          },
-          "400": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "401": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "403": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "409": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "503": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "404": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "405": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "413": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "415": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "429": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "500": {
-            "$ref": "#/components/responses/ApiError"
           }
         },
         "security": [
@@ -790,39 +592,6 @@
                 }
               }
             }
-          },
-          "400": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "401": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "403": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "409": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "503": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "404": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "405": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "413": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "415": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "429": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "500": {
-            "$ref": "#/components/responses/ApiError"
           }
         },
         "security": [],
@@ -879,39 +648,6 @@
         "responses": {
           "200": {
             "$ref": "#/components/responses/Success"
-          },
-          "400": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "401": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "403": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "409": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "503": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "404": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "405": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "413": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "415": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "429": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "500": {
-            "$ref": "#/components/responses/ApiError"
           }
         },
         "security": [
@@ -966,39 +702,6 @@
                 }
               }
             }
-          },
-          "400": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "401": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "403": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "409": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "503": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "404": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "405": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "413": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "415": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "429": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "500": {
-            "$ref": "#/components/responses/ApiError"
           }
         },
         "security": [],
@@ -1042,39 +745,6 @@
                 }
               }
             }
-          },
-          "400": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "401": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "403": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "409": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "503": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "404": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "405": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "413": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "415": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "429": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "500": {
-            "$ref": "#/components/responses/ApiError"
           }
         },
         "security": [
@@ -1127,39 +797,6 @@
                 }
               }
             }
-          },
-          "400": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "401": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "403": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "409": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "503": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "404": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "405": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "413": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "415": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "429": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "500": {
-            "$ref": "#/components/responses/ApiError"
           }
         },
         "security": [
@@ -1239,39 +876,6 @@
                 }
               }
             }
-          },
-          "400": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "401": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "403": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "409": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "503": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "404": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "405": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "413": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "415": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "429": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "500": {
-            "$ref": "#/components/responses/ApiError"
           }
         },
         "security": [
@@ -1338,39 +942,6 @@
                 }
               }
             }
-          },
-          "400": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "401": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "403": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "409": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "503": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "404": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "405": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "413": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "415": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "429": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "500": {
-            "$ref": "#/components/responses/ApiError"
           }
         },
         "security": [
@@ -1447,39 +1018,6 @@
                 }
               }
             }
-          },
-          "400": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "401": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "403": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "409": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "503": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "404": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "405": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "413": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "415": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "429": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "500": {
-            "$ref": "#/components/responses/ApiError"
           }
         },
         "security": [
@@ -1554,39 +1092,6 @@
                 }
               }
             }
-          },
-          "400": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "401": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "403": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "409": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "503": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "404": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "405": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "413": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "415": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "429": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "500": {
-            "$ref": "#/components/responses/ApiError"
           }
         },
         "security": [],
@@ -1646,39 +1151,6 @@
                 }
               }
             }
-          },
-          "400": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "401": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "403": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "409": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "503": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "404": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "405": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "413": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "415": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "429": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "500": {
-            "$ref": "#/components/responses/ApiError"
           }
         },
         "security": [
@@ -1731,39 +1203,6 @@
                 }
               }
             }
-          },
-          "400": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "401": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "403": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "409": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "503": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "404": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "405": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "413": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "415": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "429": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "500": {
-            "$ref": "#/components/responses/ApiError"
           }
         },
         "security": [
@@ -1835,39 +1274,6 @@
                 }
               }
             }
-          },
-          "400": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "401": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "403": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "409": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "503": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "404": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "405": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "413": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "415": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "429": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "500": {
-            "$ref": "#/components/responses/ApiError"
           }
         },
         "security": [],
@@ -1912,39 +1318,6 @@
                 }
               }
             }
-          },
-          "400": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "401": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "403": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "409": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "503": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "404": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "405": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "413": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "415": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "429": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "500": {
-            "$ref": "#/components/responses/ApiError"
           }
         },
         "security": [
@@ -2026,39 +1399,6 @@
                 }
               }
             }
-          },
-          "400": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "401": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "403": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "409": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "503": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "404": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "405": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "413": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "415": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "429": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "500": {
-            "$ref": "#/components/responses/ApiError"
           }
         },
         "security": [
@@ -2121,39 +1461,6 @@
         "responses": {
           "200": {
             "$ref": "#/components/responses/ItemsSuccess"
-          },
-          "400": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "401": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "403": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "409": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "503": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "404": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "405": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "413": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "415": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "429": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "500": {
-            "$ref": "#/components/responses/ApiError"
           }
         },
         "security": [
@@ -2228,39 +1535,6 @@
                 }
               }
             }
-          },
-          "400": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "401": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "403": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "409": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "503": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "404": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "405": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "413": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "415": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "429": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "500": {
-            "$ref": "#/components/responses/ApiError"
           }
         },
         "security": [
@@ -2333,39 +1607,6 @@
                 }
               }
             }
-          },
-          "400": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "401": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "403": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "409": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "503": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "404": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "405": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "413": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "415": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "429": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "500": {
-            "$ref": "#/components/responses/ApiError"
           }
         },
         "security": [
@@ -2450,39 +1691,6 @@
                 }
               }
             }
-          },
-          "400": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "401": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "403": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "409": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "503": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "404": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "405": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "413": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "415": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "429": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "500": {
-            "$ref": "#/components/responses/ApiError"
           }
         },
         "security": [],
@@ -2544,39 +1752,6 @@
                 }
               }
             }
-          },
-          "400": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "401": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "403": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "409": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "503": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "404": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "405": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "413": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "415": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "429": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "500": {
-            "$ref": "#/components/responses/ApiError"
           }
         },
         "security": [
@@ -2631,39 +1806,6 @@
                 }
               }
             }
-          },
-          "400": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "401": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "403": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "409": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "503": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "404": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "405": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "413": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "415": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "429": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "500": {
-            "$ref": "#/components/responses/ApiError"
           }
         },
         "security": [],
@@ -2731,39 +1873,6 @@
                 }
               }
             }
-          },
-          "400": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "401": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "403": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "409": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "503": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "404": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "405": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "413": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "415": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "429": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "500": {
-            "$ref": "#/components/responses/ApiError"
           }
         },
         "security": [],
@@ -2826,39 +1935,6 @@
                 }
               }
             }
-          },
-          "400": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "401": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "403": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "409": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "503": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "404": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "405": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "413": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "415": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "429": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "500": {
-            "$ref": "#/components/responses/ApiError"
           }
         },
         "security": [
@@ -2932,39 +2008,6 @@
                 }
               }
             }
-          },
-          "400": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "401": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "403": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "409": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "503": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "404": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "405": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "413": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "415": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "429": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "500": {
-            "$ref": "#/components/responses/ApiError"
           }
         },
         "security": [
@@ -3018,39 +2061,6 @@
         "responses": {
           "200": {
             "$ref": "#/components/responses/Success"
-          },
-          "400": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "401": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "403": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "409": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "503": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "404": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "405": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "413": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "415": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "429": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "500": {
-            "$ref": "#/components/responses/ApiError"
           }
         },
         "security": [
@@ -3085,39 +2095,6 @@
         "responses": {
           "200": {
             "$ref": "#/components/responses/Success"
-          },
-          "400": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "401": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "403": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "409": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "503": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "404": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "405": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "413": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "415": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "429": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "500": {
-            "$ref": "#/components/responses/ApiError"
           }
         },
         "security": [
@@ -3181,39 +2158,6 @@
                 }
               }
             }
-          },
-          "400": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "401": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "403": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "409": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "503": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "404": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "405": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "413": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "415": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "429": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "500": {
-            "$ref": "#/components/responses/ApiError"
           }
         },
         "security": [],
@@ -3284,39 +2228,6 @@
                 }
               }
             }
-          },
-          "400": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "401": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "403": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "409": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "503": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "404": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "405": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "413": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "415": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "429": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "500": {
-            "$ref": "#/components/responses/ApiError"
           }
         },
         "security": [],
@@ -3386,39 +2297,6 @@
                 }
               }
             }
-          },
-          "400": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "401": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "403": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "409": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "503": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "404": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "405": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "413": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "415": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "429": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "500": {
-            "$ref": "#/components/responses/ApiError"
           }
         },
         "security": [],
@@ -3490,39 +2368,6 @@
                 }
               }
             }
-          },
-          "400": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "401": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "403": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "409": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "503": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "404": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "405": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "413": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "415": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "429": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "500": {
-            "$ref": "#/components/responses/ApiError"
           }
         },
         "security": [
@@ -3605,39 +2450,6 @@
                 }
               }
             }
-          },
-          "400": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "401": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "403": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "409": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "503": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "404": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "405": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "413": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "415": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "429": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "500": {
-            "$ref": "#/components/responses/ApiError"
           }
         },
         "security": [],
@@ -3725,39 +2537,6 @@
                 }
               }
             }
-          },
-          "400": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "401": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "403": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "409": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "503": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "404": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "405": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "413": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "415": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "429": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "500": {
-            "$ref": "#/components/responses/ApiError"
           }
         },
         "security": [],
@@ -3868,39 +2647,6 @@
                 }
               }
             }
-          },
-          "400": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "401": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "403": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "409": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "503": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "404": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "405": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "413": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "415": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "429": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "500": {
-            "$ref": "#/components/responses/ApiError"
           }
         },
         "security": [
@@ -3955,39 +2701,6 @@
                 }
               }
             }
-          },
-          "400": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "401": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "403": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "409": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "503": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "404": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "405": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "413": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "415": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "429": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "500": {
-            "$ref": "#/components/responses/ApiError"
           }
         },
         "security": [
@@ -4061,39 +2774,6 @@
                 }
               }
             }
-          },
-          "400": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "401": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "403": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "409": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "503": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "404": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "405": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "413": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "415": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "429": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "500": {
-            "$ref": "#/components/responses/ApiError"
           }
         },
         "security": [],
@@ -4170,39 +2850,6 @@
         "responses": {
           "200": {
             "$ref": "#/components/responses/Success"
-          },
-          "400": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "401": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "403": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "409": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "503": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "404": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "405": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "413": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "415": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "429": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "500": {
-            "$ref": "#/components/responses/ApiError"
           }
         },
         "security": [
@@ -4237,39 +2884,6 @@
         "responses": {
           "200": {
             "$ref": "#/components/responses/Success"
-          },
-          "400": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "401": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "403": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "409": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "503": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "404": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "405": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "413": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "415": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "429": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "500": {
-            "$ref": "#/components/responses/ApiError"
           }
         },
         "security": [
@@ -4325,39 +2939,6 @@
         "responses": {
           "200": {
             "$ref": "#/components/responses/Success"
-          },
-          "400": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "401": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "403": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "409": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "503": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "404": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "405": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "413": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "415": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "429": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "500": {
-            "$ref": "#/components/responses/ApiError"
           }
         },
         "security": [
@@ -4424,39 +3005,6 @@
                 }
               }
             }
-          },
-          "400": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "401": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "403": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "409": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "503": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "404": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "405": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "413": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "415": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "429": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "500": {
-            "$ref": "#/components/responses/ApiError"
           }
         },
         "security": [
@@ -4528,39 +3076,6 @@
                 }
               }
             }
-          },
-          "400": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "401": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "403": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "409": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "503": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "404": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "405": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "413": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "415": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "429": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "500": {
-            "$ref": "#/components/responses/ApiError"
           }
         },
         "security": [
@@ -4607,39 +3122,6 @@
         "responses": {
           "200": {
             "$ref": "#/components/responses/Success"
-          },
-          "400": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "401": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "403": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "409": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "503": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "404": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "405": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "413": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "415": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "429": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "500": {
-            "$ref": "#/components/responses/ApiError"
           }
         },
         "security": [
@@ -4695,39 +3177,6 @@
         "responses": {
           "200": {
             "$ref": "#/components/responses/Success"
-          },
-          "400": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "401": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "403": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "409": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "503": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "404": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "405": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "413": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "415": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "429": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "500": {
-            "$ref": "#/components/responses/ApiError"
           }
         },
         "security": [
@@ -4777,39 +3226,6 @@
         "responses": {
           "200": {
             "$ref": "#/components/responses/Success"
-          },
-          "400": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "401": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "403": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "409": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "503": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "404": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "405": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "413": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "415": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "429": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "500": {
-            "$ref": "#/components/responses/ApiError"
           }
         },
         "security": [
@@ -4857,39 +3273,6 @@
         "responses": {
           "200": {
             "$ref": "#/components/responses/Success"
-          },
-          "400": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "401": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "403": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "409": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "503": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "404": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "405": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "413": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "415": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "429": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "500": {
-            "$ref": "#/components/responses/ApiError"
           }
         },
         "security": [
@@ -4943,39 +3326,6 @@
         "responses": {
           "200": {
             "$ref": "#/components/responses/ItemsSuccess"
-          },
-          "400": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "401": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "403": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "409": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "503": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "404": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "405": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "413": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "415": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "429": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "500": {
-            "$ref": "#/components/responses/ApiError"
           }
         },
         "security": [
@@ -5045,39 +3395,6 @@
                 }
               }
             }
-          },
-          "400": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "401": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "403": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "409": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "503": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "404": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "405": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "413": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "415": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "429": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "500": {
-            "$ref": "#/components/responses/ApiError"
           }
         },
         "security": [
@@ -5151,39 +3468,6 @@
         "responses": {
           "200": {
             "$ref": "#/components/responses/ItemsSuccess"
-          },
-          "400": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "401": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "403": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "409": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "503": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "404": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "405": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "413": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "415": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "429": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "500": {
-            "$ref": "#/components/responses/ApiError"
           }
         },
         "security": [
@@ -5237,39 +3521,6 @@
                 }
               }
             }
-          },
-          "400": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "401": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "403": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "409": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "503": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "404": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "405": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "413": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "415": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "429": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "500": {
-            "$ref": "#/components/responses/ApiError"
           }
         },
         "security": [
@@ -5318,39 +3569,6 @@
         "responses": {
           "200": {
             "$ref": "#/components/responses/Success"
-          },
-          "400": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "401": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "403": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "409": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "503": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "404": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "405": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "413": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "415": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "429": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "500": {
-            "$ref": "#/components/responses/ApiError"
           }
         },
         "security": [
@@ -5401,39 +3619,6 @@
         "responses": {
           "200": {
             "$ref": "#/components/responses/Success"
-          },
-          "400": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "401": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "403": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "409": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "503": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "404": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "405": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "413": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "415": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "429": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "500": {
-            "$ref": "#/components/responses/ApiError"
           }
         },
         "security": [
@@ -5487,39 +3672,6 @@
         "responses": {
           "200": {
             "$ref": "#/components/responses/Success"
-          },
-          "400": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "401": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "403": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "409": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "503": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "404": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "405": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "413": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "415": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "429": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "500": {
-            "$ref": "#/components/responses/ApiError"
           }
         },
         "security": [
@@ -5586,39 +3738,6 @@
                 }
               }
             }
-          },
-          "400": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "401": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "403": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "409": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "503": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "404": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "405": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "413": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "415": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "429": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "500": {
-            "$ref": "#/components/responses/ApiError"
           }
         },
         "security": [
@@ -5672,39 +3791,6 @@
         "responses": {
           "200": {
             "$ref": "#/components/responses/Success"
-          },
-          "400": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "401": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "403": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "409": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "503": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "404": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "405": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "413": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "415": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "429": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "500": {
-            "$ref": "#/components/responses/ApiError"
           }
         },
         "security": [
@@ -5792,39 +3878,6 @@
                 }
               }
             }
-          },
-          "400": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "401": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "403": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "409": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "503": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "404": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "405": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "413": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "415": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "429": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "500": {
-            "$ref": "#/components/responses/ApiError"
           }
         },
         "security": [
@@ -5881,39 +3934,6 @@
                 }
               }
             }
-          },
-          "400": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "401": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "403": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "409": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "503": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "404": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "405": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "413": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "415": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "429": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "500": {
-            "$ref": "#/components/responses/ApiError"
           }
         },
         "security": [
@@ -5991,39 +4011,6 @@
                 }
               }
             }
-          },
-          "400": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "401": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "403": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "409": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "503": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "404": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "405": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "413": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "415": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "429": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "500": {
-            "$ref": "#/components/responses/ApiError"
           }
         },
         "security": [
@@ -6213,39 +4200,6 @@
                 }
               }
             }
-          },
-          "400": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "401": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "403": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "409": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "503": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "413": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "404": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "405": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "415": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "429": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "500": {
-            "$ref": "#/components/responses/ApiError"
           }
         },
         "security": [
@@ -6318,39 +4272,6 @@
                 }
               }
             }
-          },
-          "400": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "401": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "403": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "409": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "503": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "404": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "405": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "413": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "415": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "429": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "500": {
-            "$ref": "#/components/responses/ApiError"
           }
         },
         "security": [
@@ -6421,39 +4342,6 @@
                 }
               }
             }
-          },
-          "400": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "401": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "403": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "409": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "503": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "404": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "405": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "413": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "415": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "429": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "500": {
-            "$ref": "#/components/responses/ApiError"
           }
         },
         "security": [
@@ -6506,39 +4394,6 @@
                 }
               }
             }
-          },
-          "400": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "401": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "403": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "409": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "503": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "404": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "405": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "413": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "415": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "429": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "500": {
-            "$ref": "#/components/responses/ApiError"
           }
         },
         "security": [
@@ -6610,39 +4465,6 @@
                 }
               }
             }
-          },
-          "400": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "401": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "403": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "409": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "503": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "404": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "405": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "413": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "415": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "429": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "500": {
-            "$ref": "#/components/responses/ApiError"
           }
         },
         "security": [],
@@ -6708,39 +4530,6 @@
                 }
               }
             }
-          },
-          "400": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "401": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "403": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "409": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "503": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "404": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "405": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "413": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "415": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "429": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "500": {
-            "$ref": "#/components/responses/ApiError"
           }
         },
         "security": [
@@ -6796,39 +4585,6 @@
         "responses": {
           "200": {
             "$ref": "#/components/responses/Success"
-          },
-          "400": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "401": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "403": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "409": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "503": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "404": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "405": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "413": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "415": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "429": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "500": {
-            "$ref": "#/components/responses/ApiError"
           }
         },
         "security": [
@@ -6894,39 +4650,6 @@
                 }
               }
             }
-          },
-          "400": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "401": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "403": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "409": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "503": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "404": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "405": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "413": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "415": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "429": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "500": {
-            "$ref": "#/components/responses/ApiError"
           }
         },
         "security": [],
@@ -7004,39 +4727,6 @@
                 }
               }
             }
-          },
-          "400": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "401": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "403": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "409": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "503": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "404": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "405": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "413": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "415": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "429": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "500": {
-            "$ref": "#/components/responses/ApiError"
           }
         },
         "security": [
@@ -7108,39 +4798,6 @@
                 }
               }
             }
-          },
-          "400": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "401": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "403": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "409": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "503": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "404": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "405": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "413": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "415": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "429": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "500": {
-            "$ref": "#/components/responses/ApiError"
           }
         },
         "security": [
@@ -7174,39 +4831,6 @@
         "responses": {
           "200": {
             "$ref": "#/components/responses/Success"
-          },
-          "400": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "401": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "403": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "409": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "503": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "404": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "405": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "413": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "415": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "429": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "500": {
-            "$ref": "#/components/responses/ApiError"
           }
         },
         "security": [
@@ -7260,39 +4884,6 @@
                 }
               }
             }
-          },
-          "400": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "401": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "403": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "409": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "503": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "404": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "405": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "413": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "415": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "429": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "500": {
-            "$ref": "#/components/responses/ApiError"
           }
         },
         "security": [
@@ -7327,39 +4918,6 @@
         "responses": {
           "200": {
             "$ref": "#/components/responses/Success"
-          },
-          "400": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "401": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "403": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "409": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "503": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "404": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "405": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "413": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "415": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "429": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "500": {
-            "$ref": "#/components/responses/ApiError"
           }
         },
         "security": [
@@ -7413,39 +4971,6 @@
         "responses": {
           "200": {
             "$ref": "#/components/responses/Success"
-          },
-          "400": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "401": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "403": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "409": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "503": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "404": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "405": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "413": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "415": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "429": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "500": {
-            "$ref": "#/components/responses/ApiError"
           }
         },
         "security": [
@@ -7501,39 +5026,6 @@
                 }
               }
             }
-          },
-          "400": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "401": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "403": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "409": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "503": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "404": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "405": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "413": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "415": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "429": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "500": {
-            "$ref": "#/components/responses/ApiError"
           }
         },
         "security": [
@@ -7587,39 +5079,6 @@
         "responses": {
           "200": {
             "$ref": "#/components/responses/Success"
-          },
-          "400": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "401": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "403": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "409": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "503": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "404": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "405": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "413": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "415": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "429": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "500": {
-            "$ref": "#/components/responses/ApiError"
           }
         },
         "security": [
@@ -7673,39 +5132,6 @@
         "responses": {
           "200": {
             "$ref": "#/components/responses/Success"
-          },
-          "400": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "401": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "403": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "409": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "503": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "404": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "405": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "413": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "415": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "429": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "500": {
-            "$ref": "#/components/responses/ApiError"
           }
         },
         "security": [
@@ -7753,39 +5179,6 @@
         "responses": {
           "200": {
             "$ref": "#/components/responses/Success"
-          },
-          "400": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "401": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "403": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "409": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "503": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "404": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "405": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "413": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "415": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "429": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "500": {
-            "$ref": "#/components/responses/ApiError"
           }
         },
         "security": [
@@ -7849,39 +5242,6 @@
                 }
               }
             }
-          },
-          "400": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "401": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "403": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "409": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "503": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "404": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "405": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "413": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "415": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "429": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "500": {
-            "$ref": "#/components/responses/ApiError"
           }
         },
         "security": [
@@ -7917,39 +5277,6 @@
         "responses": {
           "200": {
             "$ref": "#/components/responses/Success"
-          },
-          "400": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "401": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "403": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "409": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "503": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "404": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "405": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "413": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "415": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "429": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "500": {
-            "$ref": "#/components/responses/ApiError"
           }
         },
         "security": [
@@ -8018,39 +5345,6 @@
                 }
               }
             }
-          },
-          "400": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "401": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "403": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "409": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "503": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "404": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "405": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "413": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "415": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "429": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "500": {
-            "$ref": "#/components/responses/ApiError"
           }
         },
         "security": [
@@ -8102,39 +5396,6 @@
         "responses": {
           "200": {
             "$ref": "#/components/responses/Success"
-          },
-          "400": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "401": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "403": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "409": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "503": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "404": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "405": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "413": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "415": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "429": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "500": {
-            "$ref": "#/components/responses/ApiError"
           }
         },
         "security": [
@@ -8180,39 +5441,6 @@
         "responses": {
           "200": {
             "$ref": "#/components/responses/Success"
-          },
-          "400": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "401": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "403": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "409": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "503": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "404": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "405": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "413": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "415": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "429": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "500": {
-            "$ref": "#/components/responses/ApiError"
           }
         },
         "security": [
@@ -8267,39 +5495,6 @@
         "responses": {
           "200": {
             "$ref": "#/components/responses/Success"
-          },
-          "400": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "401": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "403": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "409": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "503": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "404": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "405": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "413": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "415": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "429": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "500": {
-            "$ref": "#/components/responses/ApiError"
           }
         },
         "security": [
@@ -8353,39 +5548,6 @@
                 }
               }
             }
-          },
-          "400": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "401": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "403": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "409": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "503": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "404": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "405": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "413": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "415": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "429": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "500": {
-            "$ref": "#/components/responses/ApiError"
           }
         },
         "security": [
@@ -8443,39 +5605,6 @@
                 }
               }
             }
-          },
-          "400": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "401": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "403": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "409": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "503": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "404": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "405": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "413": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "415": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "429": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "500": {
-            "$ref": "#/components/responses/ApiError"
           }
         },
         "security": [
@@ -8529,39 +5658,6 @@
         "responses": {
           "200": {
             "$ref": "#/components/responses/Success"
-          },
-          "400": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "401": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "403": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "409": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "503": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "404": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "405": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "413": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "415": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "429": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "500": {
-            "$ref": "#/components/responses/ApiError"
           }
         },
         "security": [
@@ -8618,39 +5714,6 @@
         "responses": {
           "200": {
             "$ref": "#/components/responses/ItemsSuccess"
-          },
-          "400": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "401": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "403": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "409": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "503": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "404": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "405": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "413": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "415": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "429": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "500": {
-            "$ref": "#/components/responses/ApiError"
           }
         },
         "security": [
@@ -8724,39 +5787,6 @@
                 }
               }
             }
-          },
-          "400": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "401": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "403": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "409": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "503": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "404": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "405": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "413": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "415": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "429": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "500": {
-            "$ref": "#/components/responses/ApiError"
           }
         },
         "security": [
@@ -8815,39 +5845,6 @@
                 }
               }
             }
-          },
-          "400": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "401": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "403": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "409": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "503": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "404": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "405": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "413": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "415": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "429": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "500": {
-            "$ref": "#/components/responses/ApiError"
           }
         },
         "security": [
@@ -8883,39 +5880,6 @@
         "responses": {
           "200": {
             "$ref": "#/components/responses/Success"
-          },
-          "400": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "401": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "403": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "409": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "503": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "404": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "405": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "413": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "415": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "429": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "500": {
-            "$ref": "#/components/responses/ApiError"
           }
         },
         "security": [
@@ -8983,39 +5947,6 @@
         "responses": {
           "200": {
             "$ref": "#/components/responses/Success"
-          },
-          "400": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "401": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "403": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "409": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "503": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "404": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "405": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "413": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "415": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "429": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "500": {
-            "$ref": "#/components/responses/ApiError"
           }
         },
         "security": [
@@ -9071,39 +6002,6 @@
                 }
               }
             }
-          },
-          "400": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "401": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "403": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "409": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "503": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "404": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "405": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "413": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "415": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "429": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "500": {
-            "$ref": "#/components/responses/ApiError"
           }
         },
         "security": [
@@ -9165,39 +6063,6 @@
                 }
               }
             }
-          },
-          "400": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "401": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "403": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "409": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "503": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "404": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "405": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "413": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "415": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "429": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "500": {
-            "$ref": "#/components/responses/ApiError"
           }
         },
         "security": [
@@ -9238,39 +6103,6 @@
         "responses": {
           "200": {
             "$ref": "#/components/responses/Success"
-          },
-          "400": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "401": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "403": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "409": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "503": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "404": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "405": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "413": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "415": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "429": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "500": {
-            "$ref": "#/components/responses/ApiError"
           }
         },
         "security": [
@@ -9361,39 +6193,6 @@
                 }
               }
             }
-          },
-          "400": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "401": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "403": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "409": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "503": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "404": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "405": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "413": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "415": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "429": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "500": {
-            "$ref": "#/components/responses/ApiError"
           }
         },
         "security": [
@@ -9472,39 +6271,6 @@
                 }
               }
             }
-          },
-          "400": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "401": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "403": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "409": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "503": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "404": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "405": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "413": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "415": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "429": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "500": {
-            "$ref": "#/components/responses/ApiError"
           }
         },
         "security": [
@@ -9564,39 +6330,6 @@
         "responses": {
           "200": {
             "$ref": "#/components/responses/ItemsSuccess"
-          },
-          "400": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "401": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "403": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "409": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "503": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "404": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "405": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "413": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "415": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "429": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "500": {
-            "$ref": "#/components/responses/ApiError"
           }
         },
         "security": [
@@ -9666,39 +6399,6 @@
                 }
               }
             }
-          },
-          "400": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "401": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "403": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "404": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "405": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "409": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "413": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "415": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "429": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "500": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "503": {
-            "$ref": "#/components/responses/ApiError"
           }
         },
         "x-request-fields": [],
@@ -9721,39 +6421,6 @@
         "responses": {
           "200": {
             "$ref": "#/components/responses/Success"
-          },
-          "400": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "401": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "403": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "409": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "503": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "404": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "405": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "413": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "415": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "429": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "500": {
-            "$ref": "#/components/responses/ApiError"
           }
         },
         "security": [],
@@ -9813,39 +6480,6 @@
                 }
               }
             }
-          },
-          "400": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "401": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "403": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "409": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "503": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "404": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "405": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "413": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "415": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "429": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "500": {
-            "$ref": "#/components/responses/ApiError"
           }
         },
         "security": [
@@ -9912,39 +6546,6 @@
                 }
               }
             }
-          },
-          "400": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "401": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "403": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "409": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "503": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "404": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "405": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "413": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "415": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "429": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "500": {
-            "$ref": "#/components/responses/ApiError"
           }
         },
         "security": [
@@ -10011,39 +6612,6 @@
                 }
               }
             }
-          },
-          "400": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "401": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "403": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "409": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "503": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "404": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "405": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "413": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "415": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "429": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "500": {
-            "$ref": "#/components/responses/ApiError"
           }
         },
         "security": [
@@ -10134,39 +6702,6 @@
                 }
               }
             }
-          },
-          "400": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "401": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "403": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "409": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "503": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "404": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "405": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "413": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "415": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "429": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "500": {
-            "$ref": "#/components/responses/ApiError"
           }
         },
         "security": [
@@ -10219,39 +6754,6 @@
                 }
               }
             }
-          },
-          "400": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "401": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "403": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "409": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "503": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "404": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "405": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "413": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "415": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "429": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "500": {
-            "$ref": "#/components/responses/ApiError"
           }
         },
         "security": [
@@ -10321,39 +6823,6 @@
                 }
               }
             }
-          },
-          "400": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "401": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "403": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "409": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "503": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "404": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "405": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "413": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "415": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "429": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "500": {
-            "$ref": "#/components/responses/ApiError"
           }
         },
         "security": [
@@ -10410,39 +6879,6 @@
                 }
               }
             }
-          },
-          "400": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "401": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "403": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "409": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "503": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "404": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "405": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "413": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "415": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "429": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "500": {
-            "$ref": "#/components/responses/ApiError"
           }
         },
         "security": [
@@ -10499,39 +6935,6 @@
                 }
               }
             }
-          },
-          "400": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "401": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "403": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "409": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "503": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "404": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "405": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "413": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "415": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "429": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "500": {
-            "$ref": "#/components/responses/ApiError"
           }
         },
         "security": [
@@ -10578,6 +6981,41 @@
           "total"
         ]
       }
+    }
+  },
+  "commonResponses": {
+    "400": {
+      "$ref": "#/components/responses/ApiError"
+    },
+    "401": {
+      "$ref": "#/components/responses/ApiError"
+    },
+    "403": {
+      "$ref": "#/components/responses/ApiError"
+    },
+    "404": {
+      "$ref": "#/components/responses/ApiError"
+    },
+    "405": {
+      "$ref": "#/components/responses/ApiError"
+    },
+    "409": {
+      "$ref": "#/components/responses/ApiError"
+    },
+    "413": {
+      "$ref": "#/components/responses/ApiError"
+    },
+    "415": {
+      "$ref": "#/components/responses/ApiError"
+    },
+    "429": {
+      "$ref": "#/components/responses/ApiError"
+    },
+    "500": {
+      "$ref": "#/components/responses/ApiError"
+    },
+    "503": {
+      "$ref": "#/components/responses/ApiError"
     }
   }
 }

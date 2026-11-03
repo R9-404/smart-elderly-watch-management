@@ -81,7 +81,13 @@ for file in sorted((backend / "internal/handlers").glob("*.go")):
         else:
             registered_routes[key] = file.name
         access = policies.get((method, path), ("Admin", False))[0]
-        operation = {"summary": path.removeprefix("/api/v1/"), "deprecated": False, "tags": ["v1"], "responses": {"200": {"description": "Go JSON response; payload varies by operation.", "content": {"application/json": {"schema": {"type": "object", "additionalProperties": True}}}}, "400": {"description": "Invalid request"}, "401": {"description": "Session, device credential or MFA required"}, "403": {"description": "Role, duty or CSRF denied"}, "409": {"description": "Version, binding or state conflict"}, "503": {"description": "Required storage/configuration unavailable"}}}
+        operation = {
+            "summary": path.removeprefix("/api/v1/"), "deprecated": False, "tags": ["v1"],
+            "responses": {"200": {
+                "description": "Go JSON response; payload varies by operation.",
+                "content": {"application/json": {"schema": {"type": "object", "additionalProperties": True}}},
+            }},
+        }
         operation["security"] = [] if access in {"Public", "Device"} else [{"sessionCookie": []}]
         if method != "GET":
             operation["parameters"] = [] if path in csrf_exempt else [csrf_parameter]
@@ -115,7 +121,6 @@ for file in sorted((backend / "internal/handlers").glob("*.go")):
                 "FAMILY may omit oldId and is checked against current ownership; ADMIN supplies oldId. "
                 "Historical binding/version and sampling time are preserved; no freshness guarantee or cross-source merging."
             )
-            operation["responses"]["413"] = {"description": "More than 10000 latest-time candidates; use health/changes"}
             sample_properties = {name: {"type": "string"} for name in (
                 "recordId", "source", "sourceDevice", "sourceVersion", "metric", "semantics", "unit", "stage", "timeBasis"
             )}
@@ -165,8 +170,6 @@ for key, contract in contracts.items():
         request_schema = op['requestBody']['content']['application/json']['schema']
         for name in contract['request']:
             request_schema.setdefault('properties', {}).setdefault(name, {})
-    for status in (400, 401, 403, 404, 405, 409, 413, 415, 429, 500, 503):
-        op['responses'][str(status)] = {'$ref': '#/components/responses/ApiError'}
     if path != '/api/v1/image/download':
         response_schema = op['responses']['200'].setdefault('content', {}).setdefault('application/json', {}).setdefault('schema', {'type': 'object', 'additionalProperties': True})
         for name in contract['response']:
@@ -246,8 +249,14 @@ for methods in paths.values():
                 op["responses"]["200"] = {"$ref": f"#/components/responses/{name}"}
                 break
 
+# The server expands these defaults once before serving the public document.
+spec["commonResponses"] = dict.fromkeys(
+    (400, 401, 403, 404, 405, 409, 413, 415, 429, 500, 503),
+    {"$ref": "#/components/responses/ApiError"},
+)
+
 data = (json.dumps(spec, ensure_ascii=False, indent=2) + "\n").encode("utf-8")
-target = folder / "openapi.json"
+target = folder / "openapi-template.json"
 if "--check" in sys.argv:
     if not target.exists() or target.read_bytes() != data:
         committed = json.loads(target.read_text(encoding="utf-8")) if target.exists() else {"paths": {}}
@@ -259,7 +268,7 @@ if "--check" in sys.argv:
         print("changed values:", [p for p in generated_paths if p in actual_paths and generated_paths[p] != actual_paths[p]][:12], file=sys.stderr)
         expected = data.decode("utf-8").splitlines(keepends=True)
         actual = target.read_text(encoding="utf-8").splitlines(keepends=True) if target.exists() else []
-        diff = difflib.unified_diff(actual, expected, fromfile="committed openapi.json", tofile="generated Go routes")
+        diff = difflib.unified_diff(actual, expected, fromfile="committed OpenAPI template", tofile="generated Go routes")
         print("".join(list(diff)[:120]), file=sys.stderr)
         raise SystemExit("OpenAPI is stale; run scripts/generate-openapi.py")
 else:
