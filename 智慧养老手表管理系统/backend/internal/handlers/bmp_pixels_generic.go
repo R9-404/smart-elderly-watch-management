@@ -2,4 +2,4 @@
 
 package handlers
 
-func unpackBMPNative(_, _ []byte, _, _, _, _ int, _ bool) bool { return false }
+func unpackBMPNative(_, _ []byte, _, _, _, _ int, _ bool, _, _, _ uint32) bool { return false }

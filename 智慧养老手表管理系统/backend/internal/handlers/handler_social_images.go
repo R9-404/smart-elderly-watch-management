@@ -166,7 +166,7 @@ func decodeBMP(data []byte) (image.Image, int, int, bool) {
 		return nil, 0, 0, false
 	}
 	img := image.NewRGBA(image.Rect(0, 0, w, h))
-	if comp == 0 && unpackBMPNative(img.Pix, data[int(off):], w, h, stride, int(bpp)/8, topDown) {
+	if unpackBMPNative(img.Pix, data[int(off):], w, h, stride, int(bpp)/8, topDown, rMask, gMask, bMask) {
 		return img, w, h, true
 	}
 	for y := 0; y < h; y++ {
