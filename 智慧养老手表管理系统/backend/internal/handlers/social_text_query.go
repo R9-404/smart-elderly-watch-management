@@ -39,27 +39,21 @@ func (h *Handler) listNotices(w http.ResponseWriter, r *http.Request) {
 	args := []any{title, "%" + title + "%"}
 	var total int64
 	limitSQL, fullArgs := pageArgs(args, page, pageSize)
-	rows, err := h.DB.Query(r.Context(), "SELECT page.*, totals.total FROM ("+countSQL+
-		") AS totals LEFT JOIN ("+sql+limitSQL+") AS page ON TRUE ORDER BY page.time DESC, page.text_id DESC", fullArgs...)
-	if internalError(w, err) {
-		return
-	}
-	defer rows.Close()
 	items := []noticeRecord{}
-	for rows.Next() {
+	err := dbstore.QueryEach(r.Context(), h.DB, func(rows dbstore.Rows) error {
 		var d noticeRecord
 		if err := rows.Scan(&d.TextID, &d.Title, &d.TextMain, &d.Time, &d.PicID, &total); err != nil {
-			rows.Close()
-			response.Error500(w, ref())
-			return
+			return err
 		}
 		// The aggregate supplies one count row even when the page is empty.
 		if d.TextID == nil {
-			continue
+			return nil
 		}
 		items = append(items, d)
-	}
-	if !rowsOK(w, rows) {
+		return nil
+	}, "SELECT page.*, totals.total FROM ("+countSQL+
+		") AS totals LEFT JOIN ("+sql+limitSQL+") AS page ON TRUE ORDER BY page.time DESC, page.text_id DESC", fullArgs...)
+	if internalError(w, err) {
 		return
 	}
 	response.JSON(w, http.StatusOK, map[string]any{

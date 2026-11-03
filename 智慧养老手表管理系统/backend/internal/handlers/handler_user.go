@@ -57,34 +57,29 @@ func (h *Handler) listGuardians(w http.ResponseWriter, r *http.Request) {
 	var total int64
 	const filter = ` FROM customer WHERE ($1='' OR customer_name LIKE '%'||$1||'%')`
 	const countSQL = `SELECT COUNT(*) AS total` + filter
-	rows, err := h.DB.Query(ctx,
-		`SELECT page.*, totals.total FROM (`+countSQL+`) AS totals LEFT JOIN (
-		 SELECT customer_id,customer_name,customer_age,customer_sex,customer_phone,customer_address`+filter+`
-		 ORDER BY customer_id LIMIT $2 OFFSET $3) AS page
-		 ON TRUE ORDER BY page.customer_id`, name, ps, (p-1)*ps)
-	if internalError(w, err) {
-		return
-	}
-	defer rows.Close()
 	list := []map[string]any{}
-	for rows.Next() {
+	err := dbstore.QueryEach(ctx, h.DB, func(rows dbstore.Rows) error {
 		var id *int64
 		var cname *string
 		var cage *int64
 		var csex, cphone, caddr *string
-		if internalError(w, rows.Scan(&id, &cname, &cage, &csex, &cphone, &caddr, &total)) {
-			return
+		if err := rows.Scan(&id, &cname, &cage, &csex, &cphone, &caddr, &total); err != nil {
+			return err
 		}
 		// The aggregate supplies one count row even when the page is empty.
 		if id == nil {
-			continue
+			return nil
 		}
 		list = append(list, map[string]any{
 			"customerId": *id, "customerName": cname, "customerAge": cage,
 			"customerSex": csex, "customerPhone": cphone, "customerAddress": caddr,
 		})
-	}
-	if internalError(w, rows.Err()) {
+		return nil
+	}, `SELECT page.*, totals.total FROM (`+countSQL+`) AS totals LEFT JOIN (
+		 SELECT customer_id,customer_name,customer_age,customer_sex,customer_phone,customer_address`+filter+`
+		 ORDER BY customer_id LIMIT $2 OFFSET $3) AS page
+		 ON TRUE ORDER BY page.customer_id`, name, ps, (p-1)*ps)
+	if internalError(w, err) {
 		return
 	}
 	response.JSON(w, http.StatusOK, map[string]any{

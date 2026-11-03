@@ -219,24 +219,17 @@ func (h *Handler) deviceBindCodeList(w http.ResponseWriter, r *http.Request) {
 	// 非数字 → 返回空列表而非报错。
 	if validID(oldIDStr) {
 		oldID, _ := strconv.ParseInt(oldIDStr, 10, 64)
-		rows, err := h.DB.Query(r.Context(),
-			`SELECT `+bindCodeCols+` FROM bind_code WHERE old_id=$1 ORDER BY id DESC LIMIT 20`, oldID)
-		if internalError(w, err) {
-			return
-		}
-		defer rows.Close()
-		for rows.Next() {
-			bc, err := scanBindCode(rows)
-			if internalError(w, err) {
-				return
+		list, ok = queryRows(h, w, r.Context(), func(rows db.Rows) (map[string]any, error) {
+			code, err := scanBindCode(rows)
+			if err != nil {
+				return nil, err
 			}
-			list = append(list, map[string]any{
-				"id": bc.ID, "code": bc.Code, "expireTime": tsOrNil(bc.ExpireTime),
-				"used": bc.Used, "usedTime": tsOrNil(bc.UsedTime),
-				"usedDeviceId": bc.UsedDevID,
-			})
-		}
-		if internalError(w, rows.Err()) {
+			return map[string]any{
+				"id": code.ID, "code": code.Code, "expireTime": tsOrNil(code.ExpireTime),
+				"used": code.Used, "usedTime": tsOrNil(code.UsedTime), "usedDeviceId": code.UsedDevID,
+			}, nil
+		}, `SELECT `+bindCodeCols+` FROM bind_code WHERE old_id=$1 ORDER BY id DESC LIMIT 20`, oldID)
+		if !ok {
 			return
 		}
 	}

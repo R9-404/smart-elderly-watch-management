@@ -189,20 +189,9 @@ type familyBindingTarget struct {
 
 func loadFamilyBindingTarget(ctx context.Context, tx *db.Transaction, phone string) (familyBindingTarget, error) {
 	target := familyBindingTarget{}
-	rows, err := tx.Query(ctx, `SELECT old_id,family_id FROM oldperson WHERE phone=$1 ORDER BY old_id LIMIT 2 FOR UPDATE`, phone)
-	if err != nil {
-		return target, err
-	}
-
-	for rows.Next() {
+	err := db.QueryEach(ctx, tx, func(rows db.Rows) error {
 		target.matches++
-		if err = rows.Scan(&target.oldID, &target.familyID); err != nil {
-			break
-		}
-	}
-	if err == nil {
-		err = rows.Err()
-	}
-	rows.Close()
+		return rows.Scan(&target.oldID, &target.familyID)
+	}, `SELECT old_id,family_id FROM oldperson WHERE phone=$1 ORDER BY old_id LIMIT 2 FOR UPDATE`, phone)
 	return target, err
 }
