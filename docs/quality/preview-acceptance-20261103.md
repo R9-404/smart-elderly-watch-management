@@ -9,8 +9,9 @@
 - 基线 Preview CI 与 Security 已通过，因此不重复修改历史 Go 格式问题。
 - `ui-smoke.mjs` 已根据传入 URL 的 hash 验证当前 `sign-in` 路由；仍需运行 UI 全流程确认，不能仅凭代码更新关闭 P0-02。
 - 基线原生 SDK clean/assembleHap 在本地 DevEco Studio 6.1.1.280 / API 24 成功，生成未签名调试 HAP；这是基线构建记录，不证明本 PR 的新 SHA 已通过，也不代替模拟器完整交互。
-- 本 PR 聚焦 P0-05：UI 每次进入基础 CI，正式发布独立要求原生 HAP、实际 Windows 构建/安装和完整证据；未配置 SDK 或未执行完整构建时阻断发布。
-- 本 PR 没有启用仓库 Ruleset，没有宣称 P0/P1 全部完成，也没有执行正式发布。
+- 首个 [PR #74](https://github.com/WatchTestCs/smart-elderly-watch-management/pull/74) 实现 P0-05：UI 每次进入基础 CI，正式发布独立要求原生 HAP、实际 Windows 构建/安装和完整证据。其 `a52ebce` 已通过 UI、双 Go 和 Security，手动完整构建运行 [41627327681](https://github.com/WatchTestCs/smart-elderly-watch-management/actions/runs/41627327681) 已生成并核对原生 HAP；桌面任务另查实际结果。
+- 后续补丁聚焦 P0-04：将已实际编译的 SDK 归档、ETS 版本与摘要入库，移除 native job 的跳过条件。新补丁仍须在其提交 SHA 上重新验证。
+- 仓库 Ruleset 已实际启用，见下表；没有宣称 P0/P1 全部完成，也没有执行正式发布。
 
 ## 任务台账
 
@@ -20,8 +21,8 @@
 | --- | --- | --- |
 | P0-01 | Go 格式和双版本 CI | 基线检查成功；每个后续 SHA 仍须重新运行完整检查 |
 | P0-02 | UI 路由、交互与视觉 | 路由断言已在基线更新；当前 SHA 的 UI Quality 待运行 |
-| P0-03 | 分支 Ruleset 与独立审查 | API 复核 rulesets 为空；需实施并验证失败/缺失检查不能合并 |
-| P0-04 | 原生 HarmonyOS 构建门禁 | 本地基线编译成功；持续 CI 的固定 SDK 获取和新 SHA 原生验收待完成 |
+| P0-03 | 分支 Ruleset 与独立审查 | [规则 26444520](https://github.com/WatchTestCs/smart-elderly-watch-management/rules/26444520) 已 active：仅 preview、无绕过、1 名独立审查、末次推送需他人批准、13 项 GitHub Actions 检查；隔离 [验证 PR #75](https://github.com/WatchTestCs/smart-elderly-watch-management/pull/75) 的缺失/失败检查合并请求均被 HTTP 405 拒绝，已关闭未合并；不将合成检查算成功能测试，最终独立代码审查仍待完成 |
+| P0-04 | 原生 HarmonyOS 构建门禁 | 后续补丁固定 SDK/ETS/摘要并移除 native job 跳过条件；归档缓存也先校验；新 SHA 的远端原生构建和独立审查待完成 |
 | P0-05 | 聚合与正式发布门禁 | 本 PR 实现；回归、远端工作流与独立审查分别验收 |
 | P0-06 | 字段保护与历史迁移 | 待逐字段核查实现、索引、回填、双读和回滚证据 |
 | P0-07 | Keyring 历史轮换 | 待核查自动化 CAS 重加密、残留扫描、密钥退役与旧备份恢复 |

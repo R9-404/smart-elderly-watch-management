@@ -8,9 +8,9 @@ on:
   workflow_dispatch:
     inputs:
       require_native:
-        description: Require a real SDK build for a formal release candidate; missing SDK configuration must fail
+        description: Native SDK compilation is always required; retained for dispatch compatibility
         type: boolean
-        default: false
+        default: true
       build_desktop:
         description: Build and exercise the actual Windows Setup and Portable distributions
         type: boolean
@@ -46,7 +46,6 @@ jobs:
     with:
       sdk_url: ${{ inputs.sdk_url || vars.HARMONY_SDK_URL || '' }}
       sdk_sha256: ${{ inputs.sdk_sha256 || vars.HARMONY_SDK_SHA256 || '' }}
-      require_native: ${{ inputs.require_native || false }}
 
   backend:
     name: Backend

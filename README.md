@@ -155,7 +155,7 @@ cd 智慧养老手表管理系统
 
 ## 验证与性能
 
-UI Quality 随每次 Preview CI 执行。`Core CI / required` 仅表示基础检查通过；正式候选还需原生 HAP、实际 Windows 安装包测试和同一 SHA 的完整证据，操作与失败条件见[发布门禁](docs/reliability/release-governance.md)。
+UI Quality 和固定 SDK 的原生 HAP 编译随每次 Preview CI 执行。`Core CI / required` 仅表示基础检查通过；正式候选还需实际 Windows 安装包测试和同一 SHA 的完整证据，操作、SDK 来源与失败条件见[发布门禁](docs/reliability/release-governance.md)。
 
 | 验证维度 | 当前依据 |
 | --- | --- |

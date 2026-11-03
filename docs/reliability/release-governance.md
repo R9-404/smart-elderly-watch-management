@@ -19,11 +19,15 @@ CodeQL 或依赖审查因 fork 权限、配置缺失而未运行时，应由维�
 UI Quality 由 Preview CI 在每个候选提交上调用，不再按前端路径过滤；复用工作流明确
 检出 PR head SHA，UI 日志与图片归入 `ui-quality-<SHA>`，不自动更新视觉基线。
 
-正式候选需在当前 `preview` SHA 上手动运行 Preview CI，启用 `require_native` 与
-`build_desktop`。原生构建读取显式 SDK URL / SHA-256，或仓库变量 `HARMONY_SDK_URL` /
-`HARMONY_SDK_SHA256`。缺少配置必须失败；普通 PR 的可选原生 job 被跳过时，只能声明
-基础检查通过。SDK 工具链版本为 Command Line Tools 6.1.1.280 / HarmonyOS API 24，
-URL 必须为 HTTPS，并在解压和执行前核对预期归档 SHA-256。
+正式候选需在当前 `preview` SHA 上手动运行 Preview CI，启用 `build_desktop`。
+原生 SDK 编译在每次 CI 中执行，没有可跳过条件；`require_native` 输入仅保留调用兼容性，
+不能关闭编译。默认工具链由 `SuiningWatch/scripts/sdk-lock.json` 固定为 Command Line
+Tools 6.1.1.280 / API 24 / ETS 6.1.1.125 Release，归档先核对完整大小和 SHA-256，再解压、
+核对 SDK 元数据、clean/assembleHap。缓存命中也必须再次核对归档，校验失败不执行工具。
+归档使用 SDL 镜像（不是华为下载域名），摘要另与版本化 SDK 镜像发布的校验文件核对；
+来源、大小、版本和摘要均保存于锁文件与运行证据，不把镜像描述为厂商认证。
+显式 SDK URL 或 `HARMONY_SDK_URL` 只能切换同一归档的 HTTPS 下载位置；提供的
+SHA-256 必须与经审查的锁文件一致。升级 SDK 必须提交锁文件和兼容性验证。
 
 `scripts/reliability/release-gate.py` 对正式候选独立检查 UI、两版 Go、手表协议与真实
 后端联调、原生 HAP、模拟器协议、Windows sidecar、实际 Tauri 构建和安装/卸载测试、

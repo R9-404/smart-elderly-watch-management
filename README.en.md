@@ -157,7 +157,7 @@ The build script compiles the Vue frontend, embeds the assets into the Go binary
 
 ## Validation
 
-UI Quality runs with every Preview CI. `Core CI / required` covers the core checks; a formal candidate also requires native HAP compilation, actual Windows distribution tests, and complete evidence for the same SHA. See the [release gates](docs/reliability/release-governance.md) for inputs and rejection conditions.
+UI Quality and native HAP compilation with the pinned SDK run with every Preview CI. `Core CI / required` covers the core checks; a formal candidate also requires actual Windows distribution tests and complete evidence for the same SHA. See the [release gates](docs/reliability/release-governance.md) for inputs, SDK provenance, and rejection conditions. The SDK archive is checksum-pinned and obtained from the SDL mirror, which is not a Huawei download host.
 
 | Area | Current reference |
 | --- | --- |
