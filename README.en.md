@@ -196,4 +196,4 @@ Licensed under the [MIT License](LICENSE). Bundled fonts, map tiles, and third-p
 
 ## API contract
 
-[API contracts and resolved differences](docs/API_CONTRACTS.md) list request and success fields for 108 paths. JSON success uses HTTP 200 and `returnCode="1111"`. Failures use HTTP 4xx/5xx with `returnCode="0000"`, `code`, `message` and an optional `reference`. Image downloads return bytes; uploads use multipart field `file`.
+[API contracts and resolved differences](docs/API_CONTRACTS.md) list request and success fields for 109 paths. JSON success uses HTTP 200 and `returnCode="1111"`. Failures use HTTP 4xx/5xx with `returnCode="0000"`, `code`, `message` and an optional `reference`. Image downloads return bytes; uploads use multipart field `file`.

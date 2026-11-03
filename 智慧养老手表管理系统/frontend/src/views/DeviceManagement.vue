@@ -163,6 +163,7 @@
 </template>
 
 <script>
+import { useCollectionLayout } from '../composables/useCollectionLayout'
 import { deviceListMethods } from './device.list-methods.js'
 import { deviceAlertMethods } from './device.alert-methods.js'
 import { deviceRefreshMethods } from './device.refresh-methods.js'
@@ -170,10 +171,10 @@ import { deviceAdminMethods } from './device.admin-methods.js'
 import HarmonyWatchSetup from '../components/HarmonyWatchSetup.vue'
 
 export default {
+  setup () { return { mobileLayout: useCollectionLayout() } },
   components: { HarmonyWatchSetup },
   data () {
     return {
-      mobileLayout: false,
       deviceList: [], deviceTotal: 0, serverOnlineCount: 0, currentPage: 1, pageSize: 20, filterTimer: null, reloadPending: false,
       deviceDetailVisible: false, detailDevice: null,
       deviceQuery: '', deviceState: 'all', deviceLoading: false, deviceLoadError: '', alertLoadError: '', alertsReady: false, creating: false,
@@ -228,18 +229,14 @@ export default {
     onlineCount () { return this.serverOnlineCount }
   },
   created () {
-    this.deviceLayoutQuery = window.matchMedia('(max-width: 1100px)')
-    this.mobileLayout = this.deviceLayoutQuery.matches
     this.loadDevices()
     this.loadOldPeople()
   },
   mounted () {
-    this.deviceLayoutQuery.addEventListener('change', this.updateDeviceLayout)
     document.addEventListener('visibilitychange', this.handleVisibilityChange)
     this.startTimer()
   },
   beforeUnmount () {
-    this.deviceLayoutQuery.removeEventListener('change', this.updateDeviceLayout)
     this.refreshDisposed = true
     clearTimeout(this.filterTimer)
     document.removeEventListener('visibilitychange', this.handleVisibilityChange)
@@ -251,7 +248,6 @@ export default {
     autoRefresh (enabled) { if (enabled) this.startTimer(); else this.stopTimer() }
   },
   methods: {
-    updateDeviceLayout (event) { this.mobileLayout = event.matches },
     ...deviceListMethods,
     ...deviceAlertMethods,
     ...deviceRefreshMethods,

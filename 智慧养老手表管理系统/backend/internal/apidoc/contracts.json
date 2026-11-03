@@ -1417,5 +1417,14 @@
     "response": [
       "returnCode"
     ]
+  },
+  "POST /api/v1/locations/alerts/summary": {
+    "file": "智慧养老手表管理系统/backend/internal/handlers/handler_position.go",
+    "request": [],
+    "response": [
+      "activeAlerts",
+      "returnCode",
+      "totalResidents"
+    ]
   }
 }

@@ -26,6 +26,7 @@
     <el-dialog
       title="老人添加"
       v-model="oldDialogVisible"
+      @open="addCustomerList"
       @close="closeRoleAddDialog"
       width="30%">
       <ResidentForm :draft="oldForm" :rules="rules" ref="addoldFormRef" :options="options" :customer-loading="customerLoading" :customer-error="customerError" @retry-guardians="addCustomerList" />
@@ -38,6 +39,7 @@
     <el-dialog
       title="角色编辑"
       v-model="oldEditDialogVisible"
+      @open="addCustomerList"
       width="30%">
       <ResidentForm editing :draft="oldEditForm" :rules="rules" ref="editoldFormRef" :options="options" :customer-loading="customerLoading" :customer-error="customerError" @retry-guardians="addCustomerList" />
       <template #footer><span  class="dialog-footer">
@@ -193,7 +195,6 @@ export default {
   },
   created () {
     this.searchOldPersons()
-    this.addCustomerList()
   },
   methods: {
     ...residentCommandMethods,

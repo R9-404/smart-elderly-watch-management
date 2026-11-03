@@ -65,6 +65,7 @@ module.exports = async function (run) {
    'api/v1/image/saveImage':{returnCode:mode==='upload-error'?'0000':'1111',filename:'saved-image.png'},
    'api/v1/notices/delete':{returnCode:'1111'},
    'api/v1/notices/update':{returnCode:mode==='save-error'?'0000':'1111'} ,
+   'api/v1/locations/alerts/summary':{totalResidents:1,activeAlerts:1},
    'api/v1/position/select':{positionDtos:[{status:1}]},
    'api/v1/activity/steps/total':{allCount:3},
    'api/v1/family/select':{familyDtos:[{name:'李奶奶',oldId:1,familyName:'小明',familyRelation:'子女',familySex:'男',familyPhone:'13000000000',familyAddress:'示例地址'}]},

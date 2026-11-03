@@ -70,3 +70,17 @@ func TestContinuousSOSWithoutCoordinatesDoesNotBorrowLatestLocation(t *testing.T
 		}
 	}
 }
+
+func TestPositionAlertSummaryUsesLatestAlarmPerResident(t *testing.T) {
+	h := extraAuditHandler(t)
+	mustExec(t, h.DB, "INSERT INTO oldperson(old_id,name) VALUES(1,'甲'),(2,'乙'),(3,'丙')")
+	mustExec(t, h.DB, `INSERT INTO alarm_precess(id,old_id,status,be_time) VALUES
+		(10,1,'1','2026-10-20 10:00:00'),
+		(11,1,'0','2026-10-20 10:00:00'),
+		(12,2,'1','2026-10-20 09:00:00'),
+		(13,2,'1','2026-10-20 10:00:00')`)
+	got := api(t, h.positionAlertSummary, map[string]any{})
+	if got["totalResidents"] != float64(3) || got["activeAlerts"] != float64(1) {
+		t.Fatalf("unexpected summary: %v", got)
+	}
+}

@@ -33,6 +33,7 @@ func (h *Handler) routeResidentDevices(mux *http.ServeMux) {
 	mux.HandleFunc("POST /api/v1/monitoring-profiles/update", h.updateMonitoringProfile)
 	mux.HandleFunc("POST /api/v1/monitoring-profiles/delete", h.deleteMonitoringProfile)
 
+	mux.HandleFunc("POST /api/v1/locations/alerts/summary", h.positionAlertSummary)
 	mux.HandleFunc("POST /api/v1/position/select", h.positionSelect)
 	mux.HandleFunc("POST /api/v1/position/selectFamily", h.positionSelectFamily)
 }

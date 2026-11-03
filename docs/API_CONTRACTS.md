@@ -1,6 +1,6 @@
 # 前后端接口合同与差异处理
 
-接口路径以 Go 路由为准，当前共 108 个路径。`scripts/generate-openapi.py --check` 校验路由、OpenAPI 和网页状态码字典；字段清单保存在 `backend/internal/apidoc/contracts.json`。
+接口路径以 Go 路由为准，当前共 109 个路径。`scripts/generate-openapi.py --check` 校验路由、OpenAPI 和网页状态码字典；字段清单保存在 `backend/internal/apidoc/contracts.json`。
 
 ## Preview 命名
 
@@ -9,6 +9,8 @@
 公告、评论和展示图片使用 `/api/v1/notices/`、`/api/v1/notice-comments/`、`/api/v1/gallery/`。
 这些入口仅注册新路径。健康列表使用 `vitalRecords`、`activityRecords`，活动记录的睡眠告警字段为
 `sleepAlertState`。
+
+运营总览通过 `POST /api/v1/locations/alerts/summary` 获取长者总数和最新有效告警数。该接口仅返回计数。
 
 ## 请求与响应
 

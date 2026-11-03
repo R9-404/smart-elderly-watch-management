@@ -44,7 +44,7 @@
       </span></template>
     </el-dialog>
 
-    <el-table class="invite-desktop-table" v-loading="listLoading" :data="inviteCodeList" style="width:100%">
+    <el-table v-if="!mobileLayout" class="invite-desktop-table" v-loading="listLoading" :data="inviteCodeList" style="width:100%">
       <template #empty><div  class="collection-empty"><strong>{{ listError ? '邀请记录暂时无法加载' : '当前状态下没有邀请记录' }}</strong><span>生成的邀请码会显示在这里，供您追踪使用情况。</span></div></template>
       <el-table-column prop="code" label="邀请码" min-width="160"><template #default="scope" ><strong class="invitation-table-code">{{ scope.row.code }}</strong></template></el-table-column>
       <el-table-column prop="oldPersonName" label="绑定长者" min-width="120"></el-table-column>
@@ -53,8 +53,8 @@
       <el-table-column label="状态" width="130"><template #default="scope" ><el-tag v-if="scope.row.status === 'unused'" type="success">可使用</el-tag><el-tag v-else-if="scope.row.status === 'used'" type="info">已使用</el-tag><el-tag v-else-if="scope.row.status === 'expired'" type="danger">已过期</el-tag><span v-else>状态未知</span><small v-if="scope.row.usedTime" class="device-table-secondary">{{ scope.row.usedTime }}</small></template></el-table-column>
       <el-table-column label="操作" width="190" fixed="right"><template #default="scope" ><div class="device-table-actions"><el-button plain type="primary" @click="copyCode(scope.row.code)">复制</el-button><el-button plain type="danger" :disabled="scope.row.status !== 'unused'" @click="deleteInviteCode(scope.row.id)">作废</el-button></div></template></el-table-column>
     </el-table>
-    <div v-if="inviteCodeList.length" class="invite-mobile-grid"><article v-for="item in inviteCodeList" :key="item.id" class="invite-record"><header><span class="collection-caption">家属注册邀请码</span><span class="connection-state" :class="item.status === 'unused' ? 'is-online' : ''">{{ item.status === 'unused' ? '可使用' : item.status === 'used' ? '已使用' : item.status === 'expired' ? '已过期' : '状态未知' }}</span></header><strong class="invite-code-value">{{ item.code }}</strong><dl><dt>绑定长者</dt><dd>{{ item.oldPersonName || '暂未提供' }}</dd><dt>生成人</dt><dd>{{ item.createUser || '暂未提供' }}</dd><dt>生成时间</dt><dd>{{ item.createTime || '暂无时间' }}</dd><dt>有效期</dt><dd>{{ item.expireTime === '' ? '长期有效' : item.expireTime || '暂未提供' }}</dd><dt v-if="item.usedTime">使用时间</dt><dd v-if="item.usedTime">{{ item.usedTime }}</dd></dl><div class="invite-record-actions"><el-button type="primary" plain @click="copyCode(item.code)">复制邀请码</el-button><el-button plain type="danger" :disabled="item.status !== 'unused'" @click="deleteInviteCode(item.id)">作废邀请</el-button></div></article></div>
-    <div v-else class="invite-mobile-empty collection-empty"><strong>{{ listLoading ? '正在加载邀请…' : listError ? '邀请记录暂时无法加载' : '当前状态下没有邀请记录' }}</strong><p>生成的邀请码会显示在这里，方便您查看使用情况。</p></div>
+    <div v-if="mobileLayout && inviteCodeList.length" class="invite-mobile-grid"><article v-for="item in inviteCodeList" :key="item.id" class="invite-record"><header><span class="collection-caption">家属注册邀请码</span><span class="connection-state" :class="item.status === 'unused' ? 'is-online' : ''">{{ item.status === 'unused' ? '可使用' : item.status === 'used' ? '已使用' : item.status === 'expired' ? '已过期' : '状态未知' }}</span></header><strong class="invite-code-value">{{ item.code }}</strong><dl><dt>绑定长者</dt><dd>{{ item.oldPersonName || '暂未提供' }}</dd><dt>生成人</dt><dd>{{ item.createUser || '暂未提供' }}</dd><dt>生成时间</dt><dd>{{ item.createTime || '暂无时间' }}</dd><dt>有效期</dt><dd>{{ item.expireTime === '' ? '长期有效' : item.expireTime || '暂未提供' }}</dd><dt v-if="item.usedTime">使用时间</dt><dd v-if="item.usedTime">{{ item.usedTime }}</dd></dl><div class="invite-record-actions"><el-button type="primary" plain @click="copyCode(item.code)">复制邀请码</el-button><el-button plain type="danger" :disabled="item.status !== 'unused'" @click="deleteInviteCode(item.id)">作废邀请</el-button></div></article></div>
+    <div v-else-if="mobileLayout" class="invite-mobile-empty collection-empty"><strong>{{ listLoading ? '正在加载邀请…' : listError ? '邀请记录暂时无法加载' : '当前状态下没有邀请记录' }}</strong><p>生成的邀请码会显示在这里，方便您查看使用情况。</p></div>
     
     <div v-if="total > pageSize" class="collection-pagination">
       <el-pagination
@@ -71,12 +71,14 @@
 </template>
 
 <script>
+import { useCollectionLayout } from '../composables/useCollectionLayout'
 import { copyText } from '../utils/clipboard'
 import { apiErrorMessage } from '../api/httpContract'
 
 import { invitations } from '../api/invitations'
 
 export default {
+  setup () { return { mobileLayout: useCollectionLayout() } },
   data () {
     return {
       state: 'all',

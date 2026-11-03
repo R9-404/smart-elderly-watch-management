@@ -118,34 +118,34 @@ run(async ({ page, context, base, report, setRole, setSignedIn }) => {
     }
   }
 
-  let failCounts = false, failSecondPage = false
-  const positionPages = []
+  let failCounts = false, failSummary = false
+  let summaryRequests = 0
   await context.route('**/api/v1/vitals/alerts/devices', route => route.fulfill({ json: failCounts ? { returnCode: '1111', rates: null, pres: [] } : { returnCode: '1111', rates: ['1', '2'], pres: ['1'] } }))
   await context.route('**/api/v1/activity/alerts/devices', route => route.fulfill({ json: {returnCode:'1111', deviceIdList: ['1'] } }))
-  await context.route('**/api/v1/position/select', route => {
-    const { page: number = 1, pageSize = 20 } = route.request().postDataJSON()
-    positionPages.push(number)
-    if (failSecondPage && number === 2) return route.fulfill({ status: 503, json: {returnCode:'0000',code:'SERVICE_UNAVAILABLE',message:'请求未完成',} })
-    const start = (number - 1) * pageSize
-    return route.fulfill({ json: {returnCode:'1111', total: 101, positionDtos: Array.from({ length: Math.min(pageSize, 101 - start) }, (_, i) => ({ oldId: start + i + 1, status: [1, 101].includes(start + i + 1) ? '1' : '0' })) } })
+  await context.route('**/api/v1/locations/alerts/summary', route => {
+    summaryRequests++
+    return failSummary
+      ? route.fulfill({ status: 503, json: {returnCode:'0000',code:'SERVICE_UNAVAILABLE',message:'请求未完成'} })
+      : route.fulfill({ json: {returnCode:'1111', totalResidents:101, activeAlerts:2} })
   })
   for (const width of [390, 1440, 1920, 2560]) {
+    const requestsBefore = summaryRequests
     await page.setViewportSize({ width, height: 1080 })
     await page.goto(base + '/?large=0&ui=' + Date.now() + '#/operations/overview')
     await page.locator('.overview-grid').waitFor()
     await page.waitForFunction(() => !document.querySelector('.overview-card .el-loading-mask'))
     check('overview ' + width + ' compares real categories', (await page.locator('.alert-card').textContent()).includes('心率 2 · 血压 1 · 睡眠 1') && (await page.locator('.alert-card strong').first().textContent()) === '4')
-    check('overview ' + width + ' counts all pages', (await page.locator('.fall-card strong').first().textContent()) === '2' && (await page.locator('.fall-card').textContent()).includes('101 位长者') && positionPages.includes(2))
+    check('overview ' + width + ' loads the summary once', (await page.locator('.fall-card strong').first().textContent()) === '2' && (await page.locator('.fall-card').textContent()).includes('101 位长者') && summaryRequests === requestsBefore + 1)
     check('overview ' + width + ' has no horizontal overflow', await page.locator('.workspace-main').evaluate(el => el.scrollWidth <= el.clientWidth + 1))
     const sideBySide = await page.locator('.announcement-panel').evaluate(el => el.getBoundingClientRect().left > document.querySelector('.overview-grid').getBoundingClientRect().right)
     check('overview ' + width + ' uses the intended grid', sideBySide === (width >= 1800))
     if (width === 1920) await page.screenshot({ path: path.join(__dirname, 'artifacts/screenshots/overview-ui-1920.png') })
   }
-  failCounts = true; failSecondPage = true
+  failCounts = true; failSummary = true
   await visit('/operations/overview')
   await page.waitForFunction(() => !document.querySelector('.overview-card .el-loading-mask'))
   check('partial and malformed statistics show errors, not totals', await page.locator('.overview-card .metric-error').count() === 2 && !(await page.locator('.fall-card').textContent()).includes('101 位长者'))
-  failCounts = false; failSecondPage = false
+  failCounts = false; failSummary = false
   await page.getByRole('button', { name: '重新加载设备统计' }).click()
   const alarmCopy = await page.locator('.fall-card').innerText()
   check('Shared alarm flag is labelled as an emergency, not a confirmed fall', alarmCopy.includes('紧急告警') && !alarmCopy.includes('摔倒'))

@@ -76,13 +76,8 @@ func TestSocialTextTableIsRepositoryOwned(t *testing.T) {
 }
 
 func TestBusinessRepositoriesOwnEngineSpecificSQL(t *testing.T) {
-	mysqlPosition := positionLatestTimeExpr(true)
-	postgresPosition := positionLatestTimeExpr(false)
-	if mysqlPosition != "l.be_time" {
-		t.Fatalf("MySQL position time must belong to the coordinates: %s", mysqlPosition)
-	}
-	if postgresPosition != "l.be_time" {
-		t.Fatalf("unexpected PostgreSQL position expression: %s", postgresPosition)
+	if got := positionLatestSQL(); !strings.Contains(got, "l.lng, l.lat, l.be_time AS be_time") {
+		t.Fatalf("position time must belong to the coordinates: %s", got)
 	}
 
 	mysqlWatch := watchProfileInsertSQL(true)

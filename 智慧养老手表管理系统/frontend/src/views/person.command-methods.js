@@ -42,7 +42,6 @@ export const residentCommandMethods = {
       this.$refs.addoldFormRef.resetFields()
     },
     editOldPerson () {
-      this.addCustomerList()
       var _this = this
       this.$refs.editoldFormRef.validate(function (valid) {
         if (!valid) return

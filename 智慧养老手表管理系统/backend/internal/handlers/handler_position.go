@@ -11,15 +11,8 @@ import (
 	"time"
 )
 
-// ---------------------------------------------------------------------------
-// ---------------------------------------------------------------------------
-
-func positionLatestTimeExpr(mysql bool) string {
-	return "l.be_time"
-}
-
-func positionLatestSQL(mysql bool) string {
-	return `SELECT o.name, o.old_id, o.sex, l.lng, l.lat, ` + positionLatestTimeExpr(mysql) + ` AS be_time,
+func positionLatestSQL() string {
+	return `SELECT o.name, o.old_id, o.sex, l.lng, l.lat, l.be_time AS be_time,
 	COALESCE(a.status, '0') AS status, a.be_time AS alarm_time, a.lng AS alarm_lng, a.lat AS alarm_lat,
 	l.position_metadata AS location_metadata, a.position_metadata AS alarm_metadata, COALESCE(a.kind,'unknown') AS alarm_kind
 	FROM oldperson o
@@ -83,13 +76,13 @@ func (h *Handler) positionSelect(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	ctx := r.Context()
-	base := positionLatestSQL(h.DB.IsMySQL()) + ` WHERE ($1='' OR o.name LIKE '%'||$1||'%') ORDER BY be_time DESC, o.old_id`
+	const filter = ` WHERE ($1='' OR o.name LIKE '%'||$1||'%')`
 	var total int64
-	if err := h.DB.QueryRow(ctx, `SELECT COUNT(*) FROM (`+base+`) AS t`, name).Scan(&total); err != nil {
+	if err := h.DB.QueryRow(ctx, `SELECT COUNT(*) FROM oldperson o`+filter, name).Scan(&total); err != nil {
 		response.Error500(w, ref())
 		return
 	}
-	rows, err := h.DB.Query(ctx, base+` LIMIT $2 OFFSET $3`, name, ps, (p-1)*ps)
+	rows, err := h.DB.Query(ctx, positionLatestSQL()+filter+` ORDER BY be_time DESC, o.old_id LIMIT $2 OFFSET $3`, name, ps, (p-1)*ps)
 	if err != nil {
 		response.Error500(w, ref())
 		return
@@ -111,6 +104,22 @@ func (h *Handler) positionSelect(w http.ResponseWriter, r *http.Request) {
 	response.OK(w, map[string]any{
 		"positionDtos": list, "total": total, "page": p, "pageSize": ps,
 	})
+}
+
+// positionAlertSummary counts each resident once and inspects only their
+// latest alarm. The existing (old_id, be_time, id) index supports the lookup.
+func (h *Handler) positionAlertSummary(w http.ResponseWriter, r *http.Request) {
+	var total, active int64
+	err := h.DB.QueryRow(r.Context(), `SELECT COUNT(*),
+		COUNT((SELECT CASE WHEN a.status='1' AND CHAR_LENGTH(a.status)=1 THEN 1 END
+			FROM alarm_precess a WHERE a.old_id=o.old_id
+			ORDER BY a.be_time DESC, a.id DESC LIMIT 1))
+		FROM oldperson o`).Scan(&total, &active)
+	if err != nil {
+		response.Error500(w, ref())
+		return
+	}
+	response.OK(w, map[string]any{"totalResidents": total, "activeAlerts": active})
 }
 
 // POST /api/v1/position/selectFamily —— 家属查自己老人的最新位置（ADMIN 或 FAMILY）。
@@ -161,7 +170,7 @@ func (h *Handler) positionSelectFamily(w http.ResponseWriter, r *http.Request) {
 	}
 	rows, err := h.DB.Query(ctx,
 		`SELECT o.name, o.old_id, o.sex, l.lng, l.lat,
-			`+positionLatestTimeExpr(h.DB.IsMySQL())+` AS be_time,
+			l.be_time AS be_time,
 			COALESCE(a.status, '0') AS status, a.be_time AS alarm_time, a.lng AS alarm_lng, a.lat AS alarm_lat,
 			l.position_metadata AS location_metadata, a.position_metadata AS alarm_metadata, COALESCE(a.kind,'unknown') AS alarm_kind
 		 FROM oldperson o

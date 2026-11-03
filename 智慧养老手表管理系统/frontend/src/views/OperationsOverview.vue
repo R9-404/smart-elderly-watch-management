@@ -148,19 +148,14 @@ export default {
       this.num = null
       this.positionTotal = null
       try {
-        var page = 1, loaded = 0, total = 0, falls = 0
-        do {
-          var response = await axios.post('api/v1/position/select', { name: '', page, pageSize: 100 }, { withCredentials: true })
-          var positions = response.data.positionDtos
-          if (!Array.isArray(positions)) throw new Error('missing positions')
-          total = response.data.total ?? positions.length
-          if (!Number.isInteger(total) || total < 0 || (!positions.length && loaded < total)) throw new Error('incomplete positions')
-          falls += positions.filter(item => item.status === 1 || item.status === '1').length
-          loaded += positions.length
-          page += 1
-        } while (loaded < total)
-        this.num = falls
-        this.positionTotal = total
+        const { data } = await axios.post('api/v1/locations/alerts/summary', {}, { withCredentials: true })
+        const { totalResidents, activeAlerts } = data
+        if (!Number.isSafeInteger(totalResidents) || totalResidents < 0 ||
+            !Number.isSafeInteger(activeAlerts) || activeAlerts < 0 || activeAlerts > totalResidents) {
+          throw new Error('invalid alert summary')
+        }
+        this.num = activeAlerts
+        this.positionTotal = totalResidents
       } catch (error) {
         this.positionError = apiErrorMessage(error, '告警统计暂时无法加载')
       } finally {
