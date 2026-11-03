@@ -52,7 +52,7 @@ jobs:
       - name: Enforce native Go API boundary
         run: python3 scripts/check-api-boundary.py
 
-      - name: Prepare locked modules before running tests
+      - name: Prepare locked modules with bounded network retries
         shell: bash
         run: |
           mkdir -p evidence/ci/backend-${{ matrix.go-version }}
