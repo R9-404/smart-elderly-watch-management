@@ -85,21 +85,14 @@ func Aggregate(samples []Sample, from, to time.Time) (Statistics, error) {
 	daily := map[calendarDay]*Sample{}
 	var dailyObserved map[time.Time]float64
 	filtered := []*Sample{}
-	var first *Sample
+	first := &samples[0]
 	for i := range samples {
 		s := &samples[i]
 		if s.Deleted || s.Value == nil {
 			continue
 		}
-		if s.TimeBasis == "legacy-unzoned" {
-			return out, fmt.Errorf("legacy time zone is unknown; use the legacy daily views until reviewed")
-		}
-		if first != nil {
-			if first.Metric != s.Metric || first.Source != s.Source || first.SourceDevice != s.SourceDevice || first.Semantics != s.Semantics {
-				return out, fmt.Errorf("mixed sampling sources or semantics")
-			}
-		} else {
-			first = s
+		if err := validateSeriesSample(first, s); err != nil {
+			return out, err
 		}
 		if s.Semantics == "daily_total" {
 			if dailyObserved == nil {
@@ -119,9 +112,6 @@ func Aggregate(samples []Sample, from, to time.Time) (Statistics, error) {
 		if s.Semantics != "daily_total" {
 			filtered = append(filtered, s)
 		}
-	}
-	if first == nil {
-		return out, nil
 	}
 	out.Unit = first.Unit
 	if first.Semantics == "daily_total" {
@@ -199,6 +189,16 @@ func aggregateTotals(filtered []*Sample, first *Sample, out Statistics) (Statist
 	return out, nil
 }
 
+func validateSeriesSample(first, sample *Sample) error {
+	if sample.TimeBasis == "legacy-unzoned" {
+		return fmt.Errorf("legacy time zone is unknown; use the legacy daily views until reviewed")
+	}
+	if first.Metric != sample.Metric || first.Source != sample.Source || first.SourceDevice != sample.SourceDevice || first.Semantics != sample.Semantics {
+		return fmt.Errorf("mixed sampling sources or semantics")
+	}
+	return nil
+}
+
 func aggregateScalars(samples []Sample, first *Sample) (Statistics, error) {
 	count := 0
 	total, low, high := 0.0, *first.Value, *first.Value
@@ -207,11 +207,8 @@ func aggregateScalars(samples []Sample, first *Sample) (Statistics, error) {
 		if s.Deleted || s.Value == nil {
 			continue
 		}
-		if s.TimeBasis == "legacy-unzoned" {
-			return Statistics{}, fmt.Errorf("legacy time zone is unknown; use the legacy daily views until reviewed")
-		}
-		if first.Metric != s.Metric || first.Source != s.Source || first.SourceDevice != s.SourceDevice || first.Semantics != s.Semantics {
-			return Statistics{}, fmt.Errorf("mixed sampling sources or semantics")
+		if err := validateSeriesSample(first, s); err != nil {
+			return Statistics{}, err
 		}
 		v := *s.Value
 		total += v

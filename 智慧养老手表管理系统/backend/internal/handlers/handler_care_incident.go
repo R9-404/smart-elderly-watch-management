@@ -25,16 +25,16 @@ func (h *Handler) routeCare(mux *http.ServeMux) {
 	mux.HandleFunc("POST /api/v1/care/accessAudit", h.careAccessAudit)
 }
 
-func careAdmin(w http.ResponseWriter, r *http.Request) (string, bool) {
+func careAdmin(w http.ResponseWriter, r *http.Request) (int64, bool) {
 	p, ok := principalOr401(w, r)
 	if !ok {
-		return "", false
+		return 0, false
 	}
 	if p.Role != auth.RoleAdmin {
 		response.JSON(w, http.StatusForbidden, map[string]any{"message": "无照护管理权限"})
-		return "", false
+		return 0, false
 	}
-	return strconv.FormatInt(p.ID, 10), true
+	return p.ID, true
 }
 
 func careNotificationStatusExpr(mysql bool) string {
@@ -109,7 +109,7 @@ func (h *Handler) careIncidents(w http.ResponseWriter, r *http.Request) {
 	if !ok {
 		return
 	}
-	response.OK(w, map[string]any{"items": items, "total": total, "page": page, "pageSize": ps, "duty": duty, "actorId": auth.Principal(r).ID})
+	response.OK(w, map[string]any{"items": items, "total": total, "page": page, "pageSize": ps, "duty": duty, "actorId": actor})
 }
 
 // Transitions are serialized with SELECT ... FOR UPDATE. A transition records its
@@ -152,7 +152,7 @@ func (h *Handler) careTransition(w http.ResponseWriter, r *http.Request) {
 		response.Error500(w, ref())
 		return
 	}
-	if action == "verify" && resolver != nil && *resolver == actor {
+	if action == "verify" && resolver != nil && *resolver == strconv.FormatInt(actor, 10) {
 		response.JSON(w, http.StatusForbidden, map[string]any{"message": "处置人与复核人必须不同"})
 		return
 	}
@@ -181,12 +181,12 @@ func (h *Handler) careTransition(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 		if _, err := tx.Exec(ctx, `INSERT INTO alert_review(entity,record_id,kind,verdict,reason,actor_id)
- SELECT 'care',id,kind,$2,$3,$4 FROM care_incident WHERE id=$1`, id, verdict, note, auth.Principal(r).ID); err != nil {
+ SELECT 'care',id,kind,$2,$3,$4 FROM care_incident WHERE id=$1`, id, verdict, note, actor); err != nil {
 			response.Error500(w, ref())
 			return
 		}
 	}
-	if internalError(w, persistCareTransition(ctx, tx, id, next, action, actor, note)) {
+	if internalError(w, persistCareTransition(ctx, tx, id, next, action, strconv.FormatInt(actor, 10), note)) {
 		return
 	}
 	if internalError(w, tx.Commit(ctx)) {
@@ -282,10 +282,8 @@ func persistCareTransition(ctx context.Context, tx *db.Transaction, id int64, ne
 			return err
 		}
 	}
-	if _, err := tx.Exec(ctx,
+	_, err := tx.Exec(ctx,
 		"INSERT INTO care_incident_event(incident_id,actor,action,note) VALUES($1,$2,$3,$4)",
-		id, actor, action, note); err != nil {
-		return err
-	}
-	return nil
+		id, actor, action, note)
+	return err
 }

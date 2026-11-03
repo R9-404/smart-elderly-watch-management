@@ -23,11 +23,7 @@ func (h *Handler) careSupervisor(w http.ResponseWriter, r *http.Request) (int64,
 		response.JSON(w, http.StatusForbidden, map[string]any{"message": "需要照护主管权限"})
 		return 0, false
 	}
-	id, err := strconv.ParseInt(actor, 10, 64)
-	if internalError(w, err) {
-		return 0, false
-	}
-	return id, true
+	return actor, true
 }
 
 func (h *Handler) careStaff(w http.ResponseWriter, r *http.Request) {

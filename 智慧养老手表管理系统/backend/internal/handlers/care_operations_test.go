@@ -15,24 +15,25 @@ func TestCareDutyPermissionsAndSensitiveAudit(t *testing.T) {
 	h := testHandler(t, pool)
 	req := httptest.NewRequest("POST", "/api/v1/care/transition", nil)
 	for _, tc := range []struct {
-		actor, action string
-		want          bool
+		actor  int64
+		action string
+		want   bool
 	}{
-		{"1", "verify", true},
-		{"2", "acknowledge", true},
-		{"2", "resolve", true},
-		{"2", "verify", false},
-		{"3", "acknowledge", false},
-		{"3", "verify", false},
+		{1, "verify", true},
+		{2, "acknowledge", true},
+		{2, "resolve", true},
+		{2, "verify", false},
+		{3, "acknowledge", false},
+		{3, "verify", false},
 	} {
 		w := httptest.NewRecorder()
 		got := h.authorizeCareAction(w, req, tc.actor, tc.action)
 		if got != tc.want {
-			t.Errorf("duty actor=%s action=%s got=%v want=%v", tc.actor, tc.action, got, tc.want)
+			t.Errorf("duty actor=%d action=%s got=%v want=%v", tc.actor, tc.action, got, tc.want)
 		}
 	}
 	w := httptest.NewRecorder()
-	if !h.auditCareAccess(w, req, "2", "incident_list", nil) {
+	if !h.auditCareAccess(w, req, 2, "incident_list", nil) {
 		t.Fatalf("audit failed: %s", w.Body.String())
 	}
 	var count int64

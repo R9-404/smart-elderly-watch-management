@@ -5,7 +5,6 @@ import (
 
 	"net/http"
 	"os"
-	"strconv"
 	"suining-care/internal/care"
 	"suining-care/internal/db"
 	"time"
@@ -17,13 +16,9 @@ import (
 // A missing assignment preserves legacy administrator privileges until a
 // supervisor explicitly delegates a narrower duty. FAMILY is always rejected
 // by careAdmin before reaching these functions.
-func (h *Handler) careDuty(w http.ResponseWriter, r *http.Request, actor string) (string, bool) {
-	id, err := strconv.ParseInt(actor, 10, 64)
-	if internalError(w, err) {
-		return "", false
-	}
+func (h *Handler) careDuty(w http.ResponseWriter, r *http.Request, actor int64) (string, bool) {
 	var duty string
-	err = h.DB.QueryRow(r.Context(), "SELECT duty FROM care_staff_permission WHERE admin_id=$1", id).Scan(&duty)
+	err := h.DB.QueryRow(r.Context(), "SELECT duty FROM care_staff_permission WHERE admin_id=$1", actor).Scan(&duty)
 	if err == pgx.ErrNoRows {
 		return "supervisor", true
 	}
@@ -33,7 +28,7 @@ func (h *Handler) careDuty(w http.ResponseWriter, r *http.Request, actor string)
 	return duty, true
 }
 
-func (h *Handler) authorizeCareAction(w http.ResponseWriter, r *http.Request, actor, action string) bool {
+func (h *Handler) authorizeCareAction(w http.ResponseWriter, r *http.Request, actor int64, action string) bool {
 	duty, ok := h.careDuty(w, r, actor)
 	if !ok {
 		return false
@@ -48,16 +43,9 @@ func (h *Handler) authorizeCareAction(w http.ResponseWriter, r *http.Request, ac
 
 // Log sensitive reads before returning personal or care history data. If the
 // audit cannot be written, deny disclosure instead of silently skipping it.
-func (h *Handler) auditCareAccess(w http.ResponseWriter, r *http.Request, actor, action string, incidentID *int64) bool {
-	id, err := strconv.ParseInt(actor, 10, 64)
-	if internalError(w, err) {
-		return false
-	}
-	_, err = h.DB.Exec(r.Context(), "INSERT INTO care_access_audit(admin_id,action,incident_id) VALUES($1,$2,$3)", id, action, incidentID)
-	if internalError(w, err) {
-		return false
-	}
-	return true
+func (h *Handler) auditCareAccess(w http.ResponseWriter, r *http.Request, actor int64, action string, incidentID *int64) bool {
+	_, err := h.DB.Exec(r.Context(), "INSERT INTO care_access_audit(admin_id,action,incident_id) VALUES($1,$2,$3)", actor, action, incidentID)
+	return !internalError(w, err)
 }
 
 // commitCareChange records the audit in the same transaction as the mutation.
