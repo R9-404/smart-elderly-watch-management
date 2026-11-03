@@ -30,8 +30,7 @@ func (h *Handler) familyAdd(w http.ResponseWriter, r *http.Request) {
 	}
 	ctx := r.Context()
 	tx, err := h.DB.Begin(ctx)
-	if err != nil {
-		response.Error500(w, ref())
+	if internalError(w, err) {
 		return
 	}
 	// 手机号是家属账号与多处查询的定位键，拒绝重复创建，避免后续按手机号
@@ -88,8 +87,7 @@ func (h *Handler) familyAdd(w http.ResponseWriter, r *http.Request) {
 		response.Error500(w, ref())
 		return
 	}
-	if err := tx.Commit(ctx); err != nil {
-		response.Error500(w, ref())
+	if internalError(w, tx.Commit(ctx)) {
 		return
 	}
 	response.OK(w, nil)
@@ -135,8 +133,7 @@ func (h *Handler) familyUpdate(w http.ResponseWriter, r *http.Request) {
 		`UPDATE family SET family_name=$1,family_relation=$2,family_sex=$3,
 		 family_phone=$4,family_address=$5 WHERE family_id=$6`,
 		name, relation, sex, phone, addr, id)
-	if err != nil {
-		response.Error500(w, ref())
+	if internalError(w, err) {
 		return
 	}
 	if ct.RowsAffected() == 1 {
@@ -159,8 +156,7 @@ func (h *Handler) familyDelete(w http.ResponseWriter, r *http.Request) {
 	}
 	ctx := r.Context()
 	tx, err := h.DB.Begin(ctx)
-	if err != nil {
-		response.Error500(w, ref())
+	if internalError(w, err) {
 		return
 	}
 	if _, err := tx.Exec(ctx, `UPDATE oldperson SET family_id=NULL WHERE family_id=$1`, id); err != nil {
@@ -179,8 +175,7 @@ func (h *Handler) familyDelete(w http.ResponseWriter, r *http.Request) {
 		recordNotFound(w)
 		return
 	}
-	if err := tx.Commit(ctx); err != nil {
-		response.Error500(w, ref())
+	if internalError(w, tx.Commit(ctx)) {
 		return
 	}
 	response.OK(w, nil)

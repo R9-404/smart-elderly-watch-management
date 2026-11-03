@@ -78,8 +78,7 @@ func (h *Handler) careIncidents(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	var total int64
-	if err := h.DB.QueryRow(r.Context(), `SELECT count(*) FROM care_incident WHERE (state='verified')=$1`, state == "verified").Scan(&total); err != nil {
-		response.Error500(w, ref())
+	if internalError(w, h.DB.QueryRow(r.Context(), `SELECT count(*) FROM care_incident WHERE (state='verified')=$1`, state == "verified").Scan(&total)) {
 		return
 	}
 	rows, err := h.DB.Query(r.Context(),
@@ -90,8 +89,7 @@ func (h *Handler) careIncidents(w http.ResponseWriter, r *http.Request) {
      FROM care_incident i LEFT JOIN oldperson o ON o.old_id=i.old_id
      WHERE (i.state='verified')=$1 ORDER BY i.due_at ASC, i.id DESC
      LIMIT $2 OFFSET $3`, state == "verified", ps, (page-1)*ps)
-	if err != nil {
-		response.Error500(w, ref())
+	if internalError(w, err) {
 		return
 	}
 	defer rows.Close()
@@ -116,8 +114,7 @@ func (h *Handler) careIncidents(w http.ResponseWriter, r *http.Request) {
 			"resolvedBy": resolved, "resolvedAt": resAt, "verifiedBy": verified, "verifiedAt": verAt,
 		})
 	}
-	if err := rows.Err(); err != nil {
-		response.Error500(w, ref())
+	if internalError(w, rows.Err()) {
 		return
 	}
 	response.OK(w, map[string]any{"items": items, "total": total, "page": page, "pageSize": ps, "duty": duty, "actorId": auth.Principal(r).ID})
@@ -151,8 +148,7 @@ func (h *Handler) careTransition(w http.ResponseWriter, r *http.Request) {
 	}
 	ctx := r.Context()
 	tx, err := h.DB.Begin(ctx)
-	if err != nil {
-		response.Error500(w, ref())
+	if internalError(w, err) {
 		return
 	}
 	defer tx.Rollback(ctx)
@@ -180,8 +176,7 @@ func (h *Handler) careTransition(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	note, err = h.sealNote(note)
-	if err != nil {
-		response.Error500(w, ref())
+	if internalError(w, err) {
 		return
 	}
 	verdict := str(m, "verdict")
@@ -201,12 +196,10 @@ func (h *Handler) careTransition(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 	}
-	if err := persistCareTransition(ctx, tx, id, next, action, actor, note); err != nil {
-		response.Error500(w, ref())
+	if internalError(w, persistCareTransition(ctx, tx, id, next, action, actor, note)) {
 		return
 	}
-	if err := tx.Commit(ctx); err != nil {
-		response.Error500(w, ref())
+	if internalError(w, tx.Commit(ctx)) {
 		return
 	}
 	response.OK(w, map[string]any{"id": id, "state": next})
@@ -235,15 +228,13 @@ func (h *Handler) careEvents(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	var total int64
-	if err := h.DB.QueryRow(r.Context(), `SELECT count(*) FROM care_incident_event WHERE incident_id=$1`, id).Scan(&total); err != nil {
-		response.Error500(w, ref())
+	if internalError(w, h.DB.QueryRow(r.Context(), `SELECT count(*) FROM care_incident_event WHERE incident_id=$1`, id).Scan(&total)) {
 		return
 	}
 	rows, err := h.DB.Query(r.Context(),
 		`SELECT actor,action,note,created_at FROM care_incident_event
       WHERE incident_id=$1 ORDER BY id ASC LIMIT $2 OFFSET $3`, id, ps, (page-1)*ps)
-	if err != nil {
-		response.Error500(w, ref())
+	if internalError(w, err) {
 		return
 	}
 	defer rows.Close()
@@ -252,22 +243,19 @@ func (h *Handler) careEvents(w http.ResponseWriter, r *http.Request) {
 		var actor, action string
 		var note *string
 		var created time.Time
-		if err := rows.Scan(&actor, &action, &note, &created); err != nil {
-			response.Error500(w, ref())
+		if internalError(w, rows.Scan(&actor, &action, &note, &created)) {
 			return
 		}
 		if note != nil {
 			plain, err := h.openNote(*note)
-			if err != nil {
-				response.Error500(w, ref())
+			if internalError(w, err) {
 				return
 			}
 			note = &plain
 		}
 		events = append(events, map[string]any{"actor": actor, "action": action, "note": note, "createdAt": created})
 	}
-	if err := rows.Err(); err != nil {
-		response.Error500(w, ref())
+	if internalError(w, rows.Err()) {
 		return
 	}
 	response.OK(w, map[string]any{"events": events, "total": total, "page": page, "pageSize": ps})

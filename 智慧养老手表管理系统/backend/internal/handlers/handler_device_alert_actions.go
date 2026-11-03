@@ -21,8 +21,7 @@ func (h *Handler) deviceAlertCounts(w http.ResponseWriter, r *http.Request) {
 			(SELECT COUNT(1) FROM ratepre r WHERE r.device_id = d.device_id AND r.pre_state='1'
 				AND (r.pre_handled_at IS NULL OR r.create_time > r.pre_handled_at)) AS pre_count
 		 `+personFrom+` WHERE d.status = 1 ORDER BY d.device_id`)
-	if err != nil {
-		response.Error500(w, ref())
+	if internalError(w, err) {
 		return
 	}
 	defer rows.Close()
@@ -32,8 +31,7 @@ func (h *Handler) deviceAlertCounts(w http.ResponseWriter, r *http.Request) {
 	for rows.Next() {
 		var rateCount, preCount int64
 		pr, err := scanPersonRow(rows, &rateCount, &preCount)
-		if err != nil {
-			response.Error500(w, ref())
+		if internalError(w, err) {
 			return
 		}
 		personCount := int64(0)
@@ -48,8 +46,7 @@ func (h *Handler) deviceAlertCounts(w http.ResponseWriter, r *http.Request) {
 		rateTotal += rateCount
 		preTotal += preCount
 	}
-	if err := rows.Err(); err != nil {
-		response.Error500(w, ref())
+	if internalError(w, rows.Err()) {
 		return
 	}
 	response.OK(w, map[string]any{
@@ -78,8 +75,7 @@ func (h *Handler) deviceAlertDetail(w http.ResponseWriter, r *http.Request) {
 	}
 	ctx := r.Context()
 	d, err := h.findDeviceByID(ctx, h.DB, deviceID)
-	if err != nil {
-		response.Error500(w, ref())
+	if internalError(w, err) {
 		return
 	}
 	if d == nil {
@@ -105,15 +101,13 @@ func (h *Handler) deviceAlertDetail(w http.ResponseWriter, r *http.Request) {
 	if kind == "person" {
 		pr, err := scanPersonRow(h.DB.QueryRow(ctx,
 			`SELECT `+personCols+` `+personFrom+` WHERE d.device_id=$1`, deviceID))
-		if err != nil {
-			response.Error500(w, ref())
+		if internalError(w, err) {
 			return
 		}
 		alert = describePersonAlert(pr, time.Now())
 	} else {
 		alert, err = h.findRatepreAlert(ctx, h.DB, deviceID, kind, nil)
-		if err != nil {
-			response.Error500(w, ref())
+		if internalError(w, err) {
 			return
 		}
 	}
@@ -149,8 +143,7 @@ func (h *Handler) deviceResolveAlert(w http.ResponseWriter, r *http.Request) {
 	deviceID, kind, recordID := req.deviceID, req.kind, req.recordID
 	ctx := r.Context()
 	tx, err := h.DB.Begin(ctx)
-	if err != nil {
-		response.Error500(w, ref())
+	if internalError(w, err) {
 		return
 	}
 	rollback := func() { _ = tx.Rollback(ctx) }
@@ -205,8 +198,7 @@ func (h *Handler) deviceResolveAlert(w http.ResponseWriter, r *http.Request) {
 		}
 		return
 	}
-	if err := tx.Commit(ctx); err != nil {
-		response.Error500(w, ref())
+	if internalError(w, tx.Commit(ctx)) {
 		return
 	}
 	response.OK(w, map[string]any{

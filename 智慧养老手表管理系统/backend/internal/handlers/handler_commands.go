@@ -29,8 +29,7 @@ func (h *Handler) commandCreate(w http.ResponseWriter, r *http.Request) {
 	}
 	ctx := r.Context()
 	tx, err := h.DB.Begin(ctx)
-	if err != nil {
-		response.Error500(w, ref())
+	if internalError(w, err) {
 		return
 	}
 	defer tx.Rollback(ctx)
@@ -39,8 +38,7 @@ func (h *Handler) commandCreate(w http.ResponseWriter, r *http.Request) {
 		response.JSON(w, 404, map[string]any{"message": "设备不存在"})
 		return
 	}
-	if err != nil {
-		response.Error500(w, ref())
+	if internalError(w, err) {
 		return
 	}
 	if d.OldID == nil || (d.Status != nil && *d.Status == 0) {
@@ -69,8 +67,7 @@ func (h *Handler) commandCreate(w http.ResponseWriter, r *http.Request) {
 		conflict409(w, "设备尚未启用岁宁指令协议")
 		return
 	}
-	if err != nil {
-		response.Error500(w, ref())
+	if internalError(w, err) {
 		return
 	}
 	channel, wire, err := commands.Resolve(typ, req.Action)
@@ -88,8 +85,7 @@ func (h *Handler) commandCreate(w http.ResponseWriter, r *http.Request) {
 	if err == nil {
 		err = tx.Commit(ctx)
 	}
-	if err != nil {
-		response.Error500(w, ref())
+	if internalError(w, err) {
 		return
 	}
 	response.OK(w, map[string]any{"commandId": id, "status": "pending"})
@@ -111,8 +107,7 @@ func (h *Handler) commandList(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	rows, err := h.DB.Query(r.Context(), `SELECT id,action,status,attempts,created_at,expires_at,acked_at FROM device_command WHERE device_id=$1 AND id>$2 ORDER BY id LIMIT 100`, req.DeviceID, req.After)
-	if err != nil {
-		response.Error500(w, ref())
+	if internalError(w, err) {
 		return
 	}
 	defer rows.Close()

@@ -74,13 +74,11 @@ func (h *Handler) listMonitoringProfiles(w http.ResponseWriter, r *http.Request)
 		LEFT JOIN oldperson o ON o.old_id=d.old_id
 		WHERE ($1='' OR o.name LIKE '%'||$1||'%') ORDER BY w.device_id`
 	var total int64
-	if err := h.DB.QueryRow(ctx, `SELECT COUNT(*) FROM (`+base+`) AS t`, oldName).Scan(&total); err != nil {
-		response.Error500(w, ref())
+	if internalError(w, h.DB.QueryRow(ctx, `SELECT COUNT(*) FROM (`+base+`) AS t`, oldName).Scan(&total)) {
 		return
 	}
 	rows, err := h.DB.Query(ctx, base+` LIMIT $2 OFFSET $3`, oldName, ps, (p-1)*ps)
-	if err != nil {
-		response.Error500(w, ref())
+	if internalError(w, err) {
 		return
 	}
 	defer rows.Close()
@@ -90,8 +88,7 @@ func (h *Handler) listMonitoringProfiles(w http.ResponseWriter, r *http.Request)
 		var opTime *time.Time
 		var hrf, bpf, hrl, bpl *int
 		var name *string
-		if err := rows.Scan(&deviceID, &opTime, &hrf, &bpf, &hrl, &bpl, &name); err != nil {
-			response.Error500(w, ref())
+		if internalError(w, rows.Scan(&deviceID, &opTime, &hrf, &bpf, &hrl, &bpl, &name)) {
 			return
 		}
 		list = append(list, map[string]any{
@@ -100,8 +97,7 @@ func (h *Handler) listMonitoringProfiles(w http.ResponseWriter, r *http.Request)
 			"hrf": hrf, "bpf": bpf, "hrl": hrl, "bpl": bpl, "name": name,
 		})
 	}
-	if err := rows.Err(); err != nil {
-		response.Error500(w, ref())
+	if internalError(w, rows.Err()) {
 		return
 	}
 	response.OK(w, map[string]any{
@@ -121,8 +117,7 @@ func (h *Handler) createMonitoringProfile(w http.ResponseWriter, r *http.Request
 	}
 	ctx := r.Context()
 	var exists bool
-	if err := h.DB.QueryRow(ctx, `SELECT EXISTS(SELECT 1 FROM watch_info WHERE device_id=$1)`, deviceID).Scan(&exists); err != nil {
-		response.Error500(w, ref())
+	if internalError(w, h.DB.QueryRow(ctx, `SELECT EXISTS(SELECT 1 FROM watch_info WHERE device_id=$1)`, deviceID).Scan(&exists)) {
 		return
 	}
 	if exists {
@@ -135,8 +130,7 @@ func (h *Handler) createMonitoringProfile(w http.ResponseWriter, r *http.Request
 		 SELECT $1,$2,$3,$4,$5,$6 FROM device WHERE device_id=$1`,
 		deviceID, time.Date(now.Year(), now.Month(), now.Day(), 0, 0, 0, 0, time.Local),
 		bpf, bpl, hrl, hrf)
-	if err != nil {
-		response.Error500(w, ref())
+	if internalError(w, err) {
 		return
 	}
 	if ct.RowsAffected() == 1 {
@@ -159,8 +153,7 @@ func (h *Handler) updateMonitoringProfile(w http.ResponseWriter, r *http.Request
 	ct, err := h.DB.Exec(r.Context(),
 		`UPDATE watch_info SET bpf=$1,bpl=$2,hrl=$3,hrf=$4 WHERE device_id=$5`,
 		bpf, bpl, hrl, hrf, deviceID)
-	if err != nil {
-		response.Error500(w, ref())
+	if internalError(w, err) {
 		return
 	}
 	if ct.RowsAffected() == 1 {
@@ -187,8 +180,7 @@ func (h *Handler) deleteMonitoringProfile(w http.ResponseWriter, r *http.Request
 		return
 	}
 	ct, err := h.DB.Exec(r.Context(), `DELETE FROM watch_info WHERE device_id=$1`, deviceID)
-	if err != nil {
-		response.Error500(w, ref())
+	if internalError(w, err) {
 		return
 	}
 	if ct.RowsAffected() == 1 {

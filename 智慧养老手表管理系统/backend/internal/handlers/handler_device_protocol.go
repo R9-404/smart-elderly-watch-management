@@ -59,8 +59,7 @@ func (h *Handler) deviceLogin(w http.ResponseWriter, r *http.Request) {
 	}
 	ctx := r.Context()
 	d, code, msg, err := h.hwAuth(ctx, h.DB, deviceNo, secret, "设备已停用，请联系管理员")
-	if err != nil {
-		response.Error500(w, ref())
+	if internalError(w, err) {
 		return
 	}
 	if d == nil {
@@ -68,8 +67,7 @@ func (h *Handler) deviceLogin(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	now := time.Now()
-	if err := touchDevice(ctx, h.DB, d.ID, nil, nil, now); err != nil {
-		response.Error500(w, ref())
+	if internalError(w, touchDevice(ctx, h.DB, d.ID, nil, nil, now)) {
 		return
 	}
 	bound := 0
@@ -150,8 +148,7 @@ func (h *Handler) deviceBind(w http.ResponseWriter, r *http.Request) {
 	}
 	ctx := r.Context()
 	tx, err := h.DB.Begin(ctx)
-	if err != nil {
-		response.Error500(w, ref())
+	if internalError(w, err) {
 		return
 	}
 	rollback := func() { _ = tx.Rollback(ctx) }
@@ -249,8 +246,7 @@ func (h *Handler) deviceBind(w http.ResponseWriter, r *http.Request) {
 		conflict409(w, "该绑定码已被使用")
 		return
 	}
-	if err := tx.Commit(ctx); err != nil {
-		response.Error500(w, ref())
+	if internalError(w, tx.Commit(ctx)) {
 		return
 	}
 	nm := ""
@@ -282,8 +278,7 @@ func (h *Handler) deviceHeartbeat(w http.ResponseWriter, r *http.Request) {
 	}
 	ctx := r.Context()
 	d, code, msg, err := h.hwAuth(ctx, h.DB, deviceNo, secret, "设备已停用")
-	if err != nil {
-		response.Error500(w, ref())
+	if internalError(w, err) {
 		return
 	}
 	if d == nil {
@@ -291,8 +286,7 @@ func (h *Handler) deviceHeartbeat(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	now := time.Now()
-	if err := touchDevice(ctx, h.DB, d.ID, battery, appVersion, now); err != nil {
-		response.Error500(w, ref())
+	if internalError(w, touchDevice(ctx, h.DB, d.ID, battery, appVersion, now)) {
 		return
 	}
 	bound := 0

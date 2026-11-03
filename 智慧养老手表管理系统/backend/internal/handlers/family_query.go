@@ -23,8 +23,7 @@ func (h *Handler) familySelect(w http.ResponseWriter, r *http.Request) {
 		`SELECT o.old_id,o.name,f.family_id,f.family_name,f.family_relation,
 		        f.family_sex,f.family_phone,f.family_address,f.family_tou_pic`+filter+`
 		 ORDER BY o.old_id LIMIT $2 OFFSET $3`, name, ps, (p-1)*ps)
-	if err != nil {
-		response.Error500(w, ref())
+	if internalError(w, err) {
 		return
 	}
 	defer rows.Close()
@@ -32,8 +31,7 @@ func (h *Handler) familySelect(w http.ResponseWriter, r *http.Request) {
 	for rows.Next() {
 		var oldID, familyID int64
 		var oldName, fname, frel, fsex, fphone, faddr, fpic *string
-		if err := rows.Scan(&oldID, &oldName, &familyID, &fname, &frel, &fsex, &fphone, &faddr, &fpic); err != nil {
-			response.Error500(w, ref())
+		if internalError(w, rows.Scan(&oldID, &oldName, &familyID, &fname, &frel, &fsex, &fphone, &faddr, &fpic)) {
 			return
 		}
 		list = append(list, map[string]any{
@@ -42,8 +40,7 @@ func (h *Handler) familySelect(w http.ResponseWriter, r *http.Request) {
 			"familyPhone": fphone, "familyAddress": faddr, "familyTouPic": fpic,
 		})
 	}
-	if err := rows.Err(); err != nil {
-		response.Error500(w, ref())
+	if internalError(w, rows.Err()) {
 		return
 	}
 	// A partial page determines the total, except for an empty later page.
@@ -51,8 +48,7 @@ func (h *Handler) familySelect(w http.ResponseWriter, r *http.Request) {
 		total = int64((p-1)*ps + len(list))
 	} else {
 		rows.Close()
-		if err := h.DB.QueryRow(ctx, countSQL, name).Scan(&total); err != nil {
-			response.Error500(w, ref())
+		if internalError(w, h.DB.QueryRow(ctx, countSQL, name).Scan(&total)) {
 			return
 		}
 	}

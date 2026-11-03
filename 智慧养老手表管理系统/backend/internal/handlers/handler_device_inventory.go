@@ -40,8 +40,7 @@ func (h *Handler) deviceCreate(w http.ResponseWriter, r *http.Request) {
 	}
 	ctx := r.Context()
 	tx, err := h.DB.Begin(ctx)
-	if err != nil {
-		response.Error500(w, ref())
+	if internalError(w, err) {
 		return
 	}
 	rollback := func() { _ = tx.Rollback(ctx) }
@@ -110,8 +109,7 @@ func (h *Handler) deviceCreate(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 	}
-	if err := tx.Commit(ctx); err != nil {
-		response.Error500(w, ref())
+	if internalError(w, tx.Commit(ctx)) {
 		return
 	}
 	// secret 明文仅此一次返回。
@@ -134,8 +132,7 @@ func (h *Handler) deviceResetSecret(w http.ResponseWriter, r *http.Request) {
 	deviceID, _ := strconv.ParseInt(idStr, 10, 64)
 	ctx := r.Context()
 	var exists bool
-	if err := h.DB.QueryRow(ctx, `SELECT EXISTS(SELECT 1 FROM device WHERE device_id=$1)`, deviceID).Scan(&exists); err != nil {
-		response.Error500(w, ref())
+	if internalError(w, h.DB.QueryRow(ctx, `SELECT EXISTS(SELECT 1 FROM device WHERE device_id=$1)`, deviceID).Scan(&exists)) {
 		return
 	}
 	if !exists {
@@ -143,18 +140,15 @@ func (h *Handler) deviceResetSecret(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	clearSecret, err := randAlpha(32)
-	if err != nil {
-		response.Error500(w, ref())
+	if internalError(w, err) {
 		return
 	}
 	hashed, err := secretHash(clearSecret)
-	if err != nil {
-		response.Error500(w, ref())
+	if internalError(w, err) {
 		return
 	}
 	ct, err := h.DB.Exec(ctx, `UPDATE device SET secret=$1 WHERE device_id=$2`, hashed, deviceID)
-	if err != nil {
-		response.Error500(w, ref())
+	if internalError(w, err) {
 		return
 	}
 	if ct.RowsAffected() != 1 {
@@ -178,8 +172,7 @@ func (h *Handler) deviceUnbind(w http.ResponseWriter, r *http.Request) {
 	deviceID, _ := strconv.ParseInt(idStr, 10, 64)
 	ctx := r.Context()
 	tx, err := h.DB.Begin(ctx)
-	if err != nil {
-		response.Error500(w, ref())
+	if internalError(w, err) {
 		return
 	}
 	rollback := func() { _ = tx.Rollback(ctx) }
@@ -201,8 +194,7 @@ func (h *Handler) deviceUnbind(w http.ResponseWriter, r *http.Request) {
 		response.Fail(w, "解绑失败")
 		return
 	}
-	if err := tx.Commit(ctx); err != nil {
-		response.Error500(w, ref())
+	if internalError(w, tx.Commit(ctx)) {
 		return
 	}
 	response.OK(w, nil)
@@ -222,8 +214,7 @@ func (h *Handler) deviceDelete(w http.ResponseWriter, r *http.Request) {
 	deviceID, _ := strconv.ParseInt(idStr, 10, 64)
 	ctx := r.Context()
 	tx, err := h.DB.Begin(ctx)
-	if err != nil {
-		response.Error500(w, ref())
+	if internalError(w, err) {
 		return
 	}
 	rollback := func() { _ = tx.Rollback(ctx) }
@@ -248,8 +239,7 @@ func (h *Handler) deviceDelete(w http.ResponseWriter, r *http.Request) {
 		response.Fail(w, "删除失败")
 		return
 	}
-	if err := tx.Commit(ctx); err != nil {
-		response.Error500(w, ref())
+	if internalError(w, tx.Commit(ctx)) {
 		return
 	}
 	response.OK(w, nil)

@@ -30,8 +30,7 @@ func (h *Handler) userSelect(w http.ResponseWriter, r *http.Request) {
 	}
 	rows, err := h.DB.Query(r.Context(),
 		`SELECT user_id,user_name,user_phone,role FROM users WHERE user_phone=$1`, phone)
-	if err != nil {
-		response.Error500(w, ref())
+	if internalError(w, err) {
 		return
 	}
 	defer rows.Close()
@@ -39,8 +38,7 @@ func (h *Handler) userSelect(w http.ResponseWriter, r *http.Request) {
 	for rows.Next() {
 		var id int64
 		var name, uphone, role *string
-		if err := rows.Scan(&id, &name, &uphone, &role); err != nil {
-			response.Error500(w, ref())
+		if internalError(w, rows.Scan(&id, &name, &uphone, &role)) {
 			return
 		}
 		list = append(list, map[string]any{
@@ -48,8 +46,7 @@ func (h *Handler) userSelect(w http.ResponseWriter, r *http.Request) {
 			"role": role, "password": nil,
 		})
 	}
-	if err := rows.Err(); err != nil {
-		response.Error500(w, ref())
+	if internalError(w, rows.Err()) {
 		return
 	}
 	response.JSON(w, http.StatusOK, map[string]any{"usersByPhone2": list})
@@ -72,8 +69,7 @@ func (h *Handler) listGuardians(w http.ResponseWriter, r *http.Request) {
 		 SELECT customer_id,customer_name,customer_age,customer_sex,customer_phone,customer_address`+filter+`
 		 ORDER BY customer_id LIMIT $2 OFFSET $3) AS page
 		 ON TRUE ORDER BY page.customer_id`, name, ps, (p-1)*ps)
-	if err != nil {
-		response.Error500(w, ref())
+	if internalError(w, err) {
 		return
 	}
 	defer rows.Close()
@@ -83,8 +79,7 @@ func (h *Handler) listGuardians(w http.ResponseWriter, r *http.Request) {
 		var cname *string
 		var cage *int64
 		var csex, cphone, caddr *string
-		if err := rows.Scan(&id, &cname, &cage, &csex, &cphone, &caddr, &total); err != nil {
-			response.Error500(w, ref())
+		if internalError(w, rows.Scan(&id, &cname, &cage, &csex, &cphone, &caddr, &total)) {
 			return
 		}
 		// The aggregate supplies one count row even when the page is empty.
@@ -96,8 +91,7 @@ func (h *Handler) listGuardians(w http.ResponseWriter, r *http.Request) {
 			"customerSex": csex, "customerPhone": cphone, "customerAddress": caddr,
 		})
 	}
-	if err := rows.Err(); err != nil {
-		response.Error500(w, ref())
+	if internalError(w, rows.Err()) {
 		return
 	}
 	response.JSON(w, http.StatusOK, map[string]any{
@@ -128,8 +122,7 @@ func (h *Handler) createGuardian(w http.ResponseWriter, r *http.Request) {
 	ct, err := h.DB.Exec(r.Context(),
 		`INSERT INTO customer(customer_name,customer_age,customer_sex,customer_phone,customer_address)
 		 VALUES($1,$2,$3,$4,$5)`, name, age, sex, phone, addr)
-	if err != nil {
-		response.Error500(w, ref())
+	if internalError(w, err) {
 		return
 	}
 	if ct.RowsAffected() == 1 {
@@ -168,8 +161,7 @@ func (h *Handler) updateGuardian(w http.ResponseWriter, r *http.Request) {
 		`UPDATE customer SET customer_name=$1,customer_age=$2,customer_sex=$3,
 		 customer_phone=$4,customer_address=$5 WHERE customer_id=$6`,
 		name, age, sex, phone, addr, id)
-	if err != nil {
-		response.Error500(w, ref())
+	if internalError(w, err) {
 		return
 	}
 	if ct.RowsAffected() == 1 {
@@ -192,8 +184,7 @@ func (h *Handler) deleteGuardian(w http.ResponseWriter, r *http.Request) {
 	}
 	ctx := r.Context()
 	tx, err := h.DB.Begin(ctx)
-	if err != nil {
-		response.Error500(w, ref())
+	if internalError(w, err) {
 		return
 	}
 	defer tx.Rollback(ctx)
@@ -201,8 +192,7 @@ func (h *Handler) deleteGuardian(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	var assigned bool
-	if err := tx.QueryRow(ctx, "SELECT EXISTS(SELECT 1 FROM oldperson WHERE customer_id=$1)", id).Scan(&assigned); err != nil {
-		response.Error500(w, ref())
+	if internalError(w, tx.QueryRow(ctx, "SELECT EXISTS(SELECT 1 FROM oldperson WHERE customer_id=$1)", id).Scan(&assigned)) {
 		return
 	}
 	if assigned {
@@ -210,13 +200,11 @@ func (h *Handler) deleteGuardian(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	ct, err := tx.Exec(ctx, `DELETE FROM customer WHERE customer_id=$1`, id)
-	if err != nil {
-		response.Error500(w, ref())
+	if internalError(w, err) {
 		return
 	}
 	if ct.RowsAffected() == 1 {
-		if err := tx.Commit(ctx); err != nil {
-			response.Error500(w, ref())
+		if internalError(w, tx.Commit(ctx)) {
 			return
 		}
 		response.OK(w, nil)

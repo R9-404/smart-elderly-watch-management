@@ -37,8 +37,7 @@ func (h *Handler) listLatestVitals(w http.ResponseWriter, r *http.Request) {
 	}
 	limitSQL, fullArgs := pageArgs(args, page, pageSize)
 	rows, err := h.DB.Query(r.Context(), sql+limitSQL, fullArgs...)
-	if err != nil {
-		response.Error500(w, ref())
+	if internalError(w, err) {
 		return
 	}
 	defer rows.Close()
@@ -78,8 +77,7 @@ func (h *Handler) listVitalHistory(w http.ResponseWriter, r *http.Request) {
 		` INNER JOIN (SELECT * FROM ratepre WHERE old_id=$1 ORDER BY create_time DESC, id DESC LIMIT 1) r ON r.old_id=o.old_id` +
 		` ORDER BY createTime DESC`
 	rows, err := h.DB.Query(r.Context(), sql, oldID)
-	if err != nil {
-		response.Error500(w, ref())
+	if internalError(w, err) {
 		return
 	}
 	defer rows.Close()
@@ -112,8 +110,7 @@ func (h *Handler) getVitalChart(w http.ResponseWriter, r *http.Request) {
 	rows, err := h.DB.Query(r.Context(), `SELECT r.hr AS hr, r.bp AS bp, TO_CHAR(r.create_time,'YYYY-MM-DD HH24:MI:SS') AS createTime
 		FROM (SELECT id, hr, bp, create_time FROM ratepre WHERE old_id=$1 ORDER BY create_time DESC, id DESC LIMIT 30) r
 		ORDER BY r.create_time ASC, r.id ASC`, oldID)
-	if err != nil {
-		response.Error500(w, ref())
+	if internalError(w, err) {
 		return
 	}
 	defer rows.Close()

@@ -36,8 +36,7 @@ func (h *Handler) alertReview(w http.ResponseWriter, r *http.Request) {
 	}
 	ctx := r.Context()
 	tx, err := h.DB.Begin(ctx)
-	if err != nil {
-		response.Error500(w, ref())
+	if internalError(w, err) {
 		return
 	}
 	defer tx.Rollback(ctx)
@@ -49,14 +48,12 @@ func (h *Handler) alertReview(w http.ResponseWriter, r *http.Request) {
 		response.JSON(w, 404, map[string]any{"message": "记录不存在"})
 		return
 	}
-	if err != nil {
-		response.Error500(w, ref())
+	if internalError(w, err) {
 		return
 	}
 	var previous int64
 	err = tx.QueryRow(ctx, "SELECT COALESCE(MAX(id),0) FROM alert_review WHERE entity='ratepre' AND record_id=$1 AND kind=$2", req.RecordID, req.Kind).Scan(&previous)
-	if err != nil {
-		response.Error500(w, ref())
+	if internalError(w, err) {
 		return
 	}
 	if previous != req.ExpectedReviewID {
@@ -69,16 +66,14 @@ func (h *Handler) alertReview(w http.ResponseWriter, r *http.Request) {
 	}
 	var id int64
 	req.Reason, err = h.sealNote(req.Reason)
-	if err != nil {
-		response.Error500(w, ref())
+	if internalError(w, err) {
 		return
 	}
 	err = tx.QueryRow(ctx, "INSERT INTO alert_review(entity,record_id,kind,verdict,reason,actor_id) VALUES('ratepre',$1,$2,$3,$4,$5) RETURNING id", req.RecordID, req.Kind, req.Verdict, req.Reason, actor).Scan(&id)
 	if err == nil {
 		err = tx.Commit(ctx)
 	}
-	if err != nil {
-		response.Error500(w, ref())
+	if internalError(w, err) {
 		return
 	}
 	response.OK(w, map[string]any{"reviewId": id, "verdict": req.Verdict, "alarmStateChanged": false})
@@ -102,8 +97,7 @@ func (h *Handler) alertReviews(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	rows, err := h.DB.Query(r.Context(), "SELECT id,kind,verdict,reason,actor_id,created_at FROM alert_review WHERE entity=$1 AND record_id=$2 AND ($3='' OR kind=$3) AND id>$4 ORDER BY id LIMIT 100", req.Entity, req.RecordID, req.Kind, req.After)
-	if err != nil {
-		response.Error500(w, ref())
+	if internalError(w, err) {
 		return
 	}
 	defer rows.Close()
@@ -117,8 +111,7 @@ func (h *Handler) alertReviews(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 		reason, err = h.openNote(reason)
-		if err != nil {
-			response.Error500(w, ref())
+		if internalError(w, err) {
 			return
 		}
 		items = append(items, map[string]any{"id": id, "kind": kind, "verdict": verdict, "reason": reason, "actorId": actor, "createdAt": at})

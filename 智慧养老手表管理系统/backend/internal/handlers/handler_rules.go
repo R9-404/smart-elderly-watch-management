@@ -27,8 +27,7 @@ func (h *Handler) rulePolicy(w http.ResponseWriter, r *http.Request) {
 	}
 	ctx := r.Context()
 	tx, err := h.DB.Begin(ctx)
-	if err != nil {
-		response.Error500(w, ref())
+	if internalError(w, err) {
 		return
 	}
 	defer tx.Rollback(ctx)
@@ -77,8 +76,7 @@ func (h *Handler) rulePolicy(w http.ResponseWriter, r *http.Request) {
 	if err == nil {
 		err = tx.Commit(ctx)
 	}
-	if err != nil {
-		response.Error500(w, ref())
+	if internalError(w, err) {
 		return
 	}
 	response.OK(w, map[string]any{"revision": revision})

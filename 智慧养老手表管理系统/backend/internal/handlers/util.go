@@ -8,6 +8,8 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
+
+	"suining-care/internal/response"
 )
 
 // decode 解析 JSON body；失败返回 false 并已写 400。
@@ -71,3 +73,12 @@ func ref() string { return uuid.NewString() }
 
 // isNotFound 判断 pgx.ErrNoRows。
 func isNotFound(err error) bool { return err == pgx.ErrNoRows }
+
+// internalError reports unexpected errors with an opaque reference.
+func internalError(w http.ResponseWriter, err error) bool {
+	if err == nil {
+		return false
+	}
+	response.Error500(w, ref())
+	return true
+}

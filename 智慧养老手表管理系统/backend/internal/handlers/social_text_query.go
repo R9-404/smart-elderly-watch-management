@@ -40,8 +40,7 @@ func (h *Handler) listNotices(w http.ResponseWriter, r *http.Request) {
 	limitSQL, fullArgs := pageArgs(args, page, pageSize)
 	rows, err := h.DB.Query(r.Context(), "SELECT page.*, totals.total FROM ("+countSQL+
 		") AS totals LEFT JOIN ("+sql+limitSQL+") AS page ON TRUE ORDER BY page.time DESC, page.text_id DESC", fullArgs...)
-	if err != nil {
-		response.Error500(w, ref())
+	if internalError(w, err) {
 		return
 	}
 	defer rows.Close()
@@ -85,15 +84,13 @@ func (h *Handler) getNotice(w http.ResponseWriter, r *http.Request) {
 		recordNotFound(w)
 		return
 	}
-	if err != nil {
-		response.Error500(w, ref())
+	if internalError(w, err) {
 		return
 	}
 	pics := []noticeImage{}
 	if t.PicID != nil {
 		rows, err := h.DB.Query(r.Context(), "SELECT pic_id, pic_name FROM pic WHERE pic_id=$1", *t.PicID)
-		if err != nil {
-			response.Error500(w, ref())
+		if internalError(w, err) {
 			return
 		}
 		defer rows.Close()

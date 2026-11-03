@@ -78,27 +78,23 @@ func (h *Handler) positionSelect(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 	const filter = ` WHERE ($1='' OR o.name LIKE '%'||$1||'%')`
 	var total int64
-	if err := h.DB.QueryRow(ctx, `SELECT COUNT(*) FROM oldperson o`+filter, name).Scan(&total); err != nil {
-		response.Error500(w, ref())
+	if internalError(w, h.DB.QueryRow(ctx, `SELECT COUNT(*) FROM oldperson o`+filter, name).Scan(&total)) {
 		return
 	}
 	rows, err := h.DB.Query(ctx, positionLatestSQL()+filter+` ORDER BY be_time DESC, o.old_id LIMIT $2 OFFSET $3`, name, ps, (p-1)*ps)
-	if err != nil {
-		response.Error500(w, ref())
+	if internalError(w, err) {
 		return
 	}
 	defer rows.Close()
 	list := []map[string]any{}
 	for rows.Next() {
 		item, err := scanPositionRow(h.Box, rows)
-		if err != nil {
-			response.Error500(w, ref())
+		if internalError(w, err) {
 			return
 		}
 		list = append(list, item)
 	}
-	if err := rows.Err(); err != nil {
-		response.Error500(w, ref())
+	if internalError(w, rows.Err()) {
 		return
 	}
 	response.OK(w, map[string]any{
@@ -115,8 +111,7 @@ func (h *Handler) positionAlertSummary(w http.ResponseWriter, r *http.Request) {
 			FROM alarm_precess a WHERE a.old_id=o.old_id
 			ORDER BY a.be_time DESC, a.id DESC LIMIT 1))
 		FROM oldperson o`).Scan(&total, &active)
-	if err != nil {
-		response.Error500(w, ref())
+	if internalError(w, err) {
 		return
 	}
 	response.OK(w, map[string]any{"totalResidents": total, "activeAlerts": active})
@@ -179,22 +174,19 @@ func (h *Handler) positionSelectFamily(w http.ResponseWriter, r *http.Request) {
 		 LEFT JOIN (SELECT old_id, status, be_time, lng, lat, kind, position_metadata FROM alarm_precess WHERE old_id=$2 ORDER BY be_time DESC, id DESC LIMIT 1) a
 			ON a.old_id = o.old_id
 		 WHERE o.old_id=$3`, oldID, oldID, oldID)
-	if err != nil {
-		response.Error500(w, ref())
+	if internalError(w, err) {
 		return
 	}
 	defer rows.Close()
 	list := []map[string]any{}
 	for rows.Next() {
 		item, err := scanPositionRow(h.Box, rows)
-		if err != nil {
-			response.Error500(w, ref())
+		if internalError(w, err) {
 			return
 		}
 		list = append(list, item)
 	}
-	if err := rows.Err(); err != nil {
-		response.Error500(w, ref())
+	if internalError(w, rows.Err()) {
 		return
 	}
 	response.OK(w, map[string]any{"positionDtos": list})

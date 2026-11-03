@@ -44,13 +44,11 @@ func (h *Handler) countVitalAlerts(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	rate, err := h.countPendingAlert(r, "rate")
-	if err != nil {
-		response.Error500(w, ref())
+	if internalError(w, err) {
 		return
 	}
 	pre, err := h.countPendingAlert(r, "pre")
-	if err != nil {
-		response.Error500(w, ref())
+	if internalError(w, err) {
 		return
 	}
 	response.OK(w, map[string]any{"rateTotal": rate, "preTotal": pre, "total": rate + pre})
@@ -107,8 +105,7 @@ func (h *Handler) getVitalAlert(w http.ResponseWriter, r *http.Request) {
 		response.Fail(w, "参数不正确")
 		return
 	}
-	if err != nil {
-		response.Error500(w, ref())
+	if internalError(w, err) {
 		return
 	}
 	if !found {
@@ -256,8 +253,7 @@ func (h *Handler) handleResolveVitalAlert(w http.ResponseWriter, r *http.Request
 		kinds = []string{kind}
 	}
 	tx, err := h.DB.Begin(r.Context())
-	if err != nil {
-		response.Error500(w, ref())
+	if internalError(w, err) {
 		return
 	}
 	defer tx.Rollback(r.Context())
@@ -268,14 +264,12 @@ func (h *Handler) handleResolveVitalAlert(w http.ResponseWriter, r *http.Request
 			stateCol, handledCol, handledAtCol = "pre_state", "pre_handled", "pre_handled_at"
 		}
 		ct, err := tx.Exec(r.Context(), "UPDATE ratepre SET "+handledCol+"=1, "+handledAtCol+"=NOW(), "+stateCol+"='0' WHERE id=$1", recordID)
-		if err != nil {
-			response.Error500(w, ref())
+		if internalError(w, err) {
 			return
 		}
 		rows += ct.RowsAffected()
 	}
-	if err := tx.Commit(r.Context()); err != nil {
-		response.Error500(w, ref())
+	if internalError(w, tx.Commit(r.Context())) {
 		return
 	}
 	if rows < 1 {

@@ -23,8 +23,7 @@ func (h *Handler) careSupervisor(w http.ResponseWriter, r *http.Request) (int64,
 		return 0, false
 	}
 	id, err := strconv.ParseInt(actor, 10, 64)
-	if err != nil {
-		response.Error500(w, ref())
+	if internalError(w, err) {
 		return 0, false
 	}
 	return id, true
@@ -43,8 +42,7 @@ func (h *Handler) careStaff(w http.ResponseWriter, r *http.Request) {
  COALESCE(p.duty,'supervisor') FROM users u
  LEFT JOIN care_staff_permission p ON p.admin_id=u.user_id
  ORDER BY u.user_id LIMIT 100`)
-	if err != nil {
-		response.Error500(w, ref())
+	if internalError(w, err) {
 		return
 	}
 	defer rows.Close()
@@ -96,14 +94,12 @@ func (h *Handler) careAssignDuty(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	tx, err := h.DB.Begin(r.Context())
-	if err != nil {
-		response.Error500(w, ref())
+	if internalError(w, err) {
 		return
 	}
 	defer tx.Rollback(r.Context())
 	var exists bool
-	if err := tx.QueryRow(r.Context(), "SELECT EXISTS(SELECT 1 FROM users WHERE user_id=$1)", target).Scan(&exists); err != nil {
-		response.Error500(w, ref())
+	if internalError(w, tx.QueryRow(r.Context(), "SELECT EXISTS(SELECT 1 FROM users WHERE user_id=$1)", target).Scan(&exists)) {
 		return
 	}
 	if !exists {
@@ -113,18 +109,15 @@ func (h *Handler) careAssignDuty(w http.ResponseWriter, r *http.Request) {
 	_, err = tx.Exec(r.Context(), `INSERT INTO care_staff_permission(admin_id,duty,assigned_by,assigned_at)
  VALUES($1,$2,$3,now()) ON CONFLICT(admin_id) DO UPDATE
  SET duty=excluded.duty,assigned_by=excluded.assigned_by,assigned_at=now()`, target, duty, actor)
-	if err != nil {
-		response.Error500(w, ref())
+	if internalError(w, err) {
 		return
 	}
 	_, err = tx.Exec(r.Context(), `INSERT INTO care_access_audit(admin_id,action,subject_admin_id)
  VALUES($1,'staff_duty_changed',$2)`, actor, target)
-	if err != nil {
-		response.Error500(w, ref())
+	if internalError(w, err) {
 		return
 	}
-	if err := tx.Commit(r.Context()); err != nil {
-		response.Error500(w, ref())
+	if internalError(w, tx.Commit(r.Context())) {
 		return
 	}
 	response.OK(w, map[string]any{"adminId": target, "duty": duty})
@@ -141,8 +134,7 @@ func (h *Handler) careAccessAudit(w http.ResponseWriter, r *http.Request) {
 	}
 	rows, err := h.DB.Query(r.Context(), `SELECT actor_id,actor_role,resource,method,created_at
  FROM care_sensitive_access_audit ORDER BY id DESC LIMIT 100`)
-	if err != nil {
-		response.Error500(w, ref())
+	if internalError(w, err) {
 		return
 	}
 	defer rows.Close()

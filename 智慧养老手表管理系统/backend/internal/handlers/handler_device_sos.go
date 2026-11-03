@@ -28,8 +28,7 @@ func (h *Handler) deviceSos(w http.ResponseWriter, r *http.Request) {
 	deviceNo, secret, bindingVersion, requestID := req.deviceNo, req.secret, req.bindingVersion, req.requestID
 	ctx := r.Context()
 	tx, err := h.DB.Begin(ctx)
-	if err != nil {
-		response.Error500(w, ref())
+	if internalError(w, err) {
 		return
 	}
 	rollback := func() { _ = tx.Rollback(ctx) }
@@ -107,8 +106,7 @@ func (h *Handler) deviceSos(w http.ResponseWriter, r *http.Request) {
 		response.Error500(w, ref())
 		return
 	}
-	if err := tx.Commit(ctx); err != nil {
-		response.Error500(w, ref())
+	if internalError(w, tx.Commit(ctx)) {
 		return
 	}
 	response.OK(w, map[string]any{

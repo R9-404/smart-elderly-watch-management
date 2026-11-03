@@ -16,8 +16,7 @@ func (h *Handler) commandPull(w http.ResponseWriter, r *http.Request) {
 	}
 	ctx := r.Context()
 	tx, err := h.DB.Begin(ctx)
-	if err != nil {
-		response.Error500(w, ref())
+	if internalError(w, err) {
 		return
 	}
 	defer tx.Rollback(ctx)
@@ -31,8 +30,7 @@ func (h *Handler) commandPull(w http.ResponseWriter, r *http.Request) {
 		conflict409(w, "指令协议未启用")
 		return
 	}
-	if err != nil {
-		response.Error500(w, ref())
+	if internalError(w, err) {
 		return
 	}
 	var id int64
@@ -45,8 +43,7 @@ func (h *Handler) commandPull(w http.ResponseWriter, r *http.Request) {
 		response.OK(w, map[string]any{"command": nil})
 		return
 	}
-	if err != nil {
-		response.Error500(w, ref())
+	if internalError(w, err) {
 		return
 	}
 	token := uuid.NewString()
@@ -54,8 +51,7 @@ func (h *Handler) commandPull(w http.ResponseWriter, r *http.Request) {
 	if err == nil {
 		err = tx.Commit(ctx)
 	}
-	if err != nil {
-		response.Error500(w, ref())
+	if internalError(w, err) {
 		return
 	}
 	response.OK(w, map[string]any{"command": map[string]any{"commandId": id, "deliveryToken": token, "action": action, "wireAction": wire, "channel": channel, "expiresAt": expires, "bindingVersion": d.HealthEpoch}})
@@ -77,8 +73,7 @@ func (h *Handler) commandAck(w http.ResponseWriter, r *http.Request) {
 	}
 	ctx := r.Context()
 	tx, err := h.DB.Begin(ctx)
-	if err != nil {
-		response.Error500(w, ref())
+	if internalError(w, err) {
 		return
 	}
 	defer tx.Rollback(ctx)
@@ -98,8 +93,7 @@ func (h *Handler) commandAck(w http.ResponseWriter, r *http.Request) {
 		conflict409(w, "指令不属于当前绑定")
 		return
 	}
-	if err != nil {
-		response.Error500(w, ref())
+	if internalError(w, err) {
 		return
 	}
 	if token == nil || *token != req.DeliveryToken || (status != want && (status != "sent" || !time.Now().Before(expires))) {
@@ -112,8 +106,7 @@ func (h *Handler) commandAck(w http.ResponseWriter, r *http.Request) {
 	if err == nil {
 		err = tx.Commit(ctx)
 	}
-	if err != nil {
-		response.Error500(w, ref())
+	if internalError(w, err) {
 		return
 	}
 	response.OK(w, map[string]any{"commandId": req.CommandID, "status": want})

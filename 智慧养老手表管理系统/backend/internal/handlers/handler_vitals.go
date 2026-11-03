@@ -42,8 +42,7 @@ func optBody(w http.ResponseWriter, r *http.Request) (map[string]any, bool) {
 		return map[string]any{}, true
 	}
 	data, err := io.ReadAll(io.LimitReader(r.Body, 1<<20))
-	if err != nil {
-		response.Error500(w, ref())
+	if internalError(w, err) {
 		return nil, false
 	}
 	if len(bytes.TrimSpace(data)) == 0 {
@@ -251,8 +250,7 @@ func (h *Handler) resolveOldID(w http.ResponseWriter, r *http.Request, m map[str
 // pagedTotal counts rows for a paginated query.
 func (h *Handler) pagedTotal(w http.ResponseWriter, r *http.Request, sql string, args []any) (int64, bool) {
 	var total int64
-	if err := h.DB.QueryRow(r.Context(), "SELECT COUNT(*) FROM ("+sql+") AS paged_total", args...).Scan(&total); err != nil {
-		response.Error500(w, ref())
+	if internalError(w, h.DB.QueryRow(r.Context(), "SELECT COUNT(*) FROM ("+sql+") AS paged_total", args...).Scan(&total)) {
 		return 0, false
 	}
 	return total, true

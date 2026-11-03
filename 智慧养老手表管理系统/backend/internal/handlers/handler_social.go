@@ -93,8 +93,7 @@ func (h *Handler) listNoticeComments(w http.ResponseWriter, r *http.Request) {
 		args = append(args, textID)
 	}
 	rows, err := h.DB.Query(r.Context(), sql, args...)
-	if err != nil {
-		response.Error500(w, ref())
+	if internalError(w, err) {
 		return
 	}
 	defer rows.Close()
@@ -137,8 +136,7 @@ func (h *Handler) searchNoticeComments(w http.ResponseWriter, r *http.Request) {
 	}
 	limitSQL, fullArgs := pageArgs(nil, page, pageSize)
 	rows, err := h.DB.Query(r.Context(), sql+limitSQL, fullArgs...)
-	if err != nil {
-		response.Error500(w, ref())
+	if internalError(w, err) {
 		return
 	}
 	defer rows.Close()
@@ -172,8 +170,7 @@ func (h *Handler) deleteNoticeComment(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	ct, err := h.DB.Exec(r.Context(), "DELETE FROM said WHERE said_id=$1", saidID)
-	if err != nil {
-		response.Error500(w, ref())
+	if internalError(w, err) {
 		return
 	}
 	writeCode(w, ct.RowsAffected() == 1)
@@ -211,8 +208,7 @@ func (h *Handler) createNoticeComment(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	tx, err := h.DB.Begin(r.Context())
-	if err != nil {
-		response.Error500(w, ref())
+	if internalError(w, err) {
 		return
 	}
 	defer tx.Rollback(r.Context())
@@ -230,8 +226,7 @@ func (h *Handler) createNoticeComment(w http.ResponseWriter, r *http.Request) {
 	ct, err := tx.Exec(r.Context(),
 		"INSERT INTO said(said,text_id,said_time,person_name,said_phone,tou_pic) VALUES($1,$2,$3,$4,$5,$6)",
 		saidContent, textID, time.Now(), p.DisplayName, p.Phone, touPic)
-	if err != nil {
-		response.Error500(w, ref())
+	if internalError(w, err) {
 		return
 	}
 	if err = tx.Commit(r.Context()); err != nil {
@@ -259,8 +254,7 @@ func (h *Handler) replyToNoticeComment(w http.ResponseWriter, r *http.Request) {
 	}
 	back, _ := v.(string)
 	ct, err := h.DB.Exec(r.Context(), "UPDATE said SET back=$1, back_time=$2 WHERE said_id=$3", back, time.Now(), saidID)
-	if err != nil {
-		response.Error500(w, ref())
+	if internalError(w, err) {
 		return
 	}
 	writeCode(w, ct.RowsAffected() == 1)
@@ -282,8 +276,7 @@ func (h *Handler) toggleNoticeCommentLike(w http.ResponseWriter, r *http.Request
 		return
 	}
 	tx, err := h.DB.Begin(r.Context())
-	if err != nil {
-		response.Error500(w, ref())
+	if internalError(w, err) {
 		return
 	}
 	defer tx.Rollback(r.Context())
@@ -297,15 +290,13 @@ func (h *Handler) toggleNoticeCommentLike(w http.ResponseWriter, r *http.Request
 		return
 	}
 	var cnt int64
-	if err := tx.QueryRow(r.Context(), "SELECT COUNT(1) FROM nice_count WHERE said_id=$1 AND phone=$2", saidID, p.Phone).Scan(&cnt); err != nil {
-		response.Error500(w, ref())
+	if internalError(w, tx.QueryRow(r.Context(), "SELECT COUNT(1) FROM nice_count WHERE said_id=$1 AND phone=$2", saidID, p.Phone).Scan(&cnt)) {
 		return
 	}
 	var rows int64
 	if cnt > 0 {
 		ct, err := tx.Exec(r.Context(), "DELETE FROM nice_count WHERE said_id=$1 AND phone=$2", saidID, p.Phone)
-		if err != nil {
-			response.Error500(w, ref())
+		if internalError(w, err) {
 			return
 		}
 		rows = ct.RowsAffected()
@@ -315,8 +306,7 @@ func (h *Handler) toggleNoticeCommentLike(w http.ResponseWriter, r *http.Request
 		}
 	} else {
 		ct, err := tx.Exec(r.Context(), "INSERT INTO nice_count(said_id,phone) VALUES($1,$2)", saidID, p.Phone)
-		if err != nil {
-			response.Error500(w, ref())
+		if internalError(w, err) {
 			return
 		}
 		rows = ct.RowsAffected()
@@ -325,8 +315,7 @@ func (h *Handler) toggleNoticeCommentLike(w http.ResponseWriter, r *http.Request
 			return
 		}
 	}
-	if err := tx.Commit(r.Context()); err != nil {
-		response.Error500(w, ref())
+	if internalError(w, tx.Commit(r.Context())) {
 		return
 	}
 	writeCode(w, rows == 1)

@@ -69,8 +69,7 @@ func (h *Handler) listLatestActivity(w http.ResponseWriter, r *http.Request) {
 	}
 	limitSQL, fullArgs := pageArgs(args, page, pageSize)
 	rows, err := h.DB.Query(r.Context(), sql+limitSQL, fullArgs...)
-	if err != nil {
-		response.Error500(w, ref())
+	if internalError(w, err) {
 		return
 	}
 	defer rows.Close()
@@ -106,8 +105,7 @@ func (h *Handler) listActivityHistory(w http.ResponseWriter, r *http.Request) {
 		` w.step AS step, w.sleep AS sleep, w.sleep_sate AS sleepAlertState, TO_CHAR(w.create_time,'YYYY-MM-DD') AS createTime`+
 		` FROM oldperson o INNER JOIN `+ownedDailyRecords+` w ON w.device_id=o.device_id AND w.old_id=o.old_id`+
 		` WHERE o.old_id=$1 ORDER BY w.create_time DESC, w.id DESC LIMIT 1`, oldID)
-	if err != nil {
-		response.Error500(w, ref())
+	if internalError(w, err) {
 		return
 	}
 	defer rows.Close()
@@ -144,8 +142,7 @@ func (h *Handler) getActivityChart(w http.ResponseWriter, r *http.Request) {
 		` FROM oldperson o INNER JOIN `+ownedDailyRecords+` w ON w.device_id=o.device_id AND w.old_id=o.old_id`+
 		` WHERE o.old_id=$1 ORDER BY w.create_time DESC, w.id DESC LIMIT 7) r`+
 		` ORDER BY r.create_time ASC, r.id ASC`, oldID)
-	if err != nil {
-		response.Error500(w, ref())
+	if internalError(w, err) {
 		return
 	}
 	defer rows.Close()

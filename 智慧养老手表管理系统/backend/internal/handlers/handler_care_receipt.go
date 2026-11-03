@@ -26,8 +26,7 @@ func (h *Handler) careReceipt(w http.ResponseWriter, r *http.Request) {
 	}
 	ctx := r.Context()
 	tx, err := h.DB.Begin(ctx)
-	if err != nil {
-		response.Error500(w, ref())
+	if internalError(w, err) {
 		return
 	}
 	defer tx.Rollback(ctx)
@@ -47,8 +46,7 @@ func (h *Handler) careReceipt(w http.ResponseWriter, r *http.Request) {
 	if status == "delivered" {
 		// A gateway can retry after our commit but before receiving HTTP 200.
 		// Authenticate first, then ACK the durable duplicate without a second event.
-		if err := tx.Commit(ctx); err != nil {
-			response.Error500(w, ref())
+		if internalError(w, tx.Commit(ctx)) {
 			return
 		}
 		response.OK(w, map[string]any{"notificationId": item.NotificationID, "status": "delivered"})

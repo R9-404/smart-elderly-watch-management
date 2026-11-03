@@ -29,8 +29,7 @@ func (h *Handler) familyUpdateTwo(w http.ResponseWriter, r *http.Request) {
 	ct, err := h.DB.Exec(r.Context(),
 		`UPDATE family SET family_name=$1,family_sex=$2,family_address=$3,family_phone=$4
 		 WHERE family_id=$5`, name, sex, addr, phone, id)
-	if err != nil {
-		response.Error500(w, ref())
+	if internalError(w, err) {
 		return
 	}
 	if ct.RowsAffected() == 1 {
@@ -57,8 +56,7 @@ func (h *Handler) familyUpdateTouPic(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	tx, err := h.DB.Begin(r.Context())
-	if err != nil {
-		response.Error500(w, ref())
+	if internalError(w, err) {
 		return
 	}
 	defer tx.Rollback(r.Context())
@@ -66,8 +64,7 @@ func (h *Handler) familyUpdateTouPic(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	ct, err := tx.Exec(r.Context(), `UPDATE family SET family_tou_pic=$1 WHERE family_phone=$2 AND ($3=0 OR family_id=$3)`, pic, phone, familySelfID(auth.Principal(r)))
-	if err != nil {
-		response.Error500(w, ref())
+	if internalError(w, err) {
 		return
 	}
 	if ct.RowsAffected() != 1 {

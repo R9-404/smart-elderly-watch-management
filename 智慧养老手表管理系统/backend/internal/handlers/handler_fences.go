@@ -53,8 +53,7 @@ func (h *Handler) fenceSave(w http.ResponseWriter, r *http.Request) {
 	}
 	ctx := r.Context()
 	tx, err := h.DB.Begin(ctx)
-	if err != nil {
-		response.Error500(w, ref())
+	if internalError(w, err) {
 		return
 	}
 	defer tx.Rollback(ctx)
@@ -63,8 +62,7 @@ func (h *Handler) fenceSave(w http.ResponseWriter, r *http.Request) {
 		response.JSON(w, 404, map[string]any{"message": "设备不存在"})
 		return
 	}
-	if err != nil {
-		response.Error500(w, ref())
+	if internalError(w, err) {
 		return
 	}
 	if d.OldID == nil {
@@ -92,8 +90,7 @@ func (h *Handler) fenceSave(w http.ResponseWriter, r *http.Request) {
 			conflict409(w, "围栏或绑定版本已变化")
 			return
 		}
-		if err != nil {
-			response.Error500(w, ref())
+		if internalError(w, err) {
 			return
 		}
 		req.Revision++
@@ -108,8 +105,7 @@ func (h *Handler) fenceSave(w http.ResponseWriter, r *http.Request) {
 	if err == nil {
 		err = tx.Commit(ctx)
 	}
-	if err != nil {
-		response.Error500(w, ref())
+	if internalError(w, err) {
 		return
 	}
 	response.OK(w, map[string]any{"id": req.ID, "revision": req.Revision, "state": "saved", "deviceApplied": false})
@@ -131,8 +127,7 @@ func (h *Handler) fenceList(w http.ResponseWriter, r *http.Request) {
 	}
 	rows, err := h.DB.Query(r.Context(), `SELECT f.id,f.device_id,f.revision,f.name,f.enabled,f.coordinates,f.coordinate_system,f.timezone,f.time_begin,f.time_end,f.min_points,f.dwell_seconds,f.max_accuracy
  FROM device_fence f JOIN device d ON d.device_id=f.device_id AND d.old_id=f.old_id AND d.health_epoch=f.epoch WHERE f.device_id=$1 ORDER BY f.id`, req.DeviceID)
-	if err != nil {
-		response.Error500(w, ref())
+	if internalError(w, err) {
 		return
 	}
 	defer rows.Close()
@@ -167,8 +162,7 @@ func (h *Handler) fencePoint(w http.ResponseWriter, r *http.Request) {
 	}
 	ctx := r.Context()
 	tx, err := h.DB.Begin(ctx)
-	if err != nil {
-		response.Error500(w, ref())
+	if internalError(w, err) {
 		return
 	}
 	defer tx.Rollback(ctx)
@@ -177,8 +171,7 @@ func (h *Handler) fencePoint(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	configs, err := loadActiveFences(ctx, tx, d.ID, *d.OldID, d.HealthEpoch)
-	if err != nil {
-		response.Error500(w, ref())
+	if internalError(w, err) {
 		return
 	}
 	events := []map[string]any{}
@@ -199,8 +192,7 @@ func (h *Handler) fencePoint(w http.ResponseWriter, r *http.Request) {
 		}
 		at := req.OccurredAt.UTC().Truncate(time.Microsecond)
 		direction, fresh, err := advanceFenceObservation(&f, &state, &req, at)
-		if err != nil {
-			response.Error500(w, ref())
+		if internalError(w, err) {
 			return
 		}
 		if !fresh {
@@ -208,16 +200,14 @@ func (h *Handler) fencePoint(w http.ResponseWriter, r *http.Request) {
 		}
 		b, _ = json.Marshal(state)
 		_, err = tx.Exec(ctx, `INSERT INTO fence_state(fence_id,revision,payload) VALUES($1,$2,$3) ON CONFLICT(fence_id) DO UPDATE SET revision=EXCLUDED.revision,payload=EXCLUDED.payload`, f.ID, f.Revision, json.RawMessage(b))
-		if err != nil {
-			response.Error500(w, ref())
+		if internalError(w, err) {
 			return
 		}
 		if direction == "" {
 			continue
 		}
 		event, err := h.persistFenceEvent(ctx, tx, d, &f, &req, direction, at)
-		if err != nil {
-			response.Error500(w, ref())
+		if internalError(w, err) {
 			return
 		}
 		events = append(events, event)
@@ -249,8 +239,7 @@ func (h *Handler) fenceEvents(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	rows, err := h.DB.Query(r.Context(), `SELECT id,fence_id,fence_revision,device_id,direction,lng,lat,accuracy,occurred_at,incident_id FROM fence_event WHERE old_id=$1 AND id>$2 ORDER BY id LIMIT 100`, req.OldID, req.After)
-	if err != nil {
-		response.Error500(w, ref())
+	if internalError(w, err) {
 		return
 	}
 	defer rows.Close()

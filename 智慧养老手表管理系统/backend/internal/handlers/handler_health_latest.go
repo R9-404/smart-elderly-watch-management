@@ -42,8 +42,7 @@ func (h *Handler) healthLatest(w http.ResponseWriter, r *http.Request) {
  FROM health_sample WHERE old_id=$1 AND NOT deleted
 	 ) ranked ON ranked.sample_id=s.sample_id
  WHERE ranked.latest_rank=1 ORDER BY s.sample_id LIMIT 10001`, oldID)
-	if err != nil {
-		response.Error500(w, ref())
+	if internalError(w, err) {
 		return
 	}
 	defer rows.Close()

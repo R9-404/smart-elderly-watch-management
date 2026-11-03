@@ -44,8 +44,7 @@ func (h *Handler) healthDaily(w http.ResponseWriter, r *http.Request) {
 	}
 	ctx := r.Context()
 	tx, err := h.DB.Begin(ctx)
-	if err != nil {
-		response.Error500(w, ref())
+	if internalError(w, err) {
 		return
 	}
 	defer tx.Rollback(ctx)
@@ -60,8 +59,7 @@ func (h *Handler) healthDaily(w http.ResponseWriter, r *http.Request) {
 		k.Day = from.AddDate(0, 0, n).Format("2006-01-02")
 		id := k.ID()
 		_, err = tx.Exec(ctx, metricDailyEnsureSQL(tx.IsMySQL()), id, k.OldID, k.Source, k.SourceDevice, k.Metric, k.Semantics, k.Day, k.OffsetMinutes)
-		if err != nil {
-			response.Error500(w, ref())
+		if internalError(w, err) {
 			return
 		}
 		var dirty bool
@@ -70,8 +68,7 @@ func (h *Handler) healthDaily(w http.ResponseWriter, r *http.Request) {
 		var message string
 		var updated time.Time
 		err = tx.QueryRow(ctx, "SELECT dirty,computed_revision,result,error_text,updated_at FROM metric_daily WHERE cache_key=$1", id).Scan(&dirty, &rev, &b, &message, &updated)
-		if err != nil {
-			response.Error500(w, ref())
+		if internalError(w, err) {
 			return
 		}
 		status := "ready"

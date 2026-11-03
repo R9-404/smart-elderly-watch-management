@@ -48,8 +48,7 @@ func (h *Handler) MountLocalLogout(mux *http.ServeMux) {
 func (h *Handler) sessionInfo(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 	var count int64
-	if err := h.DB.QueryRow(ctx, "SELECT COUNT(*) FROM users").Scan(&count); err != nil {
-		response.Error500(w, ref())
+	if internalError(w, h.DB.QueryRow(ctx, "SELECT COUNT(*) FROM users").Scan(&count)) {
 		return
 	}
 
@@ -232,21 +231,18 @@ func (h *Handler) setup(w http.ResponseWriter, r *http.Request) {
 
 	ctx := r.Context()
 	tx, err := h.DB.Begin(ctx)
-	if err != nil {
-		response.Error500(w, ref())
+	if internalError(w, err) {
 		return
 	}
 	defer tx.Rollback(ctx)
 
 	// 行锁串行化，防止并发重复初始化。
 	var metaID int64
-	if err := tx.QueryRow(ctx, "SELECT id FROM app_metadata WHERE id=1 FOR UPDATE").Scan(&metaID); err != nil {
-		response.Error500(w, ref())
+	if internalError(w, tx.QueryRow(ctx, "SELECT id FROM app_metadata WHERE id=1 FOR UPDATE").Scan(&metaID)) {
 		return
 	}
 	var count int64
-	if err := tx.QueryRow(ctx, "SELECT COUNT(*) FROM users").Scan(&count); err != nil {
-		response.Error500(w, ref())
+	if internalError(w, tx.QueryRow(ctx, "SELECT COUNT(*) FROM users").Scan(&count)) {
 		return
 	}
 	if count != 0 {
@@ -259,8 +255,7 @@ func (h *Handler) setup(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	hashed, err := auth.Hash(password)
-	if err != nil {
-		response.Error500(w, ref())
+	if internalError(w, err) {
 		return
 	}
 	if _, err := tx.Exec(ctx,
@@ -269,8 +264,7 @@ func (h *Handler) setup(w http.ResponseWriter, r *http.Request) {
 		response.Error500(w, ref())
 		return
 	}
-	if err := tx.Commit(ctx); err != nil {
-		response.Error500(w, ref())
+	if internalError(w, tx.Commit(ctx)) {
 		return
 	}
 	response.OK(w, nil)

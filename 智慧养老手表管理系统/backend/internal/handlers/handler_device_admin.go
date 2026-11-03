@@ -98,8 +98,7 @@ func (h *Handler) deviceList(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	rows, err := h.DB.Query(ctx, base+` LIMIT $4 OFFSET $5`, pattern, pattern, state, ps, (p-1)*ps)
-	if err != nil {
-		response.Error500(w, ref())
+	if internalError(w, err) {
 		return
 	}
 	defer rows.Close()
@@ -107,14 +106,12 @@ func (h *Handler) deviceList(w http.ResponseWriter, r *http.Request) {
 	list := []map[string]any{}
 	for rows.Next() {
 		item, err := h.scanAdminDevice(rows, now)
-		if err != nil {
-			response.Error500(w, ref())
+		if internalError(w, err) {
 			return
 		}
 		list = append(list, item)
 	}
-	if err := rows.Err(); err != nil {
-		response.Error500(w, ref())
+	if internalError(w, rows.Err()) {
 		return
 	}
 	response.OK(w, map[string]any{
@@ -192,8 +189,7 @@ func (h *Handler) deviceCreateBindCode(w http.ResponseWriter, r *http.Request) {
 	now := time.Now()
 	expireTime := now.AddDate(0, 0, expireDays)
 	code, err := h.genBindCode(ctx, h.DB)
-	if err != nil {
-		response.Error500(w, ref())
+	if internalError(w, err) {
 		return
 	}
 	var id int64
@@ -235,15 +231,13 @@ func (h *Handler) deviceBindCodeList(w http.ResponseWriter, r *http.Request) {
 		oldID, _ := strconv.ParseInt(oldIDStr, 10, 64)
 		rows, err := h.DB.Query(r.Context(),
 			`SELECT `+bindCodeCols+` FROM bind_code WHERE old_id=$1 ORDER BY id DESC LIMIT 20`, oldID)
-		if err != nil {
-			response.Error500(w, ref())
+		if internalError(w, err) {
 			return
 		}
 		defer rows.Close()
 		for rows.Next() {
 			bc, err := scanBindCode(rows)
-			if err != nil {
-				response.Error500(w, ref())
+			if internalError(w, err) {
 				return
 			}
 			list = append(list, map[string]any{
@@ -252,8 +246,7 @@ func (h *Handler) deviceBindCodeList(w http.ResponseWriter, r *http.Request) {
 				"usedDeviceId": bc.UsedDevID,
 			})
 		}
-		if err := rows.Err(); err != nil {
-			response.Error500(w, ref())
+		if internalError(w, rows.Err()) {
 			return
 		}
 	}
@@ -273,8 +266,7 @@ func (h *Handler) deviceDeleteBindCode(w http.ResponseWriter, r *http.Request) {
 	}
 	id, _ := strconv.ParseInt(idStr, 10, 64)
 	ct, err := h.DB.Exec(r.Context(), `DELETE FROM bind_code WHERE id=$1 AND used=0`, id)
-	if err != nil {
-		response.Error500(w, ref())
+	if internalError(w, err) {
 		return
 	}
 	if ct.RowsAffected() == 1 {

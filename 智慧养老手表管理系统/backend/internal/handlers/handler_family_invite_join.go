@@ -12,8 +12,7 @@ import (
 
 func (h *Handler) inviteOldPersonList(w http.ResponseWriter, r *http.Request) {
 	rows, err := h.DB.Query(r.Context(), `SELECT old_id,name,phone,room FROM oldperson`)
-	if err != nil {
-		response.Error500(w, ref())
+	if internalError(w, err) {
 		return
 	}
 	defer rows.Close()
@@ -21,14 +20,12 @@ func (h *Handler) inviteOldPersonList(w http.ResponseWriter, r *http.Request) {
 	for rows.Next() {
 		var id int64
 		var name, phone, room *string
-		if err := rows.Scan(&id, &name, &phone, &room); err != nil {
-			response.Error500(w, ref())
+		if internalError(w, rows.Scan(&id, &name, &phone, &room)) {
 			return
 		}
 		list = append(list, map[string]any{"oldId": id, "name": name, "phone": phone, "room": room})
 	}
-	if err := rows.Err(); err != nil {
-		response.Error500(w, ref())
+	if internalError(w, rows.Err()) {
 		return
 	}
 	response.OK(w, map[string]any{"oldPeople": list})
@@ -95,8 +92,7 @@ func (h *Handler) inviteJoin(w http.ResponseWriter, r *http.Request) {
 	}
 	ctx := r.Context()
 	tx, err := h.DB.Begin(ctx)
-	if err != nil {
-		response.Error500(w, ref())
+	if internalError(w, err) {
 		return
 	}
 	// 邀请码行锁查询
@@ -195,8 +191,7 @@ func (h *Handler) inviteJoin(w http.ResponseWriter, r *http.Request) {
 		conflict409(w, "邀请码已失效，请重新获取")
 		return
 	}
-	if err := tx.Commit(ctx); err != nil {
-		response.Error500(w, ref())
+	if internalError(w, tx.Commit(ctx)) {
 		return
 	}
 	nm := ""

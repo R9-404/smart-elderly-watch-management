@@ -44,8 +44,7 @@ func (h *Handler) createResident(w http.ResponseWriter, r *http.Request) {
 	}
 	ctx := r.Context()
 	tx, err := h.DB.Begin(ctx)
-	if err != nil {
-		response.Error500(w, ref())
+	if internalError(w, err) {
 		return
 	}
 	defer tx.Rollback(ctx)
@@ -59,13 +58,11 @@ func (h *Handler) createResident(w http.ResponseWriter, r *http.Request) {
 		vals["warn"], vals["foodLike"], vals["foodHate"], vals["drag"], customerID,
 		time.Date(now.Year(), now.Month(), now.Day(), 0, 0, 0, 0, time.Local),
 		vals["bothdate"])
-	if err != nil {
-		response.Error500(w, ref())
+	if internalError(w, err) {
 		return
 	}
 	if ct.RowsAffected() == 1 {
-		if err := tx.Commit(ctx); err != nil {
-			response.Error500(w, ref())
+		if internalError(w, tx.Commit(ctx)) {
 			return
 		}
 		response.OK(w, nil)
@@ -114,8 +111,7 @@ func (h *Handler) updateResident(w http.ResponseWriter, r *http.Request) {
 	}
 	ctx := r.Context()
 	tx, err := h.DB.Begin(ctx)
-	if err != nil {
-		response.Error500(w, ref())
+	if internalError(w, err) {
 		return
 	}
 	defer tx.Rollback(ctx)
@@ -145,12 +141,10 @@ func (h *Handler) updateResident(w http.ResponseWriter, r *http.Request) {
 		vals["name"], age, vals["sex"], vals["phone"], vals["room"], vals["illness"],
 		vals["warn"], vals["foodLike"], vals["foodHate"], vals["drag"], customerID,
 		vals["bothdate"], oldID)
-	if err != nil {
-		response.Error500(w, ref())
+	if internalError(w, err) {
 		return
 	}
-	if err := tx.Commit(ctx); err != nil {
-		response.Error500(w, ref())
+	if internalError(w, tx.Commit(ctx)) {
 		return
 	}
 	if ct.RowsAffected() == 1 {
@@ -174,8 +168,7 @@ func (h *Handler) deleteResident(w http.ResponseWriter, r *http.Request) {
 	oldID, _ := strconv.ParseInt(oldIDStr, 10, 64)
 	ctx := r.Context()
 	tx, err := h.DB.Begin(ctx)
-	if err != nil {
-		response.Error500(w, ref())
+	if internalError(w, err) {
 		return
 	}
 	rollback := func() { _ = tx.Rollback(ctx) }
@@ -222,8 +215,7 @@ func (h *Handler) deleteResident(w http.ResponseWriter, r *http.Request) {
 		response.Error500(w, ref())
 		return
 	}
-	if err := tx.Commit(ctx); err != nil {
-		response.Error500(w, ref())
+	if internalError(w, tx.Commit(ctx)) {
 		return
 	}
 	response.OK(w, nil)

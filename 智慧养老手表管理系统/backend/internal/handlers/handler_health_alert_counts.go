@@ -24,8 +24,7 @@ func (h *Handler) countVitalAlertDevices(w http.ResponseWriter, r *http.Request)
 		return
 	}
 	var heartRate, bloodPressure int64
-	if err := h.DB.QueryRow(r.Context(), vitalAlertCountsSQL).Scan(&heartRate, &bloodPressure); err != nil {
-		response.Error500(w, ref())
+	if internalError(w, h.DB.QueryRow(r.Context(), vitalAlertCountsSQL).Scan(&heartRate, &bloodPressure)) {
 		return
 	}
 	response.OK(w, map[string]any{"heartRate": heartRate, "bloodPressure": bloodPressure})
@@ -36,8 +35,7 @@ func (h *Handler) countSleepAlertDevices(w http.ResponseWriter, r *http.Request)
 		return
 	}
 	var sleep int64
-	if err := h.DB.QueryRow(r.Context(), sleepAlertCountSQL).Scan(&sleep); err != nil {
-		response.Error500(w, ref())
+	if internalError(w, h.DB.QueryRow(r.Context(), sleepAlertCountSQL).Scan(&sleep)) {
 		return
 	}
 	response.OK(w, map[string]any{"sleep": sleep})
@@ -50,8 +48,7 @@ func (h *Handler) countHealthAlertDevices(w http.ResponseWriter, r *http.Request
 	var heartRate, bloodPressure, sleep int64
 	query := `SELECT v.heart_rate_count,v.blood_pressure_count,s.sleep_count
 		FROM (` + vitalAlertCountsSQL + `) v CROSS JOIN (` + sleepAlertCountSQL + `) s`
-	if err := h.DB.QueryRow(r.Context(), query).Scan(&heartRate, &bloodPressure, &sleep); err != nil {
-		response.Error500(w, ref())
+	if internalError(w, h.DB.QueryRow(r.Context(), query).Scan(&heartRate, &bloodPressure, &sleep)) {
 		return
 	}
 	response.OK(w, map[string]any{"heartRate": heartRate, "bloodPressure": bloodPressure, "sleep": sleep})

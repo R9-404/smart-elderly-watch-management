@@ -16,8 +16,7 @@ import (
 // by careAdmin before reaching these functions.
 func (h *Handler) careDuty(w http.ResponseWriter, r *http.Request, actor string) (string, bool) {
 	id, err := strconv.ParseInt(actor, 10, 64)
-	if err != nil {
-		response.Error500(w, ref())
+	if internalError(w, err) {
 		return "", false
 	}
 	var duty string
@@ -25,8 +24,7 @@ func (h *Handler) careDuty(w http.ResponseWriter, r *http.Request, actor string)
 	if err == pgx.ErrNoRows {
 		return "supervisor", true
 	}
-	if err != nil {
-		response.Error500(w, ref())
+	if internalError(w, err) {
 		return "", false
 	}
 	return duty, true
@@ -49,13 +47,11 @@ func (h *Handler) authorizeCareAction(w http.ResponseWriter, r *http.Request, ac
 // audit cannot be written, deny disclosure instead of silently skipping it.
 func (h *Handler) auditCareAccess(w http.ResponseWriter, r *http.Request, actor, action string, incidentID *int64) bool {
 	id, err := strconv.ParseInt(actor, 10, 64)
-	if err != nil {
-		response.Error500(w, ref())
+	if internalError(w, err) {
 		return false
 	}
 	_, err = h.DB.Exec(r.Context(), "INSERT INTO care_access_audit(admin_id,action,incident_id) VALUES($1,$2,$3)", id, action, incidentID)
-	if err != nil {
-		response.Error500(w, ref())
+	if internalError(w, err) {
 		return false
 	}
 	return true
@@ -87,8 +83,7 @@ func (h *Handler) careDiagnostics(w http.ResponseWriter, r *http.Request) {
           (SELECT count(*) FROM care_incident WHERE state NOT IN ('verified') AND due_at < now()),
           (SELECT min(created_at) FROM care_notification_outbox WHERE status IN ('pending','failed'))
     `).Scan(&pending, &failed, &stale, &overdue, &oldest)
-	if err != nil {
-		response.Error500(w, ref())
+	if internalError(w, err) {
 		return
 	}
 	var workerSeen, workerStarted *time.Time

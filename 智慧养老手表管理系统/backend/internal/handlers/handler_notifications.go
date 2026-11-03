@@ -27,8 +27,7 @@ func (h *Handler) notifications(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	rows, err := h.DB.Query(r.Context(), "SELECT id,topic,source_key,status,created_at FROM message_outbox WHERE family_id=$1 AND channel='in_app' AND id>$2 ORDER BY id LIMIT 100", req.FamilyID, req.After)
-	if err != nil {
-		response.Error500(w, ref())
+	if internalError(w, err) {
 		return
 	}
 	defer rows.Close()

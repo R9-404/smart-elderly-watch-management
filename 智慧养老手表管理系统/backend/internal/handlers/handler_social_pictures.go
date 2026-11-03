@@ -67,8 +67,7 @@ func (h *Handler) replaceGallery(w http.ResponseWriter, r *http.Request) {
 		names = append(names, s)
 	}
 	tx, err := h.DB.Begin(r.Context())
-	if err != nil {
-		response.Error500(w, ref())
+	if internalError(w, err) {
 		return
 	}
 	defer tx.Rollback(r.Context())
@@ -87,8 +86,7 @@ func (h *Handler) replaceGallery(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 	}
-	if err := tx.Commit(r.Context()); err != nil {
-		response.Error500(w, ref())
+	if internalError(w, tx.Commit(r.Context())) {
 		return
 	}
 	writeCode(w, true)
@@ -100,8 +98,7 @@ func (h *Handler) listGallery(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	rows, err := h.DB.Query(r.Context(), "SELECT id, pic_name FROM pic_show")
-	if err != nil {
-		response.Error500(w, ref())
+	if internalError(w, err) {
 		return
 	}
 	defer rows.Close()

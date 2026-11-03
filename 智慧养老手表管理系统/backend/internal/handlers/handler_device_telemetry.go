@@ -30,8 +30,7 @@ func (h *Handler) deviceReport(w http.ResponseWriter, r *http.Request) {
 	}
 	ctx := r.Context()
 	tx, err := h.DB.Begin(ctx)
-	if err != nil {
-		response.Error500(w, ref())
+	if internalError(w, err) {
 		return
 	}
 	rollback := func() { _ = tx.Rollback(ctx) }
@@ -67,8 +66,7 @@ func (h *Handler) deviceReport(w http.ResponseWriter, r *http.Request) {
 			}
 			return
 		}
-		if err := tx.Commit(ctx); err != nil {
-			response.Error500(w, ref())
+		if internalError(w, tx.Commit(ctx)) {
 			return
 		}
 		response.OK(w, map[string]any{
@@ -84,8 +82,7 @@ func (h *Handler) deviceReport(w http.ResponseWriter, r *http.Request) {
 		response.Error500(w, ref())
 		return
 	}
-	if err := tx.Commit(ctx); err != nil {
-		response.Error500(w, ref())
+	if internalError(w, tx.Commit(ctx)) {
 		return
 	}
 	response.OK(w, map[string]any{

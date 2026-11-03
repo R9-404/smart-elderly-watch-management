@@ -38,14 +38,12 @@ func (h *Handler) healthBatchWithLockOrder(w http.ResponseWriter, r *http.Reques
 	}
 	ctx := r.Context()
 	tx, err := h.DB.Begin(ctx)
-	if err != nil {
-		response.Error500(w, ref())
+	if internalError(w, err) {
 		return
 	}
 	defer tx.Rollback(ctx)
 	d, code, msg, err := h.healthDeviceAuth(ctx, tx, req.DeviceNo, req.Secret, "设备已停用")
-	if err != nil {
-		response.Error500(w, ref())
+	if internalError(w, err) {
 		return
 	}
 	if d == nil {
@@ -57,8 +55,7 @@ func (h *Handler) healthBatchWithLockOrder(w http.ResponseWriter, r *http.Reques
 	// full device binding under FOR UPDATE before committing anything.
 	if !lateDeviceLock {
 		d, err = scanHealthDevice(tx.QueryRow(ctx, `SELECT `+healthDeviceCols+` FROM device WHERE device_id=$1 FOR UPDATE`, d.ID))
-		if err != nil {
-			response.Error500(w, ref())
+		if internalError(w, err) {
 			return
 		}
 	}
@@ -142,8 +139,7 @@ func (h *Handler) healthChanges(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	rows, err := h.DB.Query(r.Context(), `SELECT revision,payload FROM health_change WHERE old_id=$1 AND revision>$2 ORDER BY revision LIMIT $3`, oldID, req.After, req.Limit+1)
-	if err != nil {
-		response.Error500(w, ref())
+	if internalError(w, err) {
 		return
 	}
 	defer rows.Close()

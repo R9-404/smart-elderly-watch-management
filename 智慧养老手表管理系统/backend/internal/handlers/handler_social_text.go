@@ -21,8 +21,7 @@ func (h *Handler) createNotice(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	tx, err := h.DB.Begin(r.Context())
-	if err != nil {
-		response.Error500(w, ref())
+	if internalError(w, err) {
 		return
 	}
 	defer tx.Rollback(r.Context())
@@ -30,8 +29,7 @@ func (h *Handler) createNotice(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	picID, err := allocatePictureGroupID(r.Context(), tx)
-	if err != nil {
-		response.Error500(w, ref())
+	if internalError(w, err) {
 		return
 	}
 	for _, name := range fileList {
@@ -44,25 +42,21 @@ func (h *Handler) createNotice(w http.ResponseWriter, r *http.Request) {
 	var textID int64
 	err = tx.QueryRow(r.Context(), "INSERT INTO "+socialTextTable(tx.IsMySQL())+"(title,text_main,time,pic_id) VALUES($1,$2,$3,$4) RETURNING text_id",
 		title, textMain, time.Now(), picID).Scan(&textID)
-	if err != nil {
-		response.Error500(w, ref())
+	if internalError(w, err) {
 		return
 	}
 	phones, err := h.notificationPhones(r, tx)
-	if err != nil {
-		response.Error500(w, ref())
+	if internalError(w, err) {
 		return
 	}
 	messages := make([]notify.Message, 0, len(phones))
 	for _, target := range phones {
 		messages = append(messages, notify.Message{Topic: "announcement", Key: strconv.FormatInt(textID, 10), FamilyID: target.FamilyID, Phone: target.Phone})
 	}
-	if err := notify.EnqueueBatch(r.Context(), tx, h.Box, messages); err != nil {
-		response.Error500(w, ref())
+	if internalError(w, notify.EnqueueBatch(r.Context(), tx, h.Box, messages)) {
 		return
 	}
-	if err := tx.Commit(r.Context()); err != nil {
-		response.Error500(w, ref())
+	if internalError(w, tx.Commit(r.Context())) {
 		return
 	}
 	// The announcement and durable outbox commit together; network I/O is worker-owned.
@@ -87,19 +81,16 @@ func (h *Handler) deleteNotice(w http.ResponseWriter, r *http.Request) {
 		writeCode(w, false)
 		return
 	}
-	if err != nil {
-		response.Error500(w, ref())
+	if internalError(w, err) {
 		return
 	}
 	tx, err := h.DB.Begin(r.Context())
-	if err != nil {
-		response.Error500(w, ref())
+	if internalError(w, err) {
 		return
 	}
 	defer tx.Rollback(r.Context())
 	ct, err := tx.Exec(r.Context(), "DELETE FROM "+socialTextTable(tx.IsMySQL())+" WHERE text_id=$1", textID)
-	if err != nil {
-		response.Error500(w, ref())
+	if internalError(w, err) {
 		return
 	}
 	if existing.PicID != nil {
@@ -112,8 +103,7 @@ func (h *Handler) deleteNotice(w http.ResponseWriter, r *http.Request) {
 		writeCode(w, false)
 		return
 	}
-	if err := tx.Commit(r.Context()); err != nil {
-		response.Error500(w, ref())
+	if internalError(w, tx.Commit(r.Context())) {
 		return
 	}
 	writeCode(w, true)
@@ -139,8 +129,7 @@ func (h *Handler) updateNotice(w http.ResponseWriter, r *http.Request) {
 		writeCode(w, false)
 		return
 	}
-	if err != nil {
-		response.Error500(w, ref())
+	if internalError(w, err) {
 		return
 	}
 	fileList, ok := picNameList(w, m)
@@ -148,8 +137,7 @@ func (h *Handler) updateNotice(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	tx, err := h.DB.Begin(r.Context())
-	if err != nil {
-		response.Error500(w, ref())
+	if internalError(w, err) {
 		return
 	}
 	defer tx.Rollback(r.Context())
@@ -159,8 +147,7 @@ func (h *Handler) updateNotice(w http.ResponseWriter, r *http.Request) {
 	}
 	if existing.PicID == nil {
 		picID, err = allocatePictureGroupID(r.Context(), tx)
-		if err != nil {
-			response.Error500(w, ref())
+		if internalError(w, err) {
 			return
 		}
 	} else {
@@ -179,16 +166,14 @@ func (h *Handler) updateNotice(w http.ResponseWriter, r *http.Request) {
 	}
 	ct, err := tx.Exec(r.Context(), "UPDATE "+socialTextTable(tx.IsMySQL())+" SET title=$1, text_main=$2, time=$3, pic_id=$4 WHERE text_id=$5",
 		title, textMain, time.Now(), picID, textID)
-	if err != nil {
-		response.Error500(w, ref())
+	if internalError(w, err) {
 		return
 	}
 	if ct.RowsAffected() != 1 {
 		writeCode(w, false)
 		return
 	}
-	if err := tx.Commit(r.Context()); err != nil {
-		response.Error500(w, ref())
+	if internalError(w, tx.Commit(r.Context())) {
 		return
 	}
 	writeCode(w, true)

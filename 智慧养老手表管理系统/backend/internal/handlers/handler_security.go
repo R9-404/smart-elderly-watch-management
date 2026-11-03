@@ -60,8 +60,7 @@ func (h *Handler) loginAllowed(w http.ResponseWriter, r *http.Request, phone str
 	err := h.DB.QueryRow(r.Context(), `SELECT
  (SELECT count(*) FROM (SELECT 1 FROM login_audit WHERE account_hash=$1 AND ip_hash=$2 AND outcome IN ('invalid_credentials','factor_required') AND created_at>$3 LIMIT 10) pair_attempts),
  (SELECT count(*) FROM (SELECT 1 FROM login_audit WHERE account_hash=$1 AND outcome IN ('invalid_credentials','factor_required') AND created_at>$3 LIMIT 30) account_attempts)`, h.Box.Index("account", phone), h.Box.Index("ip", ip), time.Now().Add(-15*time.Minute)).Scan(&failures, &accountFailures)
-	if err != nil {
-		response.Error500(w, ref())
+	if internalError(w, err) {
 		return false
 	}
 	if failures >= 10 || accountFailures >= 30 {
@@ -77,8 +76,7 @@ func (h *Handler) factorLogin(w http.ResponseWriter, r *http.Request, m map[stri
 	}
 	ctx := r.Context()
 	tx, err := h.DB.Begin(ctx)
-	if err != nil {
-		response.Error500(w, ref())
+	if internalError(w, err) {
 		return false
 	}
 	defer tx.Rollback(ctx)
@@ -163,8 +161,7 @@ func (h *Handler) securityFactor(w http.ResponseWriter, r *http.Request) {
 	}
 	ctx := r.Context()
 	tx, err := h.DB.Begin(ctx)
-	if err != nil {
-		response.Error500(w, ref())
+	if internalError(w, err) {
 		return
 	}
 	defer tx.Rollback(ctx)
@@ -233,8 +230,7 @@ func (h *Handler) securityFactor(w http.ResponseWriter, r *http.Request) {
 	if err == nil {
 		err = tx.Commit(ctx)
 	}
-	if err != nil {
-		response.Error500(w, ref())
+	if internalError(w, err) {
 		return
 	}
 	if req.Action != "setup" && h.Cfg.SessionBackend != "database" {
@@ -264,8 +260,7 @@ func (h *Handler) securityLoginAudit(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	rows, err := h.DB.Query(r.Context(), "SELECT id,role,actor_id,outcome,request_id,created_at FROM login_audit WHERE id>$1 ORDER BY id LIMIT 100", req.After)
-	if err != nil {
-		response.Error500(w, ref())
+	if internalError(w, err) {
 		return
 	}
 	defer rows.Close()

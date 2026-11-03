@@ -91,8 +91,7 @@ func (h *Handler) inviteList(w http.ResponseWriter, r *http.Request) {
 		        ic.expire_time,ic.used,ic.used_time,o.name
 		 FROM invite_code ic LEFT JOIN oldperson o ON ic.old_id=o.old_id
 		 WHERE 1=1 `+cond+` ORDER BY ic.id DESC LIMIT $1 OFFSET $2`, ps, (p-1)*ps)
-	if err != nil {
-		response.Error500(w, ref())
+	if internalError(w, err) {
 		return
 	}
 	defer rows.Close()
@@ -107,8 +106,7 @@ func (h *Handler) inviteList(w http.ResponseWriter, r *http.Request) {
 		var createTime, expire, usedTime *time.Time
 		var used int16
 		var oldName *string
-		if err := rows.Scan(&id, &code, &oldID, &createUser, &createTime, &expire, &used, &usedTime, &oldName); err != nil {
-			response.Error500(w, ref())
+		if internalError(w, rows.Scan(&id, &code, &oldID, &createUser, &createTime, &expire, &used, &usedTime, &oldName)) {
 			return
 		}
 		st := inviteStatus(used, expire, now)
@@ -127,8 +125,7 @@ func (h *Handler) inviteList(w http.ResponseWriter, r *http.Request) {
 			"usedTime": fmtTS(usedTime), "status": st, "statusText": statusText[st],
 		})
 	}
-	if err := rows.Err(); err != nil {
-		response.Error500(w, ref())
+	if internalError(w, rows.Err()) {
 		return
 	}
 	response.OK(w, map[string]any{
@@ -178,8 +175,7 @@ func (h *Handler) inviteCreate(w http.ResponseWriter, r *http.Request) {
 	}
 
 	tx, err := h.DB.Begin(ctx)
-	if err != nil {
-		response.Error500(w, ref())
+	if internalError(w, err) {
 		return
 	}
 	now := time.Now()
@@ -204,8 +200,7 @@ func (h *Handler) inviteCreate(w http.ResponseWriter, r *http.Request) {
 		response.Error500(w, ref())
 		return
 	}
-	if err := tx.Commit(ctx); err != nil {
-		response.Error500(w, ref())
+	if internalError(w, tx.Commit(ctx)) {
 		return
 	}
 	var expAny any
@@ -234,8 +229,7 @@ func (h *Handler) inviteDelete(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	ct, err := h.DB.Exec(r.Context(), `DELETE FROM invite_code WHERE id=$1 AND used=0`, id)
-	if err != nil {
-		response.Error500(w, ref())
+	if internalError(w, err) {
 		return
 	}
 	if ct.RowsAffected() == 1 {

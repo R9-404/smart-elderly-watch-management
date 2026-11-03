@@ -47,27 +47,23 @@ func (h *Handler) listResidents(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 	base := `SELECT ` + oldPersonCols + ` FROM oldperson WHERE ($1='' OR name LIKE '%'||$1||'%') ORDER BY old_id`
 	var total int64
-	if err := h.DB.QueryRow(ctx, `SELECT COUNT(*) FROM (`+base+`) AS t`, name).Scan(&total); err != nil {
-		response.Error500(w, ref())
+	if internalError(w, h.DB.QueryRow(ctx, `SELECT COUNT(*) FROM (`+base+`) AS t`, name).Scan(&total)) {
 		return
 	}
 	rows, err := h.DB.Query(ctx, base+` LIMIT $2 OFFSET $3`, name, ps, (p-1)*ps)
-	if err != nil {
-		response.Error500(w, ref())
+	if internalError(w, err) {
 		return
 	}
 	defer rows.Close()
 	list := []map[string]any{}
 	for rows.Next() {
 		item, err := scanOldPersonRow(rows)
-		if err != nil {
-			response.Error500(w, ref())
+		if internalError(w, err) {
 			return
 		}
 		list = append(list, item)
 	}
-	if err := rows.Err(); err != nil {
-		response.Error500(w, ref())
+	if internalError(w, rows.Err()) {
 		return
 	}
 	response.OK(w, map[string]any{
@@ -99,13 +95,11 @@ func (h *Handler) getResidentDetails(w http.ResponseWriter, r *http.Request) {
 		LEFT JOIN customer c ON c.customer_id=o.customer_id
 		WHERE ($1='' OR o.name LIKE '%'||$1||'%') ORDER BY o.old_id`
 	var total int64
-	if err := h.DB.QueryRow(ctx, `SELECT COUNT(*) FROM (`+base+`) AS t`, name).Scan(&total); err != nil {
-		response.Error500(w, ref())
+	if internalError(w, h.DB.QueryRow(ctx, `SELECT COUNT(*) FROM (`+base+`) AS t`, name).Scan(&total)) {
 		return
 	}
 	rows, err := h.DB.Query(ctx, base+` LIMIT $2 OFFSET $3`, name, ps, (p-1)*ps)
-	if err != nil {
-		response.Error500(w, ref())
+	if internalError(w, err) {
 		return
 	}
 	defer rows.Close()
@@ -134,8 +128,7 @@ func (h *Handler) getResidentDetails(w http.ResponseWriter, r *http.Request) {
 			"familyAddress": familyAddress, "customerName": customerName,
 		})
 	}
-	if err := rows.Err(); err != nil {
-		response.Error500(w, ref())
+	if internalError(w, rows.Err()) {
 		return
 	}
 	response.OK(w, map[string]any{

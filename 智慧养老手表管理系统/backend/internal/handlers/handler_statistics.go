@@ -57,8 +57,7 @@ func (h *Handler) healthStatistics(w http.ResponseWriter, r *http.Request) {
 	}
 	observability.Default.Add("suining_health_statistics_db_loads_total", 1)
 	samples, candidates, err := h.loadStatisticsSamples(r.Context(), oldID, req)
-	if err != nil {
-		response.Error500(w, ref())
+	if internalError(w, err) {
 		return
 	}
 	if candidates > 10000 {

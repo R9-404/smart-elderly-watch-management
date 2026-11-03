@@ -43,8 +43,7 @@ func (h *Handler) familyUpdatePassword(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	nh, err := auth.Hash(newPw)
-	if err != nil {
-		response.Error500(w, ref())
+	if internalError(w, err) {
 		return
 	}
 	if _, err := h.DB.Exec(r.Context(),
