@@ -1,6 +1,6 @@
 <template>
   <div class="admin-notice">
-    <el-button plain icon="el-icon-arrow-left" @click="$router.push('/main')">返回运营总览</el-button>
+    <el-button plain icon="el-icon-arrow-left" @click="$router.push('/operations/overview')">返回运营总览</el-button>
     <article v-loading="loading" class="notice-panel">
       <div v-if="error" role="alert" class="notice-feedback"><p>{{ error }}</p><el-button plain @click="loadNotice">重新加载公告</el-button></div>
       <template v-else-if="notice">
@@ -10,7 +10,7 @@
       </template>
     </article>
     <section class="notice-panel" v-loading="commentsLoading" aria-label="家属留言">
-      <div class="comments-heading"><h2>家属留言 <span>{{ comments.length }}</span></h2><el-button plain @click="$router.push('/saidOperation')">管理评论</el-button></div>
+      <div class="comments-heading"><h2>家属留言 <span>{{ comments.length }}</span></h2><el-button plain @click="$router.push('/operations/comments')">管理评论</el-button></div>
       <div v-if="commentsError" role="alert" class="notice-feedback"><p>{{ commentsError }}</p><el-button plain @click="loadComments">重新加载留言</el-button></div>
       <p v-else-if="!commentsLoading && !comments.length" class="notice-time">暂时没有留言。</p>
       <ul v-else class="comment-list"><li v-for="(comment, index) in comments" :key="comment.saidId || index"><strong>{{ comment.personName || '家属' }}</strong><p>{{ comment.said }}</p><p v-if="comment.back" class="comment-reply">平台回复：{{ comment.back }}</p><small>赞同 · {{ comment.niceCount || 0 }}</small></li></ul>
@@ -33,7 +33,7 @@ export default {
       this.error = ''
       this.notice = null
       this.pictures = []
-      axios.post('api/v1/text/selectDetail', { textId: this.$route.query.textId }, { withCredentials: true }).then((response) => {
+      axios.post('api/v1/notices/detail', { textId: this.$route.query.textId }, { withCredentials: true }).then((response) => {
         if (!response.data.text) throw new Error('missing notice')
         this.notice = response.data.text
         this.pictures = response.data.pics || []
@@ -43,8 +43,8 @@ export default {
       this.commentsLoading = true
       this.commentsError = ''
       this.comments = []
-      axios.post('api/v1/said/select', { textId: this.$route.query.textId }, { withCredentials: true }).then((response) => {
-        this.comments = response.data.said2s || []
+      axios.post('api/v1/notice-comments/list', { textId: this.$route.query.textId }, { withCredentials: true }).then((response) => {
+        this.comments = response.data.comments || []
       }).catch((error) => { this.commentsError = apiErrorMessage(error, '留言暂时无法加载，请重试。') }).then(() => { this.commentsLoading = false })
     }
   }

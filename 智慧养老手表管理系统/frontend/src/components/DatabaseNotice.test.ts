@@ -35,7 +35,7 @@ it('reads configuration diagnostics and clears them when a later status omits th
   vi.useFakeTimers()
   get.mockResolvedValueOnce({ data: { databaseReady: false, configError: 'Invalid session key' } })
     .mockResolvedValueOnce({ data: { databaseReady: false } })
-  const stop = monitorDatabase({ currentRoute: { value: { path: '/login' } } })
+  const stop = monitorDatabase({ currentRoute: { value: { path: '/sign-in' } } })
   try {
     await vi.advanceTimersByTimeAsync(0)
     expect(authState.configError).toBe('Invalid session key')

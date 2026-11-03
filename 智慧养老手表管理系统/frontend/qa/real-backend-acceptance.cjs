@@ -30,7 +30,7 @@ async function main () {
   const errors = []
   page.on('pageerror', error => errors.push(error.message))
   const login = async phone => {
-    await page.goto(base + '/#/login')
+    await page.goto(base + '/#/sign-in')
     await page.locator('#login-phone').fill(phone)
     await page.locator('#login-password').fill(password)
     await page.getByRole('button', { name: '登录', exact: true }).click()
@@ -48,7 +48,7 @@ async function main () {
     await login('13800000001')
     check('real login establishes a server session', await page.locator('.care-inbox').count() === 1)
     await post('customer/add', { customerName: '张女士', customerAge: 50, customerSex: '女', customerPhone: '13800000003', customerAddress: '测试地址' })
-    await page.goto(base + '/#/person')
+    await page.goto(base + '/#/operations/residents')
     await page.getByRole('button', { name: '添加老人', exact: true }).click()
     const elderDialog = page.getByRole('dialog', { name: '老人添加' })
     for (const [label, value] of [['姓名', '测试长者'], ['电话', '13800000004'], ['房间', '101'], ['病史', '暂无'], ['过敏药物', '无'], ['喜好食物', '米饭'], ['忌口食物', '花生'], ['常用药物', '常用药']]) {
@@ -71,7 +71,7 @@ async function main () {
     const bound = (await post('device/list', {})).devices[0]
     const linked = (await post('oldPerson/selectDetail', { name: '测试长者' })).oldPersonDetails[0]
     check('binding keeps both inventory and elder references consistent', bound.oldId === details.oldId && linked.deviceId === device.deviceId)
-    await page.goto(base + '/#/watch')
+    await page.goto(base + '/#/operations/monitoring-profiles')
     await page.locator('.adaptive-record-table').getByRole('button', { name: '编辑', exact: true }).click()
     const watchDialog = page.getByRole('dialog', { name: '设备编辑' })
     check('real threshold API supplies the editable device identifier', await watchDialog.locator('input').first().inputValue() === String(device.deviceId))
@@ -80,10 +80,10 @@ async function main () {
     await watchDialog.waitFor({ state: 'hidden' })
     check('real UI threshold editing persists to MySQL', (await post('watchInfo/select', { oldName: '' })).watchDtos[0].hrf === 125)
     await post('device/report', { deviceNo: device.deviceNo, secret: device.secret, hr: 72 })
-    const metric = (await post('ratepre/selectRatepre', {})).ratepreDtoList[0]
+    const metric = (await post('ratepre/selectRatepre', {})).vitalRecords[0]
     check('real heart-rate-only upload leaves blood pressure unknown', metric.hr === 72 && metric.bp === null && metric.preState === null)
     await post('device/sos', { deviceNo: device.deviceNo, secret: device.secret, requestId: 'qa-press-1', bindingVersion: deviceSession.bindingVersion })
-    await page.goto(base + '/#/main')
+    await page.goto(base + '/#/operations/overview')
     await page.locator('.care-task').first().waitFor()
     for (const [button, title, note] of [['接单', '确认接单', ''], ['开始处置', '开始处置', ''], ['登记处置', '登记处置措施', '护理记录'.repeat(300)]]) {
       await page.getByRole('button', { name: button, exact: true }).click()

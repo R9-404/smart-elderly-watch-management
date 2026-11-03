@@ -1,6 +1,6 @@
 <template>
   <header class="care-header">
-    <router-link class="brand" :to="isFamily ? '/familyMain' : '/main'" aria-label="岁宁，返回首页">
+    <router-link class="brand" :to="isFamily ? '/family-portal/overview' : '/operations/overview'" aria-label="岁宁，返回首页">
       <img class="brand-mark" src="/static/brand/suining-logo-96.webp" srcset="/static/brand/suining-logo-96.webp 96w, /static/brand/suining-logo-192.webp 192w" sizes="56px" width="56" height="56" alt="" aria-hidden="true" decoding="async">
       <span class="brand-copy">
         <strong>岁宁</strong>
@@ -55,7 +55,7 @@ export default {
       }).then(() => {
         return endSession().then(() => {
           this.$store.clearTabs()
-          this.$router.push('/login')
+          this.$router.push('/sign-in')
         }).catch(() => { this.$message.error('退出未能完成，请检查网络后重试') })
       }).catch(() => {})
     }

@@ -10,7 +10,7 @@ run(async({page,base,report,setRole,setSignedIn})=>{
   if(customerMode==='error')return route.fulfill({status:503,json:{returnCode:'0000',code:'SERVICE_UNAVAILABLE',message:'请求未完成',}});
   return route.fulfill({json:{returnCode:'1111',customers:[{customerId:1,customerName:'F02当前监护人',customerPhone:'19912345678',customerAge:70}],total:1}});
  });
- await visit('/customer','ADMIN');
+ await visit('/operations/guardians','ADMIN');
  await page.getByText('F02当前监护人',{exact:true}).first().waitFor();
  const searchCustomer=async(name)=>{
   await page.getByLabel('监护人姓名',{exact:true}).fill(name);
@@ -36,7 +36,7 @@ run(async({page,base,report,setRole,setSignedIn})=>{
  check('A current HTTP failure ends loading and remains visible',await page.locator('.roles').getAttribute('aria-busy')==='false');
  customerMode='hold';const leaving=await searchCustomer('F02离页');
  const unmounted=page.waitForEvent('requestfailed',{predicate:r=>r===leaving});
- await page.evaluate(()=>{location.hash='/main'});await unmounted;
+ await page.evaluate(()=>{location.hash='/operations/overview'});await unmounted;
  await page.getByRole('heading',{name:'运营总览',exact:true}).waitFor();
  const countAfterLeaving=customerRequests.length;await page.waitForTimeout(100);
  check('Navigation aborts the guardian read without starting a replacement',customerRequests.length===countAfterLeaving);
@@ -45,7 +45,7 @@ run(async({page,base,report,setRole,setSignedIn})=>{
  await page.route('**/api/v1/care/incidents',route=>route.fulfill({json:{returnCode:'1111',items:[{id:1,oldPersonName:'F02照护任务',state:'received'}],total:1,duty:'supervisor',actorId:1}}));
  const historyRequests=[];
  await page.route('**/api/v1/care/events',route=>{historyRequests.push(route.request())});
- await visit('/main','ADMIN');await page.locator('.care-task').first().waitFor();
+ await visit('/operations/overview','ADMIN');await page.locator('.care-task').first().waitFor();
  const openHistory=async()=>{
   const requested=page.waitForRequest(r=>r.url().endsWith('/api/v1/care/events'));
   await page.getByRole('button',{name:'处置记录',exact:true}).first().click();return requested;
@@ -56,28 +56,28 @@ run(async({page,base,report,setRole,setSignedIn})=>{
  check('Closing history aborts its hung XHR',historyRequests.length===1);
  const historyAgain=await openHistory();
  const historyUnmounted=page.waitForEvent('requestfailed',{predicate:r=>r===historyAgain});
- await page.evaluate(()=>{location.hash='/customer'});await historyUnmounted;
+ await page.evaluate(()=>{location.hash='/operations/guardians'});await historyUnmounted;
  await page.locator('.roles').waitFor();
  check('History can reopen and is aborted when leaving the page',historyRequests.length===2);
  await page.unroute('**/api/v1/care/events');await page.unroute('**/api/v1/care/incidents');
 
- await visit('/device','ADMIN');
+ await visit('/operations/devices','ADMIN');
  await page.getByRole('heading',{name:'设备管理',exact:true}).waitFor();
  await page.waitForTimeout(250);
  let release,started,requests=0;
  const gate=new Promise(resolve=>{release=resolve}),pending=new Promise(resolve=>{started=resolve});
  await page.route('**/api/v1/device/list',async route=>{requests++;started();await gate;await route.fulfill({contentType:'application/json',body:JSON.stringify({returnCode:'1111',devices:[]})});});
  await Promise.race([pending,new Promise((_,reject)=>setTimeout(()=>reject(new Error('Refresh did not run')),12000))]);
- await page.locator('a[href="#/main"]').first().click();
+ await page.locator('a[href="#/operations/overview"]').first().click();
  await page.getByRole('heading',{name:'运营总览',exact:true}).waitFor();
  release();await page.waitForTimeout(5500);
  check('Pending device refresh cannot restart polling after leaving the page',requests===1,{requests});
  await page.unroute('**/api/v1/device/list');
  for(const [route,role,endpoint,button,home,body]of[
-  ['/ratepre','ADMIN','ratepre/selectRatepreDetail','查看健康详情','/main',{hrs:[72],bps:[120],createTimes:['08:00'],time:'2026-10-16'}],
-  ['/step','ADMIN','step/selectStepDetail','查看睡眠详情','/main',{sleep:[7],createTime:['10-16']}],
-  ['/rateprefamily','FAMILY','ratepre/selectRatepreDetail',/详情|详细|趋势/,'/familyMain',{hrs:[72],bps:[120],createTimes:['08:00'],time:'2026-10-16'}],
-  ['/stepfamily','FAMILY','step/selectStepDetail',/详情|详细|趋势/,'/familyMain',{sleep:[7],createTime:['10-16']}]
+  ['/operations/vitals','ADMIN','ratepre/selectRatepreDetail','查看健康详情','/operations/overview',{hrs:[72],bps:[120],createTimes:['08:00'],time:'2026-10-16'}],
+  ['/operations/activity','ADMIN','step/selectStepDetail','查看睡眠详情','/operations/overview',{sleep:[7],createTime:['10-16']}],
+  ['/family-portal/vitals','FAMILY','ratepre/selectRatepreDetail',/详情|详细|趋势/,'/family-portal/overview',{hrs:[72],bps:[120],createTimes:['08:00'],time:'2026-10-16'}],
+  ['/family-portal/activity','FAMILY','step/selectStepDetail',/详情|详细|趋势/,'/family-portal/overview',{sleep:[7],createTime:['10-16']}]
  ]){
   await visit(route,role);await page.waitForTimeout(200);
   let resume,arrived;const hold=new Promise(r=>{resume=r}),request=new Promise(r=>{arrived=r});

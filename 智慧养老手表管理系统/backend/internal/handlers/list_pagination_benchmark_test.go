@@ -50,7 +50,7 @@ func BenchmarkListPagination(b *testing.B) {
 			}{
 				{"customer", "customers", "customerName", h.customerSelect},
 				{"family", "familyDtos", "familyName", h.familySelect},
-				{"text", "texts", "title", h.textSelect},
+				{"text", "texts", "title", h.listNotices},
 			} {
 				for _, test := range []struct {
 					name, filter string

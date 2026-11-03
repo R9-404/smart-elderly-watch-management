@@ -7,8 +7,8 @@ import (
 	"suining-care/internal/response"
 )
 
-// POST /api/v1/ratepre/selectRatepre —— 按姓名+时间范围分页查询。
-func (h *Handler) ratepreSelect(w http.ResponseWriter, r *http.Request) {
+// POST /api/v1/vitals/latest —— 按姓名+时间范围分页查询。
+func (h *Handler) listLatestVitals(w http.ResponseWriter, r *http.Request) {
 	m, ok := bodyMap(w, r)
 	if !ok {
 		return
@@ -20,7 +20,7 @@ func (h *Handler) ratepreSelect(w http.ResponseWriter, r *http.Request) {
 	name := str(m, "name")
 	timeFirst := str(m, "timeFirst")
 	timeLast := str(m, "timeLast")
-	sql := "SELECT * FROM (" + ratepreLatestSelect + ") t WHERE 1=1"
+	sql := "SELECT * FROM (" + latestVitalsQuery + ") t WHERE 1=1"
 	var args []any
 	if strings.TrimSpace(name) != "" {
 		sql += " AND t.name LIKE $" + strconv.Itoa(len(args)+1)
@@ -42,9 +42,9 @@ func (h *Handler) ratepreSelect(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	defer rows.Close()
-	items := []ratepreDTO{}
+	items := []vitalRecord{}
 	for rows.Next() {
-		d, err := scanRatepreDTO(rows)
+		d, err := scanVitalRecord(rows)
 		if err != nil {
 			rows.Close()
 			response.Error500(w, ref())
@@ -56,12 +56,12 @@ func (h *Handler) ratepreSelect(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	response.JSON(w, http.StatusOK, map[string]any{
-		"ratepreDtoList": items, "total": total, "page": page, "pageSize": pageSize,
+		"vitalRecords": items, "total": total, "page": page, "pageSize": pageSize,
 	})
 }
 
-// POST /api/v1/ratepre/selectRatepreFamily —— 家属查询自己老人的心率血压列表。
-func (h *Handler) ratepreSelectFamily(w http.ResponseWriter, r *http.Request) {
+// POST /api/v1/vitals/history —— 家属查询自己老人的心率血压列表。
+func (h *Handler) listVitalHistory(w http.ResponseWriter, r *http.Request) {
 	m, ok := bodyMap(w, r)
 	if !ok {
 		return
@@ -83,9 +83,9 @@ func (h *Handler) ratepreSelectFamily(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	defer rows.Close()
-	items := []ratepreDTO{}
+	items := []vitalRecord{}
 	for rows.Next() {
-		d, err := scanRatepreDTO(rows)
+		d, err := scanVitalRecord(rows)
 		if err != nil {
 			rows.Close()
 			response.Error500(w, ref())
@@ -96,11 +96,11 @@ func (h *Handler) ratepreSelectFamily(w http.ResponseWriter, r *http.Request) {
 	if !rowsOK(w, rows) {
 		return
 	}
-	response.JSON(w, http.StatusOK, map[string]any{"ratepreDtoList": items})
+	response.JSON(w, http.StatusOK, map[string]any{"vitalRecords": items})
 }
 
-// POST /api/v1/ratepre/selectRatepreDetail —— 家属查询老人心率血压明细（图表用）。
-func (h *Handler) ratepreSelectDetail(w http.ResponseWriter, r *http.Request) {
+// POST /api/v1/vitals/chart —— 家属查询老人心率血压明细（图表用）。
+func (h *Handler) getVitalChart(w http.ResponseWriter, r *http.Request) {
 	m, ok := bodyMap(w, r)
 	if !ok {
 		return
@@ -166,8 +166,8 @@ func (h *Handler) ratepreSelectDetail(w http.ResponseWriter, r *http.Request) {
 	})
 }
 
-// POST /api/v1/ratepre/selectRatepreCount —— 心率/血压异常计数。
-func (h *Handler) ratepreSelectCount(w http.ResponseWriter, r *http.Request) {
+// POST /api/v1/vitals/alerts/devices —— 心率/血压异常计数。
+func (h *Handler) listVitalAlertDevices(w http.ResponseWriter, r *http.Request) {
 	if _, ok := optBody(w, r); !ok {
 		return
 	}

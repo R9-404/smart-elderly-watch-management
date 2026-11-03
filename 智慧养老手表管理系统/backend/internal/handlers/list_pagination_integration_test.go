@@ -32,7 +32,7 @@ func TestIntegrationListPageTotals(t *testing.T) {
 			[]int{4, 7, 9, 12}, []int{4, 7, 12}, []string{"customerAge", "customerAddress"}, "DELETE FROM customer"},
 		{"family", "familyDtos", "oldId", "familyName", h.familySelect,
 			[]int{4, 7, 9, 12}, []int{4, 7, 12}, []string{"familyAddress", "familyTouPic"}, "DELETE FROM oldperson"},
-		{"texts", "texts", "textId", "title", h.textSelect,
+		{"texts", "texts", "textId", "title", h.listNotices,
 			textOrder, []int{7, 4, 12}, []string{"textMain", "picId"}, "DELETE FROM text"},
 	} {
 		t.Run(endpoint.name, func(t *testing.T) {

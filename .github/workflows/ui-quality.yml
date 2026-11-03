@@ -112,7 +112,7 @@ jobs:
         working-directory: .
         run: >
           node tests/ui/ui-smoke.mjs
-          http://127.0.0.1:4173/#/login
+          http://127.0.0.1:4173/#/sign-in
           1440 1000
           tests/ui/artifacts/login-desktop.png
           normal
@@ -121,7 +121,7 @@ jobs:
         working-directory: .
         run: >
           node tests/ui/ui-smoke.mjs
-          http://127.0.0.1:4173/#/login
+          http://127.0.0.1:4173/#/sign-in
           390 844
           tests/ui/artifacts/login-mobile.png
           normal
@@ -130,7 +130,7 @@ jobs:
         working-directory: .
         run: >
           node tests/ui/ui-smoke.mjs
-          http://127.0.0.1:4173/#/login
+          http://127.0.0.1:4173/#/sign-in
           390 844
           tests/ui/artifacts/login-mobile-large-text.png
           large-text

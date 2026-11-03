@@ -2,170 +2,169 @@ import { createRouter, createWebHashHistory } from 'vue-router'
 import { loadSession, authState } from './auth'
 const Login = () => import('./views/Login.vue')
 const Register = () => import('./views/Register.vue')
-const Home = () => import('./views/Home.vue')
-const familyHome = () => import('./views/familyHome.vue')
-const main = () => import('./views/main.vue')
-const familyMain = () => import('./views/familyMain.vue')
-const ratepre = () => import('./views/ratepre.vue')
-const rateprefamily = () => import('./views/rateprefamily.vue')
-const annex = () => import('./views/annex.vue')
-const text = () => import('./views/text.vue')
-const textTwo = () => import('./views/textTwo.vue')
-const textMain = () => import('./views/textMain.vue')
-const textMainUser = () => import('./views/textMainUser.vue')
-const step = () => import('./views/step.vue')
-const stepfamily = () => import('./views/stepfamily.vue')
-const position = () => import('./views/position.vue')
-const positionfamily = () => import('./views/positionfamily.vue')
-const life = () => import('./views/life.vue')
-const watch = () => import('./views/watch.vue')
-const person = () => import('./views/person.vue')
-const customer = () => import('./views/customer.vue')
-const textOpt = () => import('./views/textOpt.vue')
-const family = () => import('./views/family.vue')
-const me = () => import('./views/me.vue')
-const saidOperation = () => import('./views/saidOperation.vue')
-const inviteCode = () => import('./views/inviteCode.vue')
-const device = () => import('./views/device.vue')
+const OperationsShell = () => import('./views/OperationsShell.vue')
+const FamilyPortal = () => import('./views/FamilyPortal.vue')
+const OperationsOverview = () => import('./views/OperationsOverview.vue')
+const FamilyOverview = () => import('./views/FamilyOverview.vue')
+const VitalsOverview = () => import('./views/VitalsOverview.vue')
+const FamilyVitals = () => import('./views/FamilyVitals.vue')
+const AttachmentManagement = () => import('./views/AttachmentManagement.vue')
+const EditNotice = () => import('./views/EditNotice.vue')
+const CreateNotice = () => import('./views/CreateNotice.vue')
+const FamilyNotice = () => import('./views/FamilyNotice.vue')
+const NoticeDetail = () => import('./views/NoticeDetail.vue')
+const ActivityOverview = () => import('./views/ActivityOverview.vue')
+const FamilyActivity = () => import('./views/FamilyActivity.vue')
+const LocationOverview = () => import('./views/LocationOverview.vue')
+const FamilyLocation = () => import('./views/FamilyLocation.vue')
+const LifeOverview = () => import('./views/LifeOverview.vue')
+const MonitoringProfiles = () => import('./views/MonitoringProfiles.vue')
+const Residents = () => import('./views/Residents.vue')
+const Guardians = () => import('./views/Guardians.vue')
+const NoticeManagement = () => import('./views/NoticeManagement.vue')
+const FamilyAccounts = () => import('./views/FamilyAccounts.vue')
+const FamilyProfile = () => import('./views/FamilyProfile.vue')
+const CommentManagement = () => import('./views/CommentManagement.vue')
+const FamilyInvitations = () => import('./views/FamilyInvitations.vue')
+const DeviceManagement = () => import('./views/DeviceManagement.vue')
 
 
 const router = createRouter({
   history: createWebHashHistory(),
   routes: [
-    { path: '/connection', redirect: '/login' },
     { path: '/setup', component: () => import('./views/Setup.vue') },
 	  {path: '/',
-	    redirect: '/login'
+	    redirect: '/sign-in'
 	  },
-    {path: '/login',
+    {path: '/sign-in',
       component: Login
     },
     // 家属凭邀请码自助注册（无需登录）
-    {path: '/register',
+    {path: '/join-family',
       component: Register
     },
-	{path: '/familyHome',
-	  component: familyHome,
-	  redirect: '/familyMain',
+	{path: '/family-portal',
+	  component: FamilyPortal,
+	  redirect: '/family-portal/overview',
 	  children: [{
-				  path: '/familyMain',
-				  meta: { title: '家属首页' }, name: 'familyMain',
-				  component: familyMain
+				  path: '/family-portal/overview',
+				  meta: { title: '家属首页' }, name: 'family-portal-overview',
+				  component: FamilyOverview
 				},
 				{
-					path: '/rateprefamily',
-					meta: { title: '心率血压' }, name: 'rateprefamily',
-					component: rateprefamily
+					path: '/family-portal/vitals',
+					meta: { title: '心率血压' }, name: 'family-portal-vitals',
+					component: FamilyVitals
 				},
 				{
-					path: '/stepfamily',
-					meta: { title: '睡眠步数' }, name: 'stepfamily',
-					component: stepfamily
+					path: '/family-portal/activity',
+					meta: { title: '睡眠步数' }, name: 'family-portal-activity',
+					component: FamilyActivity
 				},
 				{
-					path: '/positionfamily',
-					meta: { title: '位置信息' }, name: 'positionfamily',
-					component: positionfamily
+					path: '/family-portal/location',
+					meta: { title: '位置信息' }, name: 'family-portal-location',
+					component: FamilyLocation
 				},
 				{
-					path: '/me',
-					meta: { title: '个人中心' }, name: 'me',
-					component: me
+					path: '/family-portal/profile',
+					meta: { title: '个人中心' }, name: 'family-portal-profile',
+					component: FamilyProfile
 				},
 				{
-					path: '/textMain',
-					meta: { title: '公告内容' }, name: 'textMain',
-					component: textMain
+					path: '/family-portal/notice',
+					meta: { title: '公告内容' }, name: 'family-portal-notice',
+					component: FamilyNotice
 				}]
 	},
-    { path: '/home',
-      component: Home,
-      redirect: '/main',
+    { path: '/operations',
+      component: OperationsShell,
+      redirect: '/operations/overview',
       children: [
 				{
-				  path: '/main',
-				  meta: { title: '运营总览' }, name: 'main',
-				  component: main
+				  path: '/operations/overview',
+				  meta: { title: '运营总览' }, name: 'operations-overview',
+				  component: OperationsOverview
 				},
 				{
-					path: '/ratepre',
-					meta: { title: '心率与血压' }, name: 'ratepre',
-					component: ratepre
+					path: '/operations/vitals',
+					meta: { title: '心率与血压' }, name: 'operations-vitals',
+					component: VitalsOverview
 				},
 				{
-					path: '/step',
-					meta: { title: '睡眠与步数' }, name: 'step',
-					component: step
+					path: '/operations/activity',
+					meta: { title: '睡眠与步数' }, name: 'operations-activity',
+					component: ActivityOverview
 				},
 				{
-					path: '/position',
-					meta: { title: '位置与告警' }, name: 'position',
-					component: position
+					path: '/operations/locations',
+					meta: { title: '位置与告警' }, name: 'operations-locations',
+					component: LocationOverview
 				},
 				{
-					path: '/life',
-					meta: { title: '生活信息' }, name: 'life',
-					component: life
+					path: '/operations/life',
+					meta: { title: '生活信息' }, name: 'operations-life',
+					component: LifeOverview
 				},
 				{
-					path: '/watch',
-					meta: { title: '监测阈值档案' }, name: 'watch',
-					component: watch
+					path: '/operations/monitoring-profiles',
+					meta: { title: '监测阈值档案' }, name: 'operations-monitoring-profiles',
+					component: MonitoringProfiles
 				},
 				{
-					path: '/person',
-					meta: { title: '老人档案' }, name: 'person',
-					component: person
+					path: '/operations/residents',
+					meta: { title: '老人档案' }, name: 'operations-residents',
+					component: Residents
 				},
 				{
-					path: '/customer',
-					meta: { title: '监护人信息' }, name: 'customer',
-					component: customer
+					path: '/operations/guardians',
+					meta: { title: '监护人信息' }, name: 'operations-guardians',
+					component: Guardians
 				},
 				{
-					path: '/text',
-					meta: { title: '编辑公告' }, name: 'text',
-					component: text
+					path: '/operations/notices/edit',
+					meta: { title: '编辑公告' }, name: 'operations-notices-edit',
+					component: EditNotice
 				},
 				{
-					path: '/textTwo',
-					meta: { title: '发布公告' }, name: 'textTwo',
-					component: textTwo
+					path: '/operations/notices/new',
+					meta: { title: '发布公告' }, name: 'operations-notices-new',
+					component: CreateNotice
 				},
 				{
-					path: '/textMainUser',
-					meta: { title: '公告内容' }, name: 'textMainUser',
-					component: textMainUser
+					path: '/operations/notices/detail',
+					meta: { title: '公告内容' }, name: 'operations-notices-detail',
+					component: NoticeDetail
 				},
 				{
-					path: '/textOpt',
-					meta: { title: '公告管理' }, name: 'textOpt',
-					component: textOpt
+					path: '/operations/notices',
+					meta: { title: '公告管理' }, name: 'operations-notices',
+					component: NoticeManagement
 				},
 				{
-				  path: '/annex',
-				  meta: { title: '附件管理' }, name: 'annex',
-				  component: annex
+				  path: '/operations/attachments',
+				  meta: { title: '附件管理' }, name: 'operations-attachments',
+				  component: AttachmentManagement
 				},
 				{
-				  path: '/family',
-				  meta: { title: '家属账号' }, name: 'family',
-				  component: family
+				  path: '/operations/families',
+				  meta: { title: '家属账号' }, name: 'operations-families',
+				  component: FamilyAccounts
 				},
 				{
-				  path: '/saidOperation',
-				  meta: { title: '评论管理' }, name: 'saidOperation',
-				  component: saidOperation
+				  path: '/operations/comments',
+				  meta: { title: '评论管理' }, name: 'operations-comments',
+				  component: CommentManagement
 				},
 				{
-				  path: '/inviteCode',
-				  meta: { title: '家属注册邀请码' }, name: 'inviteCode',
-				  component: inviteCode
+				  path: '/operations/invitations',
+				  meta: { title: '家属注册邀请码' }, name: 'operations-invitations',
+				  component: FamilyInvitations
 				},
 				{
-				  path: '/device',
-				  meta: { title: '设备管理' }, name: 'device',
-				  component: device
+				  path: '/operations/devices',
+				  meta: { title: '设备管理' }, name: 'operations-devices',
+				  component: DeviceManagement
 				}
       ]
     }
@@ -173,23 +172,23 @@ const router = createRouter({
 })
 
 router.beforeEach((to, from, next) => {
-  const publicPage = to.path === '/login' || to.path === '/register'
+  const publicPage = to.path === '/sign-in' || to.path === '/join-family'
   loadSession().then(account => {
     if (authState.setupRequired) return next(to.path === '/setup' ? undefined : '/setup')
-    if (to.path === '/setup') return next('/login')
+    if (to.path === '/setup') return next('/sign-in')
     if (publicPage) return next()
-    if (!account) return next('/login')
-    const familyPage = to.matched.some(route => route.path === '/familyHome')
-    if ((account.role === 'FAMILY') !== familyPage) return next(account.role === 'FAMILY' ? '/familyMain' : '/main')
-    if (account.role === 'ADMIN' && ['caregiver', 'auditor'].includes(account.duty) && !['/main', '/home'].includes(to.path)) return next('/main')
+    if (!account) return next('/sign-in')
+    const familyPage = to.matched.some(route => route.path === '/family-portal')
+    if ((account.role === 'FAMILY') !== familyPage) return next(account.role === 'FAMILY' ? '/family-portal/overview' : '/operations/overview')
+    if (account.role === 'ADMIN' && ['caregiver', 'auditor'].includes(account.duty) && !['/operations/overview', '/operations'].includes(to.path)) return next('/operations/overview')
     next()
   }).catch(error => {
     if (error.response?.data?.code === 'DATABASE_UNAVAILABLE' && authState.account) {
-      const familyPage = to.matched.some(route => route.path === '/familyHome')
-      if (!publicPage && to.path !== '/setup' && (authState.account.role === 'FAMILY') !== familyPage) return next(authState.account.role === 'FAMILY' ? '/familyMain' : '/main')
-      return next(to.path === '/setup' ? '/login' : undefined)
+      const familyPage = to.matched.some(route => route.path === '/family-portal')
+      if (!publicPage && to.path !== '/setup' && (authState.account.role === 'FAMILY') !== familyPage) return next(authState.account.role === 'FAMILY' ? '/family-portal/overview' : '/operations/overview')
+      return next(to.path === '/setup' ? '/sign-in' : undefined)
     }
-    next(publicPage || (to.path === '/setup' && error.response?.data?.code === 'DATABASE_UNAVAILABLE') ? undefined : '/login')
+    next(publicPage || (to.path === '/setup' && error.response?.data?.code === 'DATABASE_UNAVAILABLE') ? undefined : '/sign-in')
   })
 })
 

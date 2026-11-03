@@ -9,7 +9,7 @@ import (
 	"strings"
 )
 
-type ratepreDTO struct {
+type vitalRecord struct {
 	Name        *string `json:"name"`
 	OldID       *int64  `json:"oldId"`
 	Sex         *string `json:"sex"`
@@ -23,8 +23,8 @@ type ratepreDTO struct {
 	CreateTime  *string `json:"createTime"`
 }
 
-// 每位长者最新一条心率血压记录（Java LATEST_SELECT 的 PostgreSQL 版）。
-const ratepreLatestSelect = `SELECT o.name AS name, o.old_id AS oldId, o.sex AS sex,` +
+// 按长者选出最新的心率和血压记录。
+const latestVitalsQuery = `SELECT o.name AS name, o.old_id AS oldId, o.sex AS sex,` +
 	` r.rate_state AS rateState, r.pre_state AS preState, r.hr AS hr, r.bp AS bp, r.id AS recordId,` +
 	` CAST(r.rate_handled AS varchar) AS rateHandled, CAST(r.pre_handled AS varchar) AS preHandled,` +
 	` TO_CHAR(r.create_time,'YYYY-MM-DD HH24:MI:SS') AS createTime` +
@@ -32,14 +32,14 @@ const ratepreLatestSelect = `SELECT o.name AS name, o.old_id AS oldId, o.sex AS 
 	` INNER JOIN (SELECT *, ROW_NUMBER() OVER (PARTITION BY old_id ORDER BY create_time DESC, id DESC) AS rn FROM ratepre) r` +
 	` ON r.old_id=o.old_id AND r.rn=1`
 
-func scanRatepreDTO(rows dbstore.Rows) (ratepreDTO, error) {
-	var d ratepreDTO
+func scanVitalRecord(rows dbstore.Rows) (vitalRecord, error) {
+	var d vitalRecord
 	err := rows.Scan(&d.Name, &d.OldID, &d.Sex, &d.RateState, &d.PreState, &d.Hr, &d.Bp, &d.RecordID, &d.RateHandled, &d.PreHandled, &d.CreateTime)
 	return d, err
 }
 
-// POST /api/v1/ratepre/alertCount —— 未处置的心率/血压异常数量。
-func (h *Handler) ratepreAlertCount(w http.ResponseWriter, r *http.Request) {
+// POST /api/v1/vitals/alerts/count —— 未处置的心率/血压异常数量。
+func (h *Handler) countVitalAlerts(w http.ResponseWriter, r *http.Request) {
 	if _, ok := optBody(w, r); !ok {
 		return
 	}
@@ -84,8 +84,8 @@ type alertRow struct {
 	BpHigh, BpLow *int
 }
 
-// POST /api/v1/ratepre/alertDetail —— 查看一条异常记录的原因。
-func (h *Handler) ratepreAlertDetail(w http.ResponseWriter, r *http.Request) {
+// POST /api/v1/vitals/alerts/detail —— 查看一条异常记录的原因。
+func (h *Handler) getVitalAlert(w http.ResponseWriter, r *http.Request) {
 	m, ok := bodyMap(w, r)
 	if !ok {
 		return
@@ -223,8 +223,8 @@ func (h *Handler) findLatestPending(r *http.Request, oldID int64, kind string) (
 	return a, err == nil, err
 }
 
-// POST /api/v1/ratepre/resolveAlert —— 处置异常（消除红点），事务内执行。
-func (h *Handler) ratepreResolveAlert(w http.ResponseWriter, r *http.Request) {
+// POST /api/v1/vitals/alerts/resolve —— 处置异常（消除红点），事务内执行。
+func (h *Handler) handleResolveVitalAlert(w http.ResponseWriter, r *http.Request) {
 	m, ok := bodyMap(w, r)
 	if !ok {
 		return

@@ -108,9 +108,9 @@ export const deviceAlertMethods = {
     // 跳到相关页面看原始数据
     gotoPage (kind) {
       if (kind === 'person') {
-        this.$router.push({ path: '/watch' })
+        this.$router.push({ path: '/operations/monitoring-profiles' })
       } else {
-        this.$router.push({ path: '/ratepre' })
+        this.$router.push({ path: '/operations/vitals' })
       }
       this.alertDialog.visible = false
     },

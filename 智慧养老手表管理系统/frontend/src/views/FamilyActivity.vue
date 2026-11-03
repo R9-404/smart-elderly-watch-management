@@ -10,9 +10,9 @@
 			<el-table-column prop="name" label="长者" width="160" align="center"></el-table-column>
 			<el-table-column prop="step" label="今日步数" width="145" align="center"></el-table-column>
 			<el-table-column prop="sleep" label="睡眠时长" width="155" align="center"></el-table-column>
-			<el-table-column prop="sleepSate" label="睡眠情况" width="165" align="center">
+			<el-table-column prop="sleepAlertState" label="睡眠情况" width="165" align="center">
 				<template #default="scope" >
-				  <span :class="stateClass(scope.row.sleepSate)">{{ stateLabel(scope.row.sleepSate) }}</span>
+				  <span :class="stateClass(scope.row.sleepAlertState)">{{ stateLabel(scope.row.sleepAlertState) }}</span>
 				</template>
 			</el-table-column>
 			<el-table-column prop="createTime" label="记录时间" width="190" align="center"></el-table-column>
@@ -31,7 +31,7 @@
         <dl>
           <dt>今日步数</dt><dd>{{ item.step == null ? '暂无数据' : item.step + ' 步' }}</dd>
           <dt>睡眠时长</dt><dd>{{ item.sleep == null ? '暂无数据' : item.sleep }}</dd>
-          <dt>睡眠情况</dt><dd :class="stateClass(item.sleepSate)">{{ stateLabel(item.sleepSate) }}{{ item.sleepSate == 1 ? '，请查看详情' : '' }}</dd>
+          <dt>睡眠情况</dt><dd :class="stateClass(item.sleepAlertState)">{{ stateLabel(item.sleepAlertState) }}{{ item.sleepAlertState == 1 ? '，请查看详情' : '' }}</dd>
           <dt>记录时间</dt><dd>{{ item.createTime || '暂无时间信息' }}</dd>
         </dl>
         <el-button type="primary" @click="showDetails(item)">查看睡眠详情</el-button>
@@ -107,7 +107,7 @@ export default {
       			var oldId=_this.oldId
       _this.isLoading = true
       _this.loadError = ''
-      axios.post('api/v1/step/selectStepFamily',
+      axios.post('api/v1/activity/history',
         {
           "oldId":oldId
         },
@@ -118,7 +118,7 @@ export default {
           withCredentials: true
         }).then(function (response) {
 
-        _this.stepList = response.data && Array.isArray(response.data.stepDtos) ? response.data.stepDtos : []
+        _this.stepList = response.data && Array.isArray(response.data.activityRecords) ? response.data.activityRecords : []
       })
         .catch(function (error) {
 
@@ -135,7 +135,7 @@ export default {
       _this.chartLoading = true
       _this.chartError = ''
       _this.name = curOld.name || ''
-      			axios.post('api/v1/step/selectStepDetail',{
+      			axios.post('api/v1/activity/chart',{
 								"oldId":oldId
 							},
       				{

@@ -8,8 +8,8 @@ import (
 	"time"
 )
 
-// POST /api/v1/text/add —— 发布公告（事务内执行；提交后异步发短信）。
-func (h *Handler) textAdd(w http.ResponseWriter, r *http.Request) {
+// POST /api/v1/notices/create —— 发布公告（事务内执行；提交后异步发短信）。
+func (h *Handler) createNotice(w http.ResponseWriter, r *http.Request) {
 	m, ok := bodyMap(w, r)
 	if !ok {
 		return
@@ -69,8 +69,8 @@ func (h *Handler) textAdd(w http.ResponseWriter, r *http.Request) {
 	writeCode(w, true)
 }
 
-// POST /api/v1/text/delete —— 删除公告及关联图片（事务内执行）。
-func (h *Handler) textDelete(w http.ResponseWriter, r *http.Request) {
+// POST /api/v1/notices/delete —— 删除公告及关联图片（事务内执行）。
+func (h *Handler) deleteNotice(w http.ResponseWriter, r *http.Request) {
 	m, ok := bodyMap(w, r)
 	if !ok {
 		return
@@ -80,7 +80,7 @@ func (h *Handler) textDelete(w http.ResponseWriter, r *http.Request) {
 		response.Fail(w, "参数不正确")
 		return
 	}
-	var existing textDTO
+	var existing noticeRecord
 	err := h.DB.QueryRow(r.Context(), "SELECT "+textColumns+" FROM "+socialTextTable(h.DB.IsMySQL())+" WHERE text_id=$1", textID).Scan(
 		&existing.TextID, &existing.Title, &existing.TextMain, &existing.Time, &existing.PicID)
 	if isNotFound(err) {
@@ -119,8 +119,8 @@ func (h *Handler) textDelete(w http.ResponseWriter, r *http.Request) {
 	writeCode(w, true)
 }
 
-// POST /api/v1/text/update —— 更新公告并替换图片（事务内执行）。
-func (h *Handler) textUpdate(w http.ResponseWriter, r *http.Request) {
+// POST /api/v1/notices/update —— 更新公告并替换图片（事务内执行）。
+func (h *Handler) updateNotice(w http.ResponseWriter, r *http.Request) {
 	m, ok := bodyMap(w, r)
 	if !ok {
 		return
@@ -132,7 +132,7 @@ func (h *Handler) textUpdate(w http.ResponseWriter, r *http.Request) {
 	}
 	title := str(m, "title")
 	textMain := str(m, "textMain")
-	var existing textDTO
+	var existing noticeRecord
 	err := h.DB.QueryRow(r.Context(), "SELECT "+textColumns+" FROM "+socialTextTable(h.DB.IsMySQL())+" WHERE text_id=$1", textID).Scan(
 		&existing.TextID, &existing.Title, &existing.TextMain, &existing.Time, &existing.PicID)
 	if isNotFound(err) {

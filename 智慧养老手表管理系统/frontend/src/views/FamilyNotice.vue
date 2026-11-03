@@ -1,6 +1,6 @@
 <template>
   <div class="notice-page">
-    <el-button class="notice-back" link icon="el-icon-back" @click="$router.push('/familyMain')">返回照护总览</el-button>
+    <el-button class="notice-back" link icon="el-icon-back" @click="$router.push('/family-portal/overview')">返回照护总览</el-button>
     <article v-loading="isLoading" class="notice-article" :aria-busy="String(isLoading)">
       <div v-if="loadError" class="notice-empty" role="alert"><h1>公告暂时无法加载</h1><p>{{ loadError }}</p><el-button type="primary" @click="searchDetail">重新加载</el-button></div>
       <template v-else><p class="notice-kicker">平台公告</p><h1>{{ title || (isLoading ? '正在加载公告…' : '公告内容') }}</h1><p class="notice-time">{{ time || '发布时间未提供' }}</p><div class="notice-body">{{ textMain || (isLoading ? '' : '暂时没有正文内容。') }}</div><figure v-for="(img, index) in imgList" :key="img.picName" class="notice-attachment"><img v-if="!failedImages[img.picName]" :src="imageSource(img.picName)" :alt="'公告附件 ' + (index + 1)" loading="lazy" @error="failedImages[img.picName] = true"><p v-else>附件图片暂时无法显示。</p></figure></template>
@@ -28,7 +28,7 @@ export default {
       this.isLoading = true
       this.loadError = ''
       this.failedImages = {}
-      axios.post('api/v1/text/selectDetail', { textId: this.$route.query.textId }, { withCredentials: true }).then(response => {
+      axios.post('api/v1/notices/detail', { textId: this.$route.query.textId }, { withCredentials: true }).then(response => {
         var text = response.data && response.data.text
         if (!text) throw new Error('missing notice')
         this.title = text.title || '未命名公告'
@@ -41,8 +41,8 @@ export default {
       if (!this.$route.query.textId) return
       this.commentsLoading = true
       this.commentsError = ''
-      return axios.post('api/v1/said/select', { textId: this.$route.query.textId }, { withCredentials: true }).then(response => {
-        this.tableData = response.data && Array.isArray(response.data.said2s) ? response.data.said2s : []
+      return axios.post('api/v1/notice-comments/list', { textId: this.$route.query.textId }, { withCredentials: true }).then(response => {
+        this.tableData = response.data && Array.isArray(response.data.comments) ? response.data.comments : []
       }).catch((error) => { this.commentsError = apiErrorMessage(error, '留言暂时无法加载。') }).then(() => { this.commentsLoading = false })
     },
     onSubmit () {
@@ -50,7 +50,7 @@ export default {
       this.submitting = true
       this.submitError = ''
       this.submitSuccess = ''
-      axios.post('api/v1/said/insert', { said: this.formSaid.said.trim(), textId: this.$route.query.textId }, { withCredentials: true }).then(response => {
+      axios.post('api/v1/notice-comments/create', { said: this.formSaid.said.trim(), textId: this.$route.query.textId }, { withCredentials: true }).then(response => {
         if (!response.data || response.data.returnCode !== '1111') throw new Error('comment rejected')
         this.formSaid.said = ''
         this.submitSuccess = '留言已发表。'
@@ -61,7 +61,7 @@ export default {
       if (this.likingId !== null) return
       this.likingId = item.saidId
       this.submitError = ''
-      axios.post('api/v1/said/goodCount', { saidId: item.saidId }, { withCredentials: true }).then(response => {
+      axios.post('api/v1/notice-comments/toggle-like', { saidId: item.saidId }, { withCredentials: true }).then(response => {
         if (!response.data || response.data.returnCode !== '1111') throw new Error('like rejected')
         return this.searchSaid()
       }).catch((error) => { this.submitError = apiErrorMessage(error, '赞同操作未完成，请重试。') }).then(() => { this.likingId = null })

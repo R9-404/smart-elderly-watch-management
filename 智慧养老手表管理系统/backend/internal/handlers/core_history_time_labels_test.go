@@ -19,7 +19,7 @@ func historyLabelsHandler(t *testing.T) *Handler {
 func TestContinuousVitalHistoryLabelsKeepFullObservationTime(t *testing.T) {
 	h := historyLabelsHandler(t)
 	roles := []session.Principal{{Role: auth.RoleAdmin, ID: 1}, {Role: auth.RoleFamily, ID: 1, OldID: 1}}
-	read := withHealthPrincipal(h, roles[0], h.ratepreSelectDetail)
+	read := withHealthPrincipal(h, roles[0], h.getVitalChart)
 	empty := api(t, read, map[string]any{"oldId": 1})
 	if empty["time"] != "" || len(empty["createTimes"].([]any)) != 0 {
 		t.Fatalf("empty history invented a time: %v", empty)
@@ -31,7 +31,7 @@ func TestContinuousVitalHistoryLabelsKeepFullObservationTime(t *testing.T) {
 	check := func(times, hrs, bps []any, title string) {
 		t.Helper()
 		for _, principal := range roles {
-			out := api(t, withHealthPrincipal(h, principal, h.ratepreSelectDetail), map[string]any{"oldId": 1})
+			out := api(t, withHealthPrincipal(h, principal, h.getVitalChart), map[string]any{"oldId": 1})
 			if !reflect.DeepEqual(out["createTimes"], times) || !reflect.DeepEqual(out["hrs"], hrs) || !reflect.DeepEqual(out["bps"], bps) || out["time"] != title {
 				t.Errorf("role=%s chart times or metric alignment incorrect: %v", principal.Role, out)
 			}
@@ -59,11 +59,11 @@ func TestContinuousSleepHistoryLabelsKeepFullCalendarDate(t *testing.T) {
 	}
 	want := []any{"2025-12-31", "2026-01-01", "2026-09-30", "2026-10-01"}
 	for _, principal := range []session.Principal{{Role: auth.RoleAdmin, ID: 1}, {Role: auth.RoleFamily, ID: 1, OldID: 1}} {
-		out := api(t, withHealthPrincipal(h, principal, h.stepSelectDetail), map[string]any{"oldId": 1})
+		out := api(t, withHealthPrincipal(h, principal, h.getActivityChart), map[string]any{"oldId": 1})
 		if !reflect.DeepEqual(out["createTime"], want) || !reflect.DeepEqual(out["sleep"], []any{0.0, nil, 8.0, 7.0}) {
 			t.Errorf("role=%s sleep dates or values misaligned: %v", principal.Role, out)
 		}
-		for i, row := range out["stepDtos"].([]any) {
+		for i, row := range out["activityRecords"].([]any) {
 			if row.(map[string]any)["createTime"] != want[i] {
 				t.Errorf("sleep detail date differs from chart label: %v", row)
 			}

@@ -10,7 +10,7 @@ run(async({page,base,report,setRole,setSignedIn})=>{
  setSignedIn(false);
  for(const [width,height] of sizes)for(const large of [false,true]){
   const name=`login ${width}x${height} ${large?'large':'standard'}`;
-  await page.setViewportSize({width,height});await page.goto(base+`/?large=${large?1:0}&screen=${++visit}#/login`);
+  await page.setViewportSize({width,height});await page.goto(base+`/?large=${large?1:0}&screen=${++visit}#/sign-in`);
   await page.locator('.auth-card').waitFor();await page.evaluate(()=>document.fonts.ready);
   const g=await geometry();check(name+' contains page',g.page[0]<=width&&g.page[1]<=height,g);
   check(name+' fits login content',g.panel.scroll<=g.panel.height+1,g);
@@ -23,7 +23,7 @@ run(async({page,base,report,setRole,setSignedIn})=>{
  }
  setSignedIn(true);
  for(const role of ['ADMIN','FAMILY'])for(const [width,height] of sizes)for(const large of [false,true]){
-  setRole(role);const route=role==='ADMIN'?'/main':'/familyMain';
+  setRole(role);const route=role==='ADMIN'?'/operations/overview':'/family-portal/overview';
   await page.setViewportSize({width,height});await page.goto(base+`/?large=${large?1:0}&screen=${++visit}#${route}`);
   await page.locator('.workspace-main').waitFor();await page.evaluate(()=>document.fonts.ready);await page.waitForTimeout(100);
   const g=await geometry();const name=`${role} ${width}x${height} ${large?'large':'standard'}`;

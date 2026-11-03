@@ -5,7 +5,7 @@
         <p class="eyebrow">{{ familyName }}，您好</p>
         <h1 id="care-welcome-title">家人的近况，<br>一目了然</h1>
         <p class="welcome-description">查看健康、活动与位置记录，<br class="desktop-break">留意家人的日常变化。</p>
-        <el-button type="primary" @click="$router.push('/rateprefamily')">查看健康记录 <i class="el-icon-arrow-right" aria-hidden="true"></i></el-button>
+        <el-button type="primary" @click="$router.push('/family-portal/vitals')">查看健康记录 <i class="el-icon-arrow-right" aria-hidden="true"></i></el-button>
       </div>
       <div class="welcome-scene" aria-hidden="true"><img src="/static/img/care-river-morning.webp" alt="" width="1200" height="800" fetchpriority="high" decoding="async"></div>
     </section>
@@ -25,9 +25,9 @@
     </section>
     <section class="family-info-row" aria-labelledby="care-record-heading">
       <h2 id="care-record-heading" class="records-heading">常用记录</h2>
-      <router-link to="/rateprefamily" class="info-tile health-tile"><span class="tile-icon" aria-hidden="true"><i class="el-icon-document"></i></span><div class="tile-copy"><h3>心率与血压</h3><p>查看家人的健康记录与设备上报状态。</p></div><span class="tile-action" aria-hidden="true"><i class="el-icon-arrow-right"></i></span></router-link>
-      <router-link to="/stepfamily" class="info-tile activity-tile"><span class="tile-icon" aria-hidden="true"><i class="el-icon-time"></i></span><div class="tile-copy"><h3>睡眠与步数</h3><p>了解日常活动与最近上传的睡眠记录。</p></div><span class="tile-action" aria-hidden="true"><i class="el-icon-arrow-right"></i></span></router-link>
-      <router-link to="/positionfamily" class="info-tile location-tile"><span class="tile-icon" aria-hidden="true"><i class="el-icon-location-outline"></i></span><div class="tile-copy"><h3>位置与安全</h3><p>查看最近一次位置与设备安全提醒。</p></div><span class="tile-action" aria-hidden="true"><i class="el-icon-arrow-right"></i></span></router-link>
+      <router-link to="/family-portal/vitals" class="info-tile health-tile"><span class="tile-icon" aria-hidden="true"><i class="el-icon-document"></i></span><div class="tile-copy"><h3>心率与血压</h3><p>查看家人的健康记录与设备上报状态。</p></div><span class="tile-action" aria-hidden="true"><i class="el-icon-arrow-right"></i></span></router-link>
+      <router-link to="/family-portal/activity" class="info-tile activity-tile"><span class="tile-icon" aria-hidden="true"><i class="el-icon-time"></i></span><div class="tile-copy"><h3>睡眠与步数</h3><p>了解日常活动与最近上传的睡眠记录。</p></div><span class="tile-action" aria-hidden="true"><i class="el-icon-arrow-right"></i></span></router-link>
+      <router-link to="/family-portal/location" class="info-tile location-tile"><span class="tile-icon" aria-hidden="true"><i class="el-icon-location-outline"></i></span><div class="tile-copy"><h3>位置与安全</h3><p>查看最近一次位置与设备安全提醒。</p></div><span class="tile-action" aria-hidden="true"><i class="el-icon-arrow-right"></i></span></router-link>
     </section>
     </div>
     <p class="data-caption"><i class="el-icon-info" aria-hidden="true"></i> 数据以手表最近一次成功上报为准；没有新记录，不代表状态正常。</p>
@@ -125,7 +125,7 @@ export default {
 		  var picId = row.picId
 
 		  this.$router.push({
-			path: '/textMain',
+			path: '/family-portal/notice',
 			query: {
 				textId: textId,
 				picId: picId
@@ -145,7 +145,7 @@ export default {
 					'title': _this.searchText
 				}
 
-				axios.post('api/v1/text/select',params,
+				axios.post('api/v1/notices/list',params,
 				{
 					headers: {
 						'content-type': 'application/json'

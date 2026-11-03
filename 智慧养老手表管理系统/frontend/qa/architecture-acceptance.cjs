@@ -37,7 +37,7 @@ run(async ({ page, context, base, report, setRole }) => {
     return route.fulfill({ json: { returnCode: '1111', state: task.state } })
   })
   const visit = async () => {
-    await page.goto(base + '/?architecture=' + Date.now() + '#/main')
+    await page.goto(base + '/?architecture=' + Date.now() + '#/operations/overview')
     await page.locator('.care-task').first().waitFor()
     await page.waitForFunction(() => document.querySelector('.care-inbox')?.getAttribute('aria-busy') === 'false')
   }
@@ -110,7 +110,7 @@ run(async ({ page, context, base, report, setRole }) => {
   check('PG recovery updates queue diagnostics without reopening', (await page.getByRole('status').filter({ hasText: 'PG 分析库可用' }).textContent()).includes('0'))
   for (const large of [false, true]) {
     await page.setViewportSize({ width: 390, height: 844 })
-    await page.goto(base + '/?large=' + Number(large) + '&architecture=' + Date.now() + '#/main')
+    await page.goto(base + '/?large=' + Number(large) + '&architecture=' + Date.now() + '#/operations/overview')
     await page.locator('.care-task').first().waitFor()
     check('queue fits 390px large=' + large, await page.locator('.workspace-main').evaluate(el => el.scrollWidth <= el.clientWidth + 1))
   }
@@ -121,7 +121,7 @@ run(async ({ page, context, base, report, setRole }) => {
     const start = (number - 1) * pageSize
     return route.fulfill({ json: {returnCode:'1111', customers: Array.from({ length: Math.max(0, Math.min(pageSize, 205 - start)) }, (_, i) => ({ customerId: start + i + 1, customerName: '监护人' + (start + i + 1) })), total: 205 } })
   })
-  await page.goto(base + '/?large=0&architecture=guardians#/person')
+  await page.goto(base + '/?large=0&architecture=guardians#/operations/residents')
   await page.getByRole('button', { name: '添加老人', exact: true }).click()
   const elder = page.getByRole('dialog', { name: '老人添加' })
   await elder.getByRole('alert').filter({ hasText: 'temporarily unavailable' }).waitFor()

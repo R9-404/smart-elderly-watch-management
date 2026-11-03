@@ -31,20 +31,20 @@ func TestContinuousRebindCannotReadPreviousDailyData(t *testing.T) {
 		name, key string
 		read      func() map[string]any
 	}{
-		{"family latest", "stepDtos", func() map[string]any {
-			return api(t, withHealthPrincipal(h, session.Principal{Role: auth.RoleFamily, ID: 2, OldID: 2}, h.stepSelectFamily), map[string]any{"oldId": 2, "expireDays": 3})
+		{"family latest", "activityRecords", func() map[string]any {
+			return api(t, withHealthPrincipal(h, session.Principal{Role: auth.RoleFamily, ID: 2, OldID: 2}, h.listActivityHistory), map[string]any{"oldId": 2, "expireDays": 3})
 		}},
-		{"family history", "stepDtos", func() map[string]any {
-			return api(t, withHealthPrincipal(h, session.Principal{Role: auth.RoleFamily, ID: 2, OldID: 2}, h.stepSelectDetail), map[string]any{"oldId": 2, "expireDays": 3})
+		{"family history", "activityRecords", func() map[string]any {
+			return api(t, withHealthPrincipal(h, session.Principal{Role: auth.RoleFamily, ID: 2, OldID: 2}, h.getActivityChart), map[string]any{"oldId": 2, "expireDays": 3})
 		}},
-		{"admin latest", "stepDtos", func() map[string]any { return api(t, h.stepSelect, map[string]any{"name": "乙老人"}) }},
+		{"admin latest", "activityRecords", func() map[string]any { return api(t, h.listLatestActivity, map[string]any{"name": "乙老人"}) }},
 	} {
 		out := handler.read()
 		if rows := out[handler.key].([]any); len(rows) != 0 {
 			t.Errorf("%s exposed previous elder's data: %v", handler.name, out)
 		}
 	}
-	if out := api(t, h.stepSelectCount, map[string]any{}); len(out["deviceIdList"].([]any)) != 0 {
+	if out := api(t, h.listActivityAlertDevices, map[string]any{}); len(out["deviceIdList"].([]any)) != 0 {
 		t.Errorf("previous binding's sleep alarm counted for current device: %v", out)
 	}
 }
@@ -52,9 +52,9 @@ func TestContinuousRebindCannotReadPreviousDailyData(t *testing.T) {
 func TestContinuousRebindDailySnapshotIsSeparate(t *testing.T) {
 	h := dayOwnershipSetup(t)
 	api(t, h.deviceReport, map[string]any{"deviceNo": "WATCH001", "secret": testSecret, "step": 10, "beTime": "2026-10-20 09:00:00"})
-	out := api(t, withHealthPrincipal(h, session.Principal{Role: auth.RoleFamily, ID: 2, OldID: 2}, h.stepSelectFamily), map[string]any{"oldId": 2, "expireDays": 3})
-	row := out["stepDtos"].([]any)[0].(map[string]any)
-	if row["step"] != float64(10) || row["sleep"] != nil || row["sleepSate"] != nil {
+	out := api(t, withHealthPrincipal(h, session.Principal{Role: auth.RoleFamily, ID: 2, OldID: 2}, h.listActivityHistory), map[string]any{"oldId": 2, "expireDays": 3})
+	row := out["activityRecords"].([]any)[0].(map[string]any)
+	if row["step"] != float64(10) || row["sleep"] != nil || row["sleepAlertState"] != nil {
 		t.Fatalf("mixed daily fields across bindings: %v", row)
 	}
 	var oldSteps, oldSleep, owner int
@@ -76,12 +76,12 @@ func TestContinuousRebindDailySnapshotIsSeparate(t *testing.T) {
 	if bound := api(t, h.deviceBind, map[string]any{"deviceNo": "WATCH001", "secret": testSecret, "code": code["code"]}); bound["returnCode"] != "1111" {
 		t.Fatal(bound)
 	}
-	old := api(t, withHealthPrincipal(h, session.Principal{Role: auth.RoleAdmin, ID: 1}, h.stepSelectFamily), map[string]any{"oldId": 1})["stepDtos"].([]any)
+	old := api(t, withHealthPrincipal(h, session.Principal{Role: auth.RoleAdmin, ID: 1}, h.listActivityHistory), map[string]any{"oldId": 1})["activityRecords"].([]any)
 	if len(old) != 1 || old[0].(map[string]any)["step"] != float64(5000) {
 		t.Fatalf("original elder's history lost: %v", old)
 	}
 	api(t, h.deviceReport, map[string]any{"deviceNo": "WATCH001", "secret": testSecret, "step": 20, "beTime": "2026-10-20 08:30:00"})
-	current := api(t, withHealthPrincipal(h, session.Principal{Role: auth.RoleAdmin, ID: 1}, h.stepSelectDetail), map[string]any{"oldId": 1})["stepDtos"].([]any)
+	current := api(t, withHealthPrincipal(h, session.Principal{Role: auth.RoleAdmin, ID: 1}, h.getActivityChart), map[string]any{"oldId": 1})["activityRecords"].([]any)
 	if len(current) != 1 || current[0].(map[string]any)["step"] != float64(20) || current[0].(map[string]any)["sleep"] != nil {
 		t.Fatalf("repeated binding did not start a distinct daily snapshot: %v", current)
 	}

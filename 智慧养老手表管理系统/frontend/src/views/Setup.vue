@@ -49,7 +49,7 @@ export default {
         this.account.password = ''
         const account = await loadSession(true)
         if (!account) throw new Error('Session missing')
-        this.$router.replace('/main')
+        this.$router.replace('/operations/overview')
       } catch (e) {
         this.error = apiErrorMessage(e, '暂时无法创建，请检查填写的信息后重试。')
       } finally { this.busy = false }

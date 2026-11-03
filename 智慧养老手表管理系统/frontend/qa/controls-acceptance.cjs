@@ -1,5 +1,5 @@
 const fs=require('fs'),path=require('path'),run=require('./browser-harness.cjs');
-const routes=[['/step','step/selectStep','name'],['/ratepre','ratepre/selectRatepre','name'],['/position','position/select','name'],['/life','oldPerson/select','name'],['/watch','watchInfo/select','oldName'],['/person','oldPerson/selectDetail','name'],['/customer','customer/select','customerName'],['/family','family/select','familyName'],['/main','text/select','title'],['/textOpt','text/select','title']];
+const routes=[['/operations/activity','step/selectStep','name'],['/operations/vitals','ratepre/selectRatepre','name'],['/operations/locations','position/select','name'],['/operations/life','oldPerson/select','name'],['/operations/monitoring-profiles','watchInfo/select','oldName'],['/operations/residents','oldPerson/selectDetail','name'],['/operations/guardians','customer/select','customerName'],['/operations/families','family/select','familyName'],['/operations/overview','text/select','title'],['/operations/notices','text/select','title']];
 run(async({page,base,report,setRole,setSignedIn})=>{
  setRole('ADMIN');setSignedIn(true);const checks=[];let navigation=0;
  const check=(name,pass,details)=>checks.push({name,pass:Boolean(pass),details});
@@ -32,7 +32,7 @@ run(async({page,base,report,setRole,setSignedIn})=>{
   }
  }
  // Numeric controls and stacked dialog labels share one boundary as well.
- await visit('/inviteCode',390,true);await page.getByRole('button',{name:'生成邀请码',exact:true}).click();const invite=page.getByRole('dialog',{name:'生成邀请码',exact:true});await invite.waitFor();
+ await visit('/operations/invitations',390,true);await page.getByRole('button',{name:'生成邀请码',exact:true}).click();const invite=page.getByRole('dialog',{name:'生成邀请码',exact:true});await invite.waitFor();
  const count=invite.locator('.el-input-number');
  check('Quantity field has no internal borders',await count.evaluate(el=>[...el.querySelectorAll('.el-input__inner,.el-input-number__increase,.el-input-number__decrease')].every(n=>{const s=getComputedStyle(n);return parseFloat(s.borderLeftWidth)===0&&parseFloat(s.borderRightWidth)===0&&s.boxShadow==='none'})));
  await count.getByRole('button',{name:/增加|Increase/}).click();check('Quantity increment still works',await count.locator('input').inputValue()==='2');
@@ -43,15 +43,15 @@ run(async({page,base,report,setRole,setSignedIn})=>{
  await page.screenshot({path:path.join(__dirname,'artifacts/screenshots','invite-dialog-large-390.png')});
  await invite.getByRole('button',{name:/取\s*消/}).click();
  // Error and disabled fields retain one frame, with error state visible.
- setRole('FAMILY');await page.goto(base+'/?large=0&profile=1#/me');await page.getByRole('button',{name:'修改资料',exact:true}).click();const profile=page.getByRole('dialog',{name:'编辑资料',exact:true});await profile.waitFor();
+ setRole('FAMILY');await page.goto(base+'/?large=0&profile=1#/family-portal/profile');await page.getByRole('button',{name:'修改资料',exact:true}).click();const profile=page.getByRole('dialog',{name:'编辑资料',exact:true});await profile.waitFor();
  const phone=profile.locator('.el-input.is-disabled');check('Disabled field has a single wrapper frame',await phone.evaluate(el=>{const wrapper=getComputedStyle(el.querySelector('.el-input__wrapper')),inner=getComputedStyle(el.querySelector('input'));return parseFloat(wrapper.borderLeftWidth)===1&&wrapper.boxShadow==='none'&&parseFloat(inner.borderLeftWidth)===0&&inner.boxShadow==='none'}));
  await profile.getByRole('textbox',{name:'姓名',exact:true}).fill('');await profile.getByRole('button',{name:/确\s*定/}).click();await profile.locator('.el-form-item__error').first().waitFor();
  check('Invalid field keeps a single red boundary',await profile.locator('.el-form-item.is-error .el-input__wrapper').first().evaluate(el=>{const s=getComputedStyle(el);return s.borderLeftColor==='rgb(164, 38, 44)'&&parseFloat(s.borderLeftWidth)===1&&s.boxShadow==='none'}));
  await page.screenshot({path:path.join(__dirname,'artifacts/screenshots','profile-error-390.png')});
  // Calendar and multi-line content use the same external focus treatment.
- setRole('ADMIN');await visit('/person',390,true);await page.getByRole('button',{name:'添加老人',exact:true}).click();const person=page.getByRole('dialog',{name:'老人添加',exact:true});await person.waitFor();
+ setRole('ADMIN');await visit('/operations/residents',390,true);await page.getByRole('button',{name:'添加老人',exact:true}).click();const person=page.getByRole('dialog',{name:'老人添加',exact:true});await person.waitFor();
  const date=person.getByPlaceholder('选择日期');await date.click();await page.locator('.el-date-picker:visible').waitFor();await page.locator('.el-date-picker:visible .el-date-table td.available').first().click();check('Date selection still fills the field',/^\d{4}-\d{2}-\d{2}$/.test(await date.inputValue()));await person.getByRole('button',{name:/取\s*消/}).click();
- await visit('/textTwo',390,true);const body=page.locator('textarea');await body.fill('清晰的照护提醒');await body.focus();
+ await visit('/operations/notices/new',390,true);const body=page.locator('textarea');await body.fill('清晰的照护提醒');await body.focus();
  check('Textarea retains one outer border and visible focus',await body.evaluate(el=>{const s=getComputedStyle(el);return parseFloat(s.borderLeftWidth)===1&&s.boxShadow==='none'&&s.outlineStyle==='solid'&&parseFloat(s.outlineWidth)>=2}));
  check('Large text editor has no horizontal overflow',await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth));
  await page.emulateMedia({reducedMotion:'reduce'});check('Control transitions respect reduced motion',await body.evaluate(el=>getComputedStyle(el).transitionDuration.split(',').every(d=>parseFloat(d)<=.01)));await page.emulateMedia({reducedMotion:'no-preference'});

@@ -36,14 +36,14 @@ export default {
   },
   computed: {
     showPageIntro () {
-      return ['/familyMain', '/textMain'].indexOf(this.$route.path) === -1
+      return ['/family-portal/overview', '/family-portal/notice'].indexOf(this.$route.path) === -1
     },
     pageDescription () {
       var descriptions = {
-        '/rateprefamily': '查看家人最近上报的心率与单项血压记录。',
-        '/stepfamily': '查看设备上报的睡眠与每日步数记录。',
-        '/positionfamily': '查看设备最近一次上报的位置与安全告警。',
-        '/me': '查看和维护当前家属账号资料。'
+        '/family-portal/vitals': '查看家人最近上报的心率与单项血压记录。',
+        '/family-portal/activity': '查看设备上报的睡眠与每日步数记录。',
+        '/family-portal/location': '查看设备最近一次上报的位置与安全告警。',
+        '/family-portal/profile': '查看和维护当前家属账号资料。'
       }
       return descriptions[this.$route.path] || '查看家人的照护信息与服务内容。'
     }

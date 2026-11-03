@@ -1,6 +1,6 @@
 import { mount } from '@vue/test-utils'
 import { expect, it, vi } from 'vitest'
-import Position from './position.vue'
+import Position from './LocationOverview.vue'
 import RecordCards from '../components/RecordCards.vue'
 import { describePositionContext } from '../utils/positionContext'
 

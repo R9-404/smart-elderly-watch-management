@@ -172,9 +172,9 @@ for key, contract in contracts.items():
     elif path == '/api/v1/image/download':
         op['parameters'] = [{'name': 'name', 'in': 'query', 'required': True, 'schema': {'type': 'string'}}]
         op['responses']['200'] = {'description': 'Image bytes', 'content': {'image/*': {'schema': {'type': 'string', 'format': 'binary'}}}}
-    if path in {'/api/v1/text/add', '/api/v1/text/update', '/api/v1/picshow/add'}:
+    if path in {'/api/v1/notices/create', '/api/v1/notices/update', '/api/v1/gallery/replace'}:
         op['requestBody']['content']['application/json']['schema']['properties']['fileListName'] = {'type': 'array', 'items': {'type': 'string'}}
-    if path == '/api/v1/step/getAllCount':
+    if path == '/api/v1/activity/steps/total':
         op['responses']['200']['content']['application/json']['schema']['properties']['allCount'] = {'type': 'integer', 'minimum': 0}
     if path == '/api/v1/image/saveImage':
         op['requestBody'] = {'required': True, 'content': {'multipart/form-data': {'schema': {'type': 'object', 'required': ['file'], 'properties': {'file': {'type': 'string', 'format': 'binary'}}}}}}

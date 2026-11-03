@@ -25,7 +25,7 @@
         <label for="security-recovery">一次性恢复码（请现在保存）</label>
         <textarea id="security-recovery" :value="recoveryCodes.join('\n')" rows="8" readonly autocomplete="off" />
       </template>
-      <a href="/#/login">保存后重新登录</a>
+      <a href="/#/sign-in">保存后重新登录</a>
     </template>
   </section>
 </template>

@@ -16,11 +16,11 @@ run(async ({ page, context, base, report, setRole, setSignedIn }) => {
   await context.route('**/api/v1/care/diagnostics', route => route.fulfill({ status: 403, json: {returnCode:'0000',code:'INVALID_REQUEST',message:'请求未完成',} }))
   const elder = { oldId: 1, name: '李奶奶', bothdate: '1948-03-01', sex: '女', phone: '13000000000', room: '301', beTime: '2026-10-01', customerName: '张女士', deviceId: 1, familyName: '小明', familySex: '男', familyRelation: '子女', familyPhone: '13900000000', familyAddress: '很长的家属联系地址'.repeat(12), illness: '病史资料'.repeat(30), warn: '青霉素', foodLike: '米饭', foodHate: '花生', drag: '常用药物资料' }
   const lists = [
-    ['/person', 'oldPerson/selectDetail', 'oldPersonDetails', elder],
-    ['/customer', 'customer/select', 'customers', { customerId: 1, customerName: '张女士' }],
-    ['/family', 'family/select', 'familyDtos', { familyId: 1, familyName: '小明' }],
-    ['/watch', 'watchInfo/select', 'watchDtos', { deviceId: 1, name: '李奶奶' }],
-    ['/saidOperation', 'said/selectByUser', 'saidDtos', { saidId: 1, personName: '小明', said: '请及时联系家属', touPic: '' }]
+    ['/operations/residents', 'oldPerson/selectDetail', 'oldPersonDetails', elder],
+    ['/operations/guardians', 'customer/select', 'customers', { customerId: 1, customerName: '张女士' }],
+    ['/operations/families', 'family/select', 'familyDtos', { familyId: 1, familyName: '小明' }],
+    ['/operations/monitoring-profiles', 'watchInfo/select', 'watchDtos', { deviceId: 1, name: '李奶奶' }],
+    ['/operations/comments', 'said/selectByUser', 'moderatedComments', { saidId: 1, personName: '小明', said: '请及时联系家属', touPic: '' }]
   ]
   let failure = '', malformed = '', empty = '', hold = '', release
   for (const [, endpoint, key, row] of lists) {
@@ -34,21 +34,21 @@ run(async ({ page, context, base, report, setRole, setSignedIn }) => {
 
   await page.setViewportSize({ width: 1440, height: 1000 })
   for (const [route, title, group] of [
-    ['/main', '运营总览', []], ['/ratepre', '心率与血压', ['health']],
-    ['/step', '睡眠与步数', ['health']], ['/position', '位置与告警', ['health']],
-    ['/person', '老人档案', ['records']], ['/watch', '监测阈值档案', ['records']],
-    ['/family', '家属账号', ['records']], ['/inviteCode', '家属注册邀请码', ['records']],
-    ['/saidOperation', '评论管理', ['service']], ['/device', '设备管理', []]
+    ['/operations/overview', '运营总览', []], ['/operations/vitals', '心率与血压', ['health']],
+    ['/operations/activity', '睡眠与步数', ['health']], ['/operations/locations', '位置与告警', ['health']],
+    ['/operations/residents', '老人档案', ['records']], ['/operations/monitoring-profiles', '监测阈值档案', ['records']],
+    ['/operations/families', '家属账号', ['records']], ['/operations/invitations', '家属注册邀请码', ['records']],
+    ['/operations/comments', '评论管理', ['service']], ['/operations/devices', '设备管理', []]
   ]) {
     await visit(route)
     check(route + ' route title matches navigation', await page.locator('.el-tabs__item.is-active').textContent().then(text => text.includes(title)))
     check(route + ' opens only its navigation group', JSON.stringify(await opened()) === JSON.stringify(group), await opened())
   }
-  await visit('/person')
+  await visit('/operations/residents')
   await page.locator('#admin-navigation > .el-sub-menu > .el-sub-menu__title').last().click()
   check('manually opening another group closes the previous one', JSON.stringify(await opened()) === '["service"]')
   await page.locator('#admin-navigation .el-menu-item').filter({ hasText: '运营总览' }).click()
-  await page.waitForURL(url => url.hash === '#/main')
+  await page.waitForURL(url => url.hash === '#/operations/overview')
   check('navigation back to overview closes all groups', (await opened()).length === 0)
   await page.goBack()
   await page.locator('.view-intro h1').filter({ hasText: '老人档案' }).waitFor()
@@ -90,7 +90,7 @@ run(async ({ page, context, base, report, setRole, setSignedIn }) => {
     check(route + ' successful empty response stays distinct from failure', await page.locator('.roles [role="alert"]').count() === 0 && await page.locator('.roles .care-empty-state:visible').count() === 1 && await page.locator('.roles').getAttribute('aria-busy') === 'false')
     empty = ''
   }
-  await visit('/person')
+  await visit('/operations/residents')
   await page.locator('.adaptive-record-table .el-table__body tr').first().waitFor()
   failure = 'oldPerson/selectDetail'
   await page.getByRole('button', { name: '查询长者姓名', exact: true }).click()
@@ -100,7 +100,7 @@ run(async ({ page, context, base, report, setRole, setSignedIn }) => {
   for (const large of [false, true]) {
     for (const width of [360, 390, 1024, 1920]) {
       await page.setViewportSize({ width, height: 844 })
-      await page.goto(base + '/?large=' + Number(large) + '&ui=' + Date.now() + '#/person')
+      await page.goto(base + '/?large=' + Number(large) + '&ui=' + Date.now() + '#/operations/residents')
       await page.locator('.roles').waitFor()
       await page.waitForTimeout(100)
       if (width <= 900) {
@@ -120,8 +120,8 @@ run(async ({ page, context, base, report, setRole, setSignedIn }) => {
 
   let failCounts = false, failSecondPage = false
   const positionPages = []
-  await context.route('**/api/v1/ratepre/selectRatepreCount', route => route.fulfill({ json: failCounts ? { returnCode: '1111', rates: null, pres: [] } : { returnCode: '1111', rates: ['1', '2'], pres: ['1'] } }))
-  await context.route('**/api/v1/step/selectStepCount', route => route.fulfill({ json: {returnCode:'1111', deviceIdList: ['1'] } }))
+  await context.route('**/api/v1/vitals/alerts/devices', route => route.fulfill({ json: failCounts ? { returnCode: '1111', rates: null, pres: [] } : { returnCode: '1111', rates: ['1', '2'], pres: ['1'] } }))
+  await context.route('**/api/v1/activity/alerts/devices', route => route.fulfill({ json: {returnCode:'1111', deviceIdList: ['1'] } }))
   await context.route('**/api/v1/position/select', route => {
     const { page: number = 1, pageSize = 20 } = route.request().postDataJSON()
     positionPages.push(number)
@@ -131,7 +131,7 @@ run(async ({ page, context, base, report, setRole, setSignedIn }) => {
   })
   for (const width of [390, 1440, 1920, 2560]) {
     await page.setViewportSize({ width, height: 1080 })
-    await page.goto(base + '/?large=0&ui=' + Date.now() + '#/main')
+    await page.goto(base + '/?large=0&ui=' + Date.now() + '#/operations/overview')
     await page.locator('.overview-grid').waitFor()
     await page.waitForFunction(() => !document.querySelector('.overview-card .el-loading-mask'))
     check('overview ' + width + ' compares real categories', (await page.locator('.alert-card').textContent()).includes('心率 2 · 血压 1 · 睡眠 1') && (await page.locator('.alert-card strong').first().textContent()) === '4')
@@ -142,7 +142,7 @@ run(async ({ page, context, base, report, setRole, setSignedIn }) => {
     if (width === 1920) await page.screenshot({ path: path.join(__dirname, 'artifacts/screenshots/overview-ui-1920.png') })
   }
   failCounts = true; failSecondPage = true
-  await visit('/main')
+  await visit('/operations/overview')
   await page.waitForFunction(() => !document.querySelector('.overview-card .el-loading-mask'))
   check('partial and malformed statistics show errors, not totals', await page.locator('.overview-card .metric-error').count() === 2 && !(await page.locator('.fall-card').textContent()).includes('101 位长者'))
   failCounts = false; failSecondPage = false
@@ -154,7 +154,7 @@ run(async ({ page, context, base, report, setRole, setSignedIn }) => {
   check('statistic retries recover both comparisons', await page.locator('.metric-error').count() === 0 && await page.locator('.fall-card strong').first().textContent() === '2')
 
   setSignedIn(false)
-  await page.goto(base + '/#/login')
+  await page.goto(base + '/#/sign-in')
   await page.locator('#login-password').waitFor()
   check('password uses a visible lock', await page.locator('.el-form-item').filter({ has: page.locator('#login-password') }).locator('.el-input__prefix svg').isVisible())
   await page.getByRole('button', { name: '显示密码', exact: true }).click()

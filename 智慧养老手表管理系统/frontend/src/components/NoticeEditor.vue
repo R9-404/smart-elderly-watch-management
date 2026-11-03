@@ -40,7 +40,7 @@ export default {
       this.loading = true
       this.loadError = ''
       this.attachments = []
-      return axios.post('api/v1/text/selectDetail', { textId: this.$route.query.textId }, { withCredentials: true }).then((response) => {
+      return axios.post('api/v1/notices/detail', { textId: this.$route.query.textId }, { withCredentials: true }).then((response) => {
         if (!response.data.text || response.data.text.picId == null) throw new Error('missing notice')
         this.form = { title: response.data.text.title || '', textMain: response.data.text.textMain || '' }
         this.attachments = (response.data.pics || []).map((pic, index) => ({ uid: 'existing-' + index, name: pic.picName, url: '/api/v1/image/download?name=' + encodeURIComponent(pic.picName), status: 'success' }))
@@ -70,11 +70,11 @@ export default {
         this.saveError = ''
         var params = { title: this.form.title.trim(), textMain: this.form.textMain.trim(), fileListName: this.successfulAttachments.map(file => file.name) }
         if (this.editing) { params.textId = this.$route.query.textId }
-        axios.post('api/v1/text/' + (this.editing ? 'update' : 'add'), params, { withCredentials: true }).then((response) => {
+        axios.post(this.editing ? 'api/v1/notices/update' : 'api/v1/notices/create', params, { withCredentials: true }).then((response) => {
           if (response.data.returnCode !== '1111') throw new Error('save rejected')
           this.$message.success(this.editing ? '公告已保存' : '公告已发布')
           this.baseline = this.signature
-          this.$router.push('/textOpt')
+          this.$router.push('/operations/notices')
         }).catch((error) => { this.saveError = apiErrorMessage(error, '公告暂时未能保存，内容已保留，请稍后重试。') }).then(() => { this.saving = false })
       })
     }

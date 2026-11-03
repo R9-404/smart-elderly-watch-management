@@ -10,19 +10,19 @@ import (
 )
 
 func (h *Handler) routeSocial(mux *http.ServeMux) {
-	mux.HandleFunc("POST /api/v1/said/select", h.saidSelect)
-	mux.HandleFunc("POST /api/v1/said/selectByUser", h.saidSelectByUser)
-	mux.HandleFunc("POST /api/v1/said/delete", h.saidDelete)
-	mux.HandleFunc("POST /api/v1/said/insert", h.saidInsert)
-	mux.HandleFunc("POST /api/v1/said/update", h.saidUpdate)
-	mux.HandleFunc("POST /api/v1/said/goodCount", h.saidGoodCount)
-	mux.HandleFunc("POST /api/v1/text/select", h.textSelect)
-	mux.HandleFunc("POST /api/v1/text/selectDetail", h.textSelectDetail)
-	mux.HandleFunc("POST /api/v1/text/add", h.textAdd)
-	mux.HandleFunc("POST /api/v1/text/delete", h.textDelete)
-	mux.HandleFunc("POST /api/v1/text/update", h.textUpdate)
-	mux.HandleFunc("POST /api/v1/picshow/add", h.picshowAdd)
-	mux.HandleFunc("POST /api/v1/picshow/select", h.picshowSelect)
+	mux.HandleFunc("POST /api/v1/notice-comments/list", h.listNoticeComments)
+	mux.HandleFunc("POST /api/v1/notice-comments/search", h.searchNoticeComments)
+	mux.HandleFunc("POST /api/v1/notice-comments/delete", h.deleteNoticeComment)
+	mux.HandleFunc("POST /api/v1/notice-comments/create", h.createNoticeComment)
+	mux.HandleFunc("POST /api/v1/notice-comments/reply", h.replyToNoticeComment)
+	mux.HandleFunc("POST /api/v1/notice-comments/toggle-like", h.toggleNoticeCommentLike)
+	mux.HandleFunc("POST /api/v1/notices/list", h.listNotices)
+	mux.HandleFunc("POST /api/v1/notices/detail", h.getNotice)
+	mux.HandleFunc("POST /api/v1/notices/create", h.createNotice)
+	mux.HandleFunc("POST /api/v1/notices/delete", h.deleteNotice)
+	mux.HandleFunc("POST /api/v1/notices/update", h.updateNotice)
+	mux.HandleFunc("POST /api/v1/gallery/replace", h.replaceGallery)
+	mux.HandleFunc("POST /api/v1/gallery/list", h.listGallery)
 	mux.HandleFunc("POST /api/v1/image/saveImage", h.imageSave)
 	mux.HandleFunc("GET /api/v1/image/download", h.imageDownload)
 }
@@ -30,7 +30,7 @@ func (h *Handler) routeSocial(mux *http.ServeMux) {
 // ---------------------------------------------------------------------------
 // ---------------------------------------------------------------------------
 
-type said2DTO struct {
+type noticeComment struct {
 	SaidID     *int64  `json:"saidId"`
 	Said       *string `json:"said"`
 	TextID     *int64  `json:"textId"`
@@ -44,7 +44,7 @@ type said2DTO struct {
 	Good       *string `json:"good"`
 }
 
-type saidAdminDTO struct {
+type moderatedNoticeComment struct {
 	SaidID     *int64  `json:"saidId"`
 	Said       *string `json:"said"`
 	Back       *string `json:"back"`
@@ -66,8 +66,8 @@ func maskPhone(phone *string) *string {
 	return &masked
 }
 
-// POST /api/v1/said/select —— 查询某公告下的说说/评论（含当前人点赞状态）。
-func (h *Handler) saidSelect(w http.ResponseWriter, r *http.Request) {
+// POST /api/v1/notice-comments/list —— 查询某公告下的说说/评论（含当前人点赞状态）。
+func (h *Handler) listNoticeComments(w http.ResponseWriter, r *http.Request) {
 	m, ok := bodyMap(w, r)
 	if !ok {
 		return
@@ -98,9 +98,9 @@ func (h *Handler) saidSelect(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	defer rows.Close()
-	items := []said2DTO{}
+	items := []noticeComment{}
 	for rows.Next() {
-		var d said2DTO
+		var d noticeComment
 		if err := rows.Scan(&d.SaidID, &d.Said, &d.TextID, &d.Back, &d.SaidTime, &d.BackTime,
 			&d.PersonName, &d.NiceCount, &d.SaidPhone, &d.TouPic, &d.Good); err != nil {
 			rows.Close()
@@ -113,11 +113,11 @@ func (h *Handler) saidSelect(w http.ResponseWriter, r *http.Request) {
 	if !rowsOK(w, rows) {
 		return
 	}
-	response.JSON(w, http.StatusOK, map[string]any{"said2s": items})
+	response.JSON(w, http.StatusOK, map[string]any{"comments": items})
 }
 
-// POST /api/v1/said/selectByUser —— 管理员分页查询全部说说。
-func (h *Handler) saidSelectByUser(w http.ResponseWriter, r *http.Request) {
+// POST /api/v1/notice-comments/search —— 管理员分页查询全部说说。
+func (h *Handler) searchNoticeComments(w http.ResponseWriter, r *http.Request) {
 	m, ok := bodyMap(w, r)
 	if !ok {
 		return
@@ -142,9 +142,9 @@ func (h *Handler) saidSelectByUser(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	defer rows.Close()
-	items := []saidAdminDTO{}
+	items := []moderatedNoticeComment{}
 	for rows.Next() {
-		var d saidAdminDTO
+		var d moderatedNoticeComment
 		if err := rows.Scan(&d.SaidID, &d.Said, &d.Back, &d.SaidTime, &d.BackTime, &d.PersonName, &d.TouPic, &d.Title); err != nil {
 			rows.Close()
 			response.Error500(w, ref())
@@ -156,12 +156,12 @@ func (h *Handler) saidSelectByUser(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	response.JSON(w, http.StatusOK, map[string]any{
-		"saidDtos": items, "total": total, "page": page, "pageSize": pageSize,
+		"moderatedComments": items, "total": total, "page": page, "pageSize": pageSize,
 	})
 }
 
-// POST /api/v1/said/delete —— 删除一条说说。
-func (h *Handler) saidDelete(w http.ResponseWriter, r *http.Request) {
+// POST /api/v1/notice-comments/delete —— 删除一条说说。
+func (h *Handler) deleteNoticeComment(w http.ResponseWriter, r *http.Request) {
 	m, ok := bodyMap(w, r)
 	if !ok {
 		return
@@ -179,8 +179,8 @@ func (h *Handler) saidDelete(w http.ResponseWriter, r *http.Request) {
 	writeCode(w, ct.RowsAffected() == 1)
 }
 
-// POST /api/v1/said/insert —— 发表说说/评论。
-func (h *Handler) saidInsert(w http.ResponseWriter, r *http.Request) {
+// POST /api/v1/notice-comments/create —— 发表说说/评论。
+func (h *Handler) createNoticeComment(w http.ResponseWriter, r *http.Request) {
 	m, ok := bodyMap(w, r)
 	if !ok {
 		return
@@ -241,8 +241,8 @@ func (h *Handler) saidInsert(w http.ResponseWriter, r *http.Request) {
 	writeCode(w, ct.RowsAffected() == 1)
 }
 
-// POST /api/v1/said/update —— 管理员回复说说。
-func (h *Handler) saidUpdate(w http.ResponseWriter, r *http.Request) {
+// POST /api/v1/notice-comments/reply —— 管理员回复说说。
+func (h *Handler) replyToNoticeComment(w http.ResponseWriter, r *http.Request) {
 	m, ok := bodyMap(w, r)
 	if !ok {
 		return
@@ -266,8 +266,8 @@ func (h *Handler) saidUpdate(w http.ResponseWriter, r *http.Request) {
 	writeCode(w, ct.RowsAffected() == 1)
 }
 
-// POST /api/v1/said/goodCount —— 点赞/取消点赞（事务内执行，行锁防并发）。
-func (h *Handler) saidGoodCount(w http.ResponseWriter, r *http.Request) {
+// POST /api/v1/notice-comments/toggle-like —— 点赞/取消点赞（事务内执行，行锁防并发）。
+func (h *Handler) toggleNoticeCommentLike(w http.ResponseWriter, r *http.Request) {
 	m, ok := bodyMap(w, r)
 	if !ok {
 		return

@@ -107,7 +107,7 @@ export default {
       if (keepPage !== true) this.currentPage = 1
       var _this = this
         
-        return axios.post('api/v1/said/selectByUser',
+        return axios.post('api/v1/notice-comments/search',
           { page: this.currentPage, pageSize: this.pageSize,
           },
           {
@@ -116,9 +116,9 @@ export default {
             },
             withCredentials: true
           }).then(function (response) {
-          if (!Array.isArray(response.data.saidDtos)) throw new Error('invalid records')
-          var tableData2 = response.data.saidDtos
-          _this.total = response.data.total ?? response.data.saidDtos.length
+          if (!Array.isArray(response.data.moderatedComments)) throw new Error('invalid records')
+          var tableData2 = response.data.moderatedComments
+          _this.total = response.data.total ?? response.data.moderatedComments.length
 					for(var i=0;i<tableData2.length;i++){
 
 						tableData2[i].touPic = '/api/v1/image/download?name='+encodeURIComponent(tableData2[i].touPic)
@@ -137,7 +137,7 @@ export default {
     
     editSaid () {
       var _this = this
-      axios.post('api/v1/said/update',_this.saidEditForm,
+      axios.post('api/v1/notice-comments/reply',_this.saidEditForm,
         {
           headers: {
             'content-type': 'application/json'
@@ -172,7 +172,7 @@ export default {
           cancelButtonText: '取消',
           type: 'warning'
         })
-        axios.post('api/v1/said/delete', {'saidId': saidId},
+        axios.post('api/v1/notice-comments/delete', {'saidId': saidId},
           {
             headers: {
               'content-type': 'application/json'

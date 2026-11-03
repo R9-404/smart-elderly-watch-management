@@ -19,7 +19,7 @@ func apiFailure(t *testing.T, status int, handler http.HandlerFunc, body map[str
 
 func TestMissingNoticeReturnsNotFound(t *testing.T) {
 	h := testHandler(t, testDatabase(t))
-	out := apiFailure(t, 404, h.textSelectDetail, map[string]any{"textId": 999999})
+	out := apiFailure(t, 404, h.getNotice, map[string]any{"textId": 999999})
 	if out["code"] != "NOT_FOUND" {
 		t.Fatal(out)
 	}

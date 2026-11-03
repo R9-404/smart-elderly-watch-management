@@ -1,4 +1,4 @@
-// Package ratelimit 复刻 PublicRateLimitFilter：按 IP+路径 10 分钟滑动窗口限流。
+// Package ratelimit 按来源 IP 和路由执行 10 分钟滑动窗口限流。
 package ratelimit
 
 import (
@@ -18,7 +18,7 @@ const (
 	shardCount = 32
 )
 
-// 路径→10分钟内允许次数（与 Java 端一致）。
+// 每条路由在十分钟窗口内允许的请求数。
 var limits = map[string]int{
 	"/api/v1/setup":                30,
 	"/api/v1/auth/login":           30,

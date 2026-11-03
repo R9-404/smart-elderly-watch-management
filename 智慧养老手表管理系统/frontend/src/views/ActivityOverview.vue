@@ -30,10 +30,10 @@
       <el-table-column prop="sex" label="性别" width="100" align="center"></el-table-column>
 			<el-table-column prop="step" label="今日步数" width="150" align="center"></el-table-column>
 			<el-table-column prop="sleep" label="睡眠时间" width="150" align="center"></el-table-column>
-			<el-table-column prop="sleepSate" label="睡眠情况" width="150" align="center">
+			<el-table-column prop="sleepAlertState" label="睡眠情况" width="150" align="center">
 				<template #default="scope" >
-				  <span v-if="scope.row.sleepSate==1" class="status-danger">异常</span>
-				  <span v-else-if="scope.row.sleepSate === 0 || scope.row.sleepSate === '0'" class="status-normal">正常</span><span v-else class="status-unknown">暂无状态</span>
+				  <span v-if="scope.row.sleepAlertState==1" class="status-danger">异常</span>
+				  <span v-else-if="scope.row.sleepAlertState === 0 || scope.row.sleepAlertState === '0'" class="status-normal">正常</span><span v-else class="status-unknown">暂无状态</span>
 				</template>
 			</el-table-column>
 			<el-table-column prop="createTime" label="时间" width="180" align="center"></el-table-column>
@@ -46,7 +46,7 @@
         </template>
       </el-table-column>
     </el-table>
-    <record-cards :records="stepList" :fields='[{"key":"sex","label":"性别"},{"key":"step","label":"今日步数"},{"key":"sleep","label":"睡眠时间"},{"key":"sleepSate","label":"睡眠情况","state":"health"}]' label="睡眠与步数记录" title-key="name" key-field="oldId" time-key="createTime">
+    <record-cards :records="stepList" :fields='[{"key":"sex","label":"性别"},{"key":"step","label":"今日步数"},{"key":"sleep","label":"睡眠时间"},{"key":"sleepAlertState","label":"睡眠情况","state":"health"}]' label="睡眠与步数记录" title-key="name" key-field="oldId" time-key="createTime">
       <template #actions="scope"  ><el-button size="small" plain type="success" icon="el-icon-check" aria-label="查看睡眠详情" @click="showRoleDialog(scope.row)">
             查看睡眠详情
           </el-button></template>
@@ -117,7 +117,7 @@ export default {
       var _this = this
       var name = _this.searchText
 
-      axios.post('api/v1/step/selectStep',
+      axios.post('api/v1/activity/latest',
         {
           page: _this.currentPage, pageSize: _this.pageSize,
           'name': name === '' ? '' : _this.searchText,
@@ -130,8 +130,8 @@ export default {
           },
           withCredentials: true
         }).then(function (response) {
-        _this.stepList = response.data.stepDtos
-        _this.total = response.data.total ?? response.data.stepDtos.length
+        _this.stepList = response.data.activityRecords
+        _this.total = response.data.total ?? response.data.activityRecords.length
       })
         .catch(function (error) {
           _this.$message.error(apiErrorMessage(error, '请求未完成，请重试'))
@@ -140,7 +140,7 @@ export default {
 		getCount(){
 
 			var _this=this
-			axios.post('api/v1/step/selectStepCount',
+			axios.post('api/v1/activity/alerts/devices',
 				{
 					
 				},
@@ -174,7 +174,7 @@ export default {
       this.chartLoading = true
       this.chartError = ''
       this.name = curOld.name || ''
-      return axios.post('api/v1/step/selectStepDetail', { oldId: curOld.oldId }, { withCredentials: true }).then(response => {
+      return axios.post('api/v1/activity/chart', { oldId: curOld.oldId }, { withCredentials: true }).then(response => {
         if (!this.isShowRoleDialog) return
         this.sleep = Array.isArray(response.data.sleep) ? response.data.sleep : []; this.createTime = Array.isArray(response.data.createTime) ? response.data.createTime : [];
         if (!this.sleep.length) { this.chartError = '暂无可展示的睡眠详情。'; return }

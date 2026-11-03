@@ -43,7 +43,7 @@ func Matches(plain, hashed string) bool {
 }
 
 // ValidNewPassword 新密码规则：12–20 位、同时含字母和数字、UTF-8 ≤72 字节。
-// 注：Go 的 RE2 不支持前瞻断言，改用直接扫描（与 Java 正则语义等价）。
+// 逐字节检查密码是否同时包含 ASCII 字母和数字。
 func ValidNewPassword(pw string) bool {
 	n := utf8.RuneCountInString(pw)
 	if n < 12 || n > 20 {

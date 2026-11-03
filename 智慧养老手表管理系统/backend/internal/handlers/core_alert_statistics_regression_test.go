@@ -35,7 +35,7 @@ func TestContinuousConfiguredThresholdExplanation(t *testing.T) {
 	mustExec(t, pool, "INSERT INTO watch_info(device_id,hrf,hrl,bpf,bpl) VALUES(1,75,55,200,180)")
 	api(t, h.deviceReport, map[string]any{"deviceNo": "WATCH001", "secret": testSecret, "hr": 80, "bp": 170})
 	for _, body := range []map[string]any{{"oldId": 1}, {"recordId": 1}} {
-		out := api(t, h.ratepreAlertDetail, body)
+		out := api(t, h.getVitalAlert, body)
 		reason, _ := out["reason"].(string)
 		detail, _ := out["detail"].(string)
 		if !strings.Contains(reason, "心率偏高") || !strings.Contains(reason, "血压偏低") || !strings.Contains(detail, "55-75") || !strings.Contains(detail, "180-200") {

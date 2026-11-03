@@ -2,6 +2,14 @@
 
 接口路径以 Go 路由为准，当前共 109 个路径。`scripts/generate-openapi.py --check` 校验路由、OpenAPI 和网页状态码字典；字段清单保存在 `backend/internal/apidoc/contracts.json`。
 
+## Preview 命名
+
+运营和家属页面分别使用 `/operations`、`/family-portal` 命名空间，登录与家属注册入口为
+`/sign-in`、`/join-family`。健康与活动接口使用 `/api/v1/vitals/`、`/api/v1/activity/`，
+公告、评论和展示图片使用 `/api/v1/notices/`、`/api/v1/notice-comments/`、`/api/v1/gallery/`。
+这些入口仅注册新路径。健康列表使用 `vitalRecords`、`activityRecords`，活动记录的睡眠告警字段为
+`sleepAlertState`。
+
 ## 请求与响应
 
 JSON 成功使用 HTTP 200，根字段 `returnCode` 固定为字符串 `1111`。业务字段保留在根对象中。失败使用 HTTP 4xx/5xx，根字段为 `returnCode="0000"`、字符串 `code`、字符串 `message`；内部错误另带 `reference`，网页和手表均展示该编号。
@@ -135,37 +143,37 @@ JSON 成功使用 HTTP 200，根字段 `returnCode` 固定为字符串 `1111`。
 | `POST /api/v1/oldPerson/select` | `name`, `page`, `pageSize` | `oldPeople`, `page`, `pageSize`, `total` |
 | `POST /api/v1/oldPerson/selectDetail` | `name`, `page`, `pageSize` | `oldPersonDetails`, `page`, `pageSize`, `total` |
 | `POST /api/v1/oldPerson/update` | `oldId`, `name`, `bothdate`, `sex`, `phone`, `room`, `illness`, `warn`, `foodLike`, `foodHate`, `drag`, `customerId`, `customerName`, `deviceId` | 结果包 |
-| `POST /api/v1/picshow/add` | `fileListName` | 结果包 |
-| `POST /api/v1/picshow/select` | `id`, `picName` | `picShows` |
+| `POST /api/v1/gallery/replace` | `fileListName` | 结果包 |
+| `POST /api/v1/gallery/list` | `id`, `picName` | `galleryImages` |
 | `POST /api/v1/position/select` | `name`, `page`, `pageSize` | `page`, `pageSize`, `positionDtos`, `total` |
 | `POST /api/v1/position/selectFamily` | `oldId` | `positionDtos` |
-| `POST /api/v1/ratepre/alertCount` | 无 | `preTotal`, `rateTotal`, `total` |
-| `POST /api/v1/ratepre/alertDetail` | `kind`, `oldId`, `recordId` | `hasAlert`, `message`, `recordId`, `deviceId`, `oldId`, `oldPersonName`, `hr`, `bp`, `rateBad`, `preBad`, `occurTime`, `reason`, `detail`, `advice` |
-| `POST /api/v1/ratepre/resolveAlert` | `kind`, `recordId` | `message` |
-| `POST /api/v1/ratepre/selectRatepre` | `name`, `timeFirst`, `timeLast`, `page`, `pageSize` | `page`, `pageSize`, `ratepreDtoList`, `total` |
-| `POST /api/v1/ratepre/selectRatepreCount` | 无 | `pres`, `rates` |
-| `POST /api/v1/ratepre/selectRatepreDetail` | `oldId` | `bps`, `createTimes`, `hrs`, `time` |
-| `POST /api/v1/ratepre/selectRatepreFamily` | `oldId` | `ratepreDtoList` |
+| `POST /api/v1/vitals/alerts/count` | 无 | `preTotal`, `rateTotal`, `total` |
+| `POST /api/v1/vitals/alerts/detail` | `kind`, `oldId`, `recordId` | `hasAlert`, `message`, `recordId`, `deviceId`, `oldId`, `oldPersonName`, `hr`, `bp`, `rateBad`, `preBad`, `occurTime`, `reason`, `detail`, `advice` |
+| `POST /api/v1/vitals/alerts/resolve` | `kind`, `recordId` | `message` |
+| `POST /api/v1/vitals/latest` | `name`, `timeFirst`, `timeLast`, `page`, `pageSize` | `page`, `pageSize`, `vitalRecords`, `total` |
+| `POST /api/v1/vitals/alerts/devices` | 无 | `pres`, `rates` |
+| `POST /api/v1/vitals/chart` | `oldId` | `bps`, `createTimes`, `hrs`, `time` |
+| `POST /api/v1/vitals/history` | `oldId` | `vitalRecords` |
 | `POST /api/v1/rule-policies` | `deviceId`, `policy`, `revision` | `policy`, `revision` |
-| `POST /api/v1/said/delete` | `saidId` | 结果包 |
-| `POST /api/v1/said/goodCount` | `saidId` | 结果包 |
-| `POST /api/v1/said/insert` | `said`, `textId` | 结果包 |
-| `POST /api/v1/said/select` | `textId` | `said2s` |
-| `POST /api/v1/said/selectByUser` | `page`, `pageSize` | `page`, `pageSize`, `saidDtos`, `total` |
-| `POST /api/v1/said/update` | `back`, `saidId` | 结果包 |
+| `POST /api/v1/notice-comments/delete` | `saidId` | 结果包 |
+| `POST /api/v1/notice-comments/toggle-like` | `saidId` | 结果包 |
+| `POST /api/v1/notice-comments/create` | `said`, `textId` | 结果包 |
+| `POST /api/v1/notice-comments/list` | `textId` | `comments` |
+| `POST /api/v1/notice-comments/search` | `page`, `pageSize` | `page`, `pageSize`, `moderatedComments`, `total` |
+| `POST /api/v1/notice-comments/reply` | `back`, `saidId` | 结果包 |
 | `POST /api/v1/security/factor` | `action`, `otp`, `password` | `secret`, `uri`, `recoveryCodes`, `reloginRequired` |
 | `POST /api/v1/security/login-audit` | `after` | `items` |
 | `POST /api/v1/setup` | `name`, `password`, `phone` | 结果包 |
-| `POST /api/v1/step/getAllCount` | 无 | `allCount` |
-| `POST /api/v1/step/selectStep` | `name`, `timeFirst`, `timeLast`, `page`, `pageSize` | `page`, `pageSize`, `stepDtos`, `total` |
-| `POST /api/v1/step/selectStepCount` | 无 | `deviceIdList` |
-| `POST /api/v1/step/selectStepDetail` | `oldId` | `createTime`, `sleep`, `stepDtos` |
-| `POST /api/v1/step/selectStepFamily` | `oldId` | `stepDtos` |
-| `POST /api/v1/text/add` | `fileListName`, `textMain`, `title` | 结果包 |
-| `POST /api/v1/text/delete` | `textId` | 结果包 |
-| `POST /api/v1/text/select` | `title`, `page`, `pageSize` | `page`, `pageSize`, `texts`, `total` |
-| `POST /api/v1/text/selectDetail` | `textId` | `pics`, `text` |
-| `POST /api/v1/text/update` | `textId`, `title`, `textMain`, `fileListName` | 结果包 |
+| `POST /api/v1/activity/steps/total` | 无 | `allCount` |
+| `POST /api/v1/activity/latest` | `name`, `timeFirst`, `timeLast`, `page`, `pageSize` | `page`, `pageSize`, `activityRecords`, `total` |
+| `POST /api/v1/activity/alerts/devices` | 无 | `deviceIdList` |
+| `POST /api/v1/activity/chart` | `oldId` | `createTime`, `sleep`, `activityRecords` |
+| `POST /api/v1/activity/history` | `oldId` | `activityRecords` |
+| `POST /api/v1/notices/create` | `fileListName`, `textMain`, `title` | 结果包 |
+| `POST /api/v1/notices/delete` | `textId` | 结果包 |
+| `POST /api/v1/notices/list` | `title`, `page`, `pageSize` | `page`, `pageSize`, `texts`, `total` |
+| `POST /api/v1/notices/detail` | `textId` | `pics`, `text` |
+| `POST /api/v1/notices/update` | `textId`, `title`, `textMain`, `fileListName` | 结果包 |
 | `POST /api/v1/user/select` | `userPhone` | `usersByPhone2` |
 | `POST /api/v1/watchInfo/add` | `deviceId`, `hrf`, `hrl`, `bpf`, `bpl` | 结果包 |
 | `POST /api/v1/watchInfo/delete` | `deviceId` | 结果包 |

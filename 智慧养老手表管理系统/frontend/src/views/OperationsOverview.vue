@@ -10,12 +10,12 @@
       <article class="overview-card alert-card" v-loading="countLoading" :aria-busy="String(countLoading)">
         <div class="metric-icon amber"><i class="el-icon-warning"></i></div>
         <div class="metric-copy"><span>设备异常类别计数</span><strong v-if="!countError">{{ allCount == null ? '—' : allCount }}</strong><strong v-else class="metric-error" role="status">{{ countError }}</strong><small v-if="categoryCounts">心率 {{ categoryCounts.rate }} · 血压 {{ categoryCounts.pressure }} · 睡眠 {{ categoryCounts.sleep }}</small><small>同一设备可能对应多类异常</small></div>
-        <el-button v-if="countError" link @click="getCount">重新加载设备统计</el-button><el-button v-else link @click="$router.push('/device')">查看设备 <i class="el-icon-arrow-right"></i></el-button>
+        <el-button v-if="countError" link @click="getCount">重新加载设备统计</el-button><el-button v-else link @click="$router.push('/operations/devices')">查看设备 <i class="el-icon-arrow-right"></i></el-button>
       </article>
       <article class="overview-card fall-card" v-loading="positionLoading" :aria-busy="String(positionLoading)">
         <div class="metric-icon rose"><i class="el-icon-warning"></i></div>
         <div class="metric-copy"><span>紧急告警</span><strong v-if="!positionError">{{ num == null ? '—' : num }}</strong><strong v-else class="metric-error" role="status">{{ positionError }}</strong><small v-if="positionTotal != null">{{ positionTotal ? num + ' / ' + positionTotal + ' 位长者有紧急告警' : '暂无长者位置记录' }}</small><small>根据最近告警记录统计</small></div>
-        <el-button v-if="positionError" link @click="searchposition">重新加载告警统计</el-button><el-button v-else link @click="$router.push('/position')">查看位置 <i class="el-icon-arrow-right"></i></el-button>
+        <el-button v-if="positionError" link @click="searchposition">重新加载告警统计</el-button><el-button v-else link @click="$router.push('/operations/locations')">查看位置 <i class="el-icon-arrow-right"></i></el-button>
       </article>
       <article class="overview-note">
         <span class="note-icon"><i class="el-icon-info"></i></span>
@@ -132,8 +132,8 @@ export default {
       this.allCount = null
       this.categoryCounts = null
       return Promise.all([
-        axios.post('api/v1/ratepre/selectRatepreCount', {}, { withCredentials: true }),
-        axios.post('api/v1/step/selectStepCount', {}, { withCredentials: true })
+        axios.post('api/v1/vitals/alerts/devices', {}, { withCredentials: true }),
+        axios.post('api/v1/activity/alerts/devices', {}, { withCredentials: true })
       ]).then(([vitals, steps]) => {
         var rates = vitals.data.rates, pressures = vitals.data.pres, sleeps = steps.data.deviceIdList
         if (![rates, pressures, sleeps].every(Array.isArray)) throw new Error('missing counts')
@@ -169,8 +169,8 @@ export default {
     },
     handleSizeChange (val) { this.pageSize = val; this.currentPage = 1; this.searchOlds(true) },
     changePage (val) { this.currentPage = val; this.searchOlds(true) },
-    getDetail (row) { this.$router.push({ path: '/textMainUser', query: { textId: row.textId, picId: row.picId } }) },
-    addtext () { this.$router.push('/textTwo') },
+    getDetail (row) { this.$router.push({ path: '/operations/notices/detail', query: { textId: row.textId, picId: row.picId } }) },
+    addtext () { this.$router.push('/operations/notices/new') },
     clearSearch () { this.searchText = ''; this.searchOlds() },
     searchOlds (keepPage = false) {
       if (keepPage !== true) this.currentPage = 1
@@ -178,7 +178,7 @@ export default {
       this.appliedSearch = this.searchText.trim()
       this.isLoading = true
       this.loadError = ''
-      return axios.post('api/v1/text/select', { page: this.currentPage, pageSize: this.pageSize,  title: this.appliedSearch }, { withCredentials: true }).then((response) => {
+      return axios.post('api/v1/notices/list', { page: this.currentPage, pageSize: this.pageSize,  title: this.appliedSearch }, { withCredentials: true }).then((response) => {
         if (!Array.isArray(response.data.texts)) throw new Error('missing notices')
         this.tableData = response.data.texts
         this.total = response.data.total ?? this.tableData.length

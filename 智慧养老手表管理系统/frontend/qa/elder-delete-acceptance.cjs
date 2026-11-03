@@ -18,7 +18,7 @@ run(async ({ page, context, base, report, setRole }) => {
     assert.equal(route.request().postDataJSON().oldId, 1);
     await route.fulfill({ status, contentType: 'application/json', body: JSON.stringify(body) });
   });
-  await page.goto(base + '/#/person');
+  await page.goto(base + '/#/operations/residents');
   const remove = page.getByRole('button', { name: '删除', exact: true }).first();
   await remove.waitFor();
   const confirm = async () => {

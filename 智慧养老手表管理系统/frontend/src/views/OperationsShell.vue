@@ -7,7 +7,7 @@
       <main ref="workspaceMain" id="admin-main" class="workspace-main" tabindex="-1">
         <div class="workspace-tabs" v-if="openTab.length">
           <el-tabs v-model="activeIndex" @tab-click="tabClick" @tab-remove="tabRemove">
-            <el-tab-pane v-for="item in openTab" :key="item.route" :label="item.name" :name="item.route" :closable="item.route !== '/main'"></el-tab-pane>
+            <el-tab-pane v-for="item in openTab" :key="item.route" :label="item.name" :name="item.route" :closable="item.route !== '/operations/overview'"></el-tab-pane>
           </el-tabs>
         </div>
         <section class="workspace-content">
@@ -34,23 +34,23 @@ export default {
   computed: {
     openTab () { return this.$store.state.openTab },
     showPageIntro () {
-      return ['/main', '/device', '/inviteCode', '/annex'].indexOf(this.$route.path) === -1
+      return ['/operations/overview', '/operations/devices', '/operations/invitations', '/operations/attachments'].indexOf(this.$route.path) === -1
     },
     pageDescription () {
       var descriptions = {
-        '/ratepre': '查看近期心率与单项血压记录，异常状态以设备上报为准。',
-        '/step': '查看手表上报的睡眠与每日步数记录。',
-        '/position': '查看设备最近一次上报的位置与安全告警。',
-        '/life': '查看手表上报的生活信息。',
-        '/watch': '维护监测阈值档案；设备注册与在线状态请前往设备管理。',
-        '/person': '管理老人基础档案与关联设备。',
-        '/customer': '查看监护人资料与联系电话。',
-        '/family': '查看家属账号与关联信息。',
-        '/text': '编辑公告内容并预览发布信息。',
-        '/textTwo': '创建面向家属的服务公告。',
-        '/textMainUser': '查阅公告详情与图片内容。',
-        '/textOpt': '查看和维护已发布公告。',
-        '/saidOperation': '查看公告评论并处理互动内容。'
+        '/operations/vitals': '查看近期心率与单项血压记录，异常状态以设备上报为准。',
+        '/operations/activity': '查看手表上报的睡眠与每日步数记录。',
+        '/operations/locations': '查看设备最近一次上报的位置与安全告警。',
+        '/operations/life': '查看手表上报的生活信息。',
+        '/operations/monitoring-profiles': '维护监测阈值档案；设备注册与在线状态请前往设备管理。',
+        '/operations/residents': '管理老人基础档案与关联设备。',
+        '/operations/guardians': '查看监护人资料与联系电话。',
+        '/operations/families': '查看家属账号与关联信息。',
+        '/operations/notices/edit': '编辑公告内容并预览发布信息。',
+        '/operations/notices/new': '创建面向家属的服务公告。',
+        '/operations/notices/detail': '查阅公告详情与图片内容。',
+        '/operations/notices': '查看和维护已发布公告。',
+        '/operations/comments': '查看公告评论并处理互动内容。'
       }
       return descriptions[this.$route.path] || '在这里查看和管理照护信息。'
     },
@@ -62,15 +62,15 @@ export default {
   methods: {
     tabClick () { this.$router.push({ path: this.activeIndex }) },
     tabRemove (route) {
-      if (route === '/main') return
+      if (route === '/operations/overview') return
       this.$store.removeTab(route)
       if (this.activeIndex === route) {
         var next = this.openTab[this.openTab.length - 1]
-        this.$router.push({ path: next ? next.route : '/main' })
+        this.$router.push({ path: next ? next.route : '/operations/overview' })
       }
     },
     addCurrentTab (route) {
-      if (!route.path || route.path === '/home') return
+      if (!route.path || route.path === '/operations') return
       if (!this.openTab.some(function (tab) { return tab.route === route.path })) {
         this.$store.addTab({ route: route.path, name: route.meta.title || '运营总览' })
       }

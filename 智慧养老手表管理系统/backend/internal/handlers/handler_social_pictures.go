@@ -40,13 +40,13 @@ func (h *Handler) notificationPhones(r *http.Request, q dbQuerier) ([]notificati
 // ---------------------------------------------------------------------------
 // ---------------------------------------------------------------------------
 
-type picShowDTO struct {
+type galleryImage struct {
 	ID      *int64  `json:"id"`
 	PicName *string `json:"picName"`
 }
 
-// POST /api/v1/picshow/add —— 替换首页展示图（整体替换，事务内执行）。
-func (h *Handler) picshowAdd(w http.ResponseWriter, r *http.Request) {
+// POST /api/v1/gallery/replace —— 替换首页展示图（整体替换，事务内执行）。
+func (h *Handler) replaceGallery(w http.ResponseWriter, r *http.Request) {
 	m, ok := optBody(w, r)
 	if !ok {
 		return
@@ -94,8 +94,8 @@ func (h *Handler) picshowAdd(w http.ResponseWriter, r *http.Request) {
 	writeCode(w, true)
 }
 
-// POST /api/v1/picshow/select —— 查询展示图列表。
-func (h *Handler) picshowSelect(w http.ResponseWriter, r *http.Request) {
+// POST /api/v1/gallery/list —— 查询展示图列表。
+func (h *Handler) listGallery(w http.ResponseWriter, r *http.Request) {
 	if _, ok := optBody(w, r); !ok {
 		return
 	}
@@ -105,9 +105,9 @@ func (h *Handler) picshowSelect(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	defer rows.Close()
-	items := []picShowDTO{}
+	items := []galleryImage{}
 	for rows.Next() {
-		var d picShowDTO
+		var d galleryImage
 		if err := rows.Scan(&d.ID, &d.PicName); err != nil {
 			rows.Close()
 			response.Error500(w, ref())
@@ -118,7 +118,7 @@ func (h *Handler) picshowSelect(w http.ResponseWriter, r *http.Request) {
 	if !rowsOK(w, rows) {
 		return
 	}
-	response.JSON(w, http.StatusOK, map[string]any{"picShows": items})
+	response.JSON(w, http.StatusOK, map[string]any{"galleryImages": items})
 }
 
 // ---------------------------------------------------------------------------

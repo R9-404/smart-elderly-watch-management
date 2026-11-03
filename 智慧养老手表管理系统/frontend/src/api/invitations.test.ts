@@ -1,7 +1,7 @@
 import { afterEach, expect, it, vi } from 'vitest'
 import axios from 'axios'
 import { invitations } from './invitations'
-import InvitePage from '../views/inviteCode.vue'
+import InvitePage from '../views/FamilyInvitations.vue'
 import RegisterPage from '../views/Register.vue'
 import { flushPromises } from '@vue/test-utils'
 afterEach(() => vi.restoreAllMocks())

@@ -70,7 +70,7 @@ export function installHttpSecurity (router, app) {
       authState.account = null
       authState.csrfToken = ''
       clearProfile()
-      if (!['/login', '/register'].includes(router.currentRoute.value.path)) router.replace('/login')
+      if (!['/sign-in', '/join-family'].includes(router.currentRoute.value.path)) router.replace('/sign-in')
     }
     if (error.response && error.response.status === 403 && error.response.data && error.response.data.code === 'CSRF_REJECTED') {
       loaded = false
@@ -82,8 +82,8 @@ export function installHttpSecurity (router, app) {
       // A supervisor may change a duty while a page is open. Refresh the
       // session, but never replay the denied mutation automatically.
       loadSession(true).then(account => {
-        if (account?.role === 'ADMIN' && ['caregiver', 'auditor'].includes(account.duty) && !['/main', '/home'].includes(router.currentRoute.value.path)) {
-          router.replace('/main')
+        if (account?.role === 'ADMIN' && ['caregiver', 'auditor'].includes(account.duty) && !['/operations/overview', '/operations'].includes(router.currentRoute.value.path)) {
+          router.replace('/operations/overview')
         }
       }).catch(() => {})
     }
@@ -113,9 +113,9 @@ export function monitorDatabase (router) {
         const account = await loadSession(true)
         if (!active) return
         const route = router.currentRoute.value.path
-        if (authState.setupRequired && route === '/login') await router.replace('/setup')
-        else if (account && route === '/login') await router.replace(account.role === 'FAMILY' ? '/familyMain' : '/main')
-        else if (!account && !['/login', '/register', '/setup'].includes(route)) await router.replace('/login')
+        if (authState.setupRequired && route === '/sign-in') await router.replace('/setup')
+        else if (account && route === '/sign-in') await router.replace(account.role === 'FAMILY' ? '/family-portal/overview' : '/operations/overview')
+        else if (!account && !['/sign-in', '/join-family', '/setup'].includes(route)) await router.replace('/sign-in')
       }
     } catch (_) {
       if (active) { authState.databaseReady = false; loaded = false }

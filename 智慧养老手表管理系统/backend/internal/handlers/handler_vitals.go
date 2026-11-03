@@ -18,18 +18,18 @@ import (
 )
 
 func (h *Handler) routeVitals(mux *http.ServeMux) {
-	mux.HandleFunc("POST /api/v1/ratepre/alertCount", h.ratepreAlertCount)
-	mux.HandleFunc("POST /api/v1/ratepre/alertDetail", h.ratepreAlertDetail)
-	mux.HandleFunc("POST /api/v1/ratepre/resolveAlert", h.ratepreResolveAlert)
-	mux.HandleFunc("POST /api/v1/ratepre/selectRatepre", h.ratepreSelect)
-	mux.HandleFunc("POST /api/v1/ratepre/selectRatepreFamily", h.ratepreSelectFamily)
-	mux.HandleFunc("POST /api/v1/ratepre/selectRatepreDetail", h.ratepreSelectDetail)
-	mux.HandleFunc("POST /api/v1/ratepre/selectRatepreCount", h.ratepreSelectCount)
-	mux.HandleFunc("POST /api/v1/step/selectStep", h.stepSelect)
-	mux.HandleFunc("POST /api/v1/step/selectStepFamily", h.stepSelectFamily)
-	mux.HandleFunc("POST /api/v1/step/selectStepDetail", h.stepSelectDetail)
-	mux.HandleFunc("POST /api/v1/step/selectStepCount", h.stepSelectCount)
-	mux.HandleFunc("POST /api/v1/step/getAllCount", h.stepGetAllCount)
+	mux.HandleFunc("POST /api/v1/vitals/alerts/count", h.countVitalAlerts)
+	mux.HandleFunc("POST /api/v1/vitals/alerts/detail", h.getVitalAlert)
+	mux.HandleFunc("POST /api/v1/vitals/alerts/resolve", h.handleResolveVitalAlert)
+	mux.HandleFunc("POST /api/v1/vitals/latest", h.listLatestVitals)
+	mux.HandleFunc("POST /api/v1/vitals/history", h.listVitalHistory)
+	mux.HandleFunc("POST /api/v1/vitals/chart", h.getVitalChart)
+	mux.HandleFunc("POST /api/v1/vitals/alerts/devices", h.listVitalAlertDevices)
+	mux.HandleFunc("POST /api/v1/activity/latest", h.listLatestActivity)
+	mux.HandleFunc("POST /api/v1/activity/history", h.listActivityHistory)
+	mux.HandleFunc("POST /api/v1/activity/chart", h.getActivityChart)
+	mux.HandleFunc("POST /api/v1/activity/alerts/devices", h.listActivityAlertDevices)
+	mux.HandleFunc("POST /api/v1/activity/steps/total", h.getStepTotal)
 }
 
 // ---------------------------------------------------------------------------

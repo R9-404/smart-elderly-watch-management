@@ -46,7 +46,7 @@ var (
 	reportTimeRe   = regexp.MustCompile(`^\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}$`)
 	secretHashRe   = regexp.MustCompile(`^sha256\$[A-Za-z0-9_-]{43}$`)
 	reportTimeFmt  = "2006-01-02 15:04:05"
-	deviceAlphabet = inviteCharset // "23456789ABCDEFGHJKLMNPQRSTUVWXYZ"，与 Java ALPHABET 一致
+	deviceAlphabet = inviteCharset
 )
 
 func validID(s string) bool { return idPattern.MatchString(s) }

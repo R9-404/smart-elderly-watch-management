@@ -5,8 +5,8 @@
       <form class="row-search" role="search" @submit.prevent="searchOlds">
         <div class="search-field">
           
-          <label class="table-search-label" for="search-ratepre">长者姓名</label>
-          <el-input id="search-ratepre"
+          <label class="table-search-label" for="search-vitals">长者姓名</label>
+          <el-input id="search-vitals"
             placeholder="按长者姓名查找"
             v-model="searchText"
             class="input-with-select">
@@ -104,7 +104,7 @@ import { apiErrorMessage } from '../api/httpContract'
 import axios from 'axios'
 import RecordCards from '@/components/RecordCards.vue'
 import HealthAlertDialog from '@/components/records/HealthAlertDialog.vue'
-import { healthAlertMethods } from './ratepre.alert-methods'
+import { healthAlertMethods } from './vitals.alert-methods'
 
 import { recordCharts } from '@/charts'
 
@@ -166,7 +166,7 @@ export default {
       var _this = this
       var name = _this.searchText
 
-      axios.post('api/v1/ratepre/selectRatepre',
+      axios.post('api/v1/vitals/latest',
         {
           page: _this.currentPage, pageSize: _this.pageSize,
           'name': name === '' ? '' : _this.searchText,
@@ -179,8 +179,8 @@ export default {
           },
           withCredentials: true
         }).then(function (response) {
-        _this.oldsList = response.data.ratepreDtoList
-        _this.total = response.data.total ?? response.data.ratepreDtoList.length
+        _this.oldsList = response.data.vitalRecords
+        _this.total = response.data.total ?? response.data.vitalRecords.length
       })
         .catch(function (error) {
           _this.$message.error(apiErrorMessage(error, '请求未完成，请重试'))
@@ -188,7 +188,7 @@ export default {
     },
     getCount(){
       var _this=this
-      axios.post('api/v1/ratepre/selectRatepreCount',
+      axios.post('api/v1/vitals/alerts/devices',
         {
 
         },
@@ -241,7 +241,7 @@ export default {
       this.chartLoading = true
       this.chartError = ''
       this.name = curOld.name || ''
-      return axios.post('api/v1/ratepre/selectRatepreDetail', { oldId: curOld.oldId }, { withCredentials: true }).then(response => {
+      return axios.post('api/v1/vitals/chart', { oldId: curOld.oldId }, { withCredentials: true }).then(response => {
         if (!this.isShowRoleDialog) return
         this.bps = Array.isArray(response.data.bps) ? response.data.bps : []; this.hrs = Array.isArray(response.data.hrs) ? response.data.hrs : []; this.createTimes = Array.isArray(response.data.createTimes) ? response.data.createTimes : []; this.time = response.data.time;
         if (!this.hrs.length && !this.bps.length) { this.chartError = '暂无可展示的健康详情。'; return }

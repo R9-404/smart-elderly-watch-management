@@ -48,7 +48,7 @@ run(async ({ page, base, report, setRole, setSignedIn }) => {
   try {
     setRole('ADMIN')
     setSignedIn(true)
-    await page.goto(base + '/?f02=' + Date.now() + '#/main')
+    await page.goto(base + '/?f02=' + Date.now() + '#/operations/overview')
     await page.getByText('F02-INITIAL').waitFor({ timeout: 10000 })
     const next = page.locator('.care-inbox .el-pagination .btn-next')
     await next.click()

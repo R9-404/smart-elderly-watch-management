@@ -7,7 +7,7 @@
       <span class="unavailable-icon"><i class="el-icon-document"></i></span>
       <h2>当前版本暂不支持附件管理</h2>
       <p>此版本没有可用的附件上传与列表接口。公告图片可在公告内容中查看。</p>
-      <el-button plain @click="$router.push('/main')">返回运营总览</el-button>
+      <el-button plain @click="$router.push('/operations/overview')">返回运营总览</el-button>
     </div>
   </section>
 </template>

@@ -72,12 +72,12 @@ export default {
 
 	methods: {
       handleEdit(index, row) {
-        this.$router.push({ path: '/text', query: { textId: row.textId } })
+        this.$router.push({ path: '/operations/notices/edit', query: { textId: row.textId } })
       },
       picShow () {
         if (this.gallerySaving || !this.fileList2.length || this.fileList2.some(file => file.status !== 'success')) return
         this.gallerySaving = true
-        axios.post('api/v1/picshow/add', { fileListName: this.fileList2.map(file => file.name) }, { withCredentials: true }).then((response) => {
+        axios.post('api/v1/gallery/replace', { fileListName: this.fileList2.map(file => file.name) }, { withCredentials: true }).then((response) => {
           if (response.data.returnCode !== '1111') throw new Error('gallery rejected')
           this.$message.success('展示图片已保存')
           this.$refs.galleryUpload.clearFiles()
@@ -102,13 +102,13 @@ export default {
         return true
       },
       getDetail (row) {
-        this.$router.push({ path: '/textMainUser', query: { textId: row.textId } })
+        this.$router.push({ path: '/operations/notices/detail', query: { textId: row.textId } })
       },
       handleDelete (index, row) {
         if (this.deletingId !== null) return
         this.deletingId = row.textId
         this.$confirm('删除后将无法继续阅读这条公告，是否删除？', '删除公告', { confirmButtonText: '删除公告', cancelButtonText: '保留公告', type: 'warning' }).then(() => {
-          return axios.post('api/v1/text/delete', { textId: row.textId }, { withCredentials: true })
+          return axios.post('api/v1/notices/delete', { textId: row.textId }, { withCredentials: true })
         }).then((response) => {
           if (response.data.returnCode !== '1111') throw new Error('delete rejected')
           this.$message.success('公告已删除')
@@ -116,13 +116,13 @@ export default {
         }).catch((error) => { if (error !== 'cancel' && error !== 'close') this.$message.error(apiErrorMessage(error, '公告暂时无法删除，请重试')) }).then(() => { this.deletingId = null })
       },
 			addtext(){
-				this.$router.push('/textTwo')
+				this.$router.push('/operations/notices/new')
 			},
       searchOlds (keepPage = false) {
       if (keepPage !== true) this.currentPage = 1
         this.isLoading = true
         this.loadError = ''
-        return axios.post('api/v1/text/select', { page: this.currentPage, pageSize: this.pageSize,  title: this.searchText }, { withCredentials: true }).then((response) => {
+        return axios.post('api/v1/notices/list', { page: this.currentPage, pageSize: this.pageSize,  title: this.searchText }, { withCredentials: true }).then((response) => {
           if (!Array.isArray(response.data.texts)) throw new Error('missing notices')
           this.tableData = response.data.texts
           this.total = response.data.total ?? this.tableData.length

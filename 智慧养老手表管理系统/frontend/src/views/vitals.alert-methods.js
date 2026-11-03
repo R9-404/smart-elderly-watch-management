@@ -6,7 +6,7 @@ import axios from 'axios'
 export const healthAlertMethods = {
     loadAlertCount () {
       var _this = this
-      axios.post('api/v1/ratepre/alertCount', {}, {
+      axios.post('api/v1/vitals/alerts/count', {}, {
         headers: { 'content-type': 'application/json' },
         withCredentials: true
       }).then(function (response) {
@@ -46,7 +46,7 @@ export const healthAlertMethods = {
         occurTime: '', advice: '', message: ''
       }
       var params = recordId ? { recordId: recordId } : { oldId: oldId, kind: kind || '' }
-      axios.post('api/v1/ratepre/alertDetail', params, {
+      axios.post('api/v1/vitals/alerts/detail', params, {
         headers: { 'content-type': 'application/json' },
         withCredentials: true
       }).then(function (response) {
@@ -79,7 +79,7 @@ export const healthAlertMethods = {
     resolveAlert (kind) {
       var _this = this
       this.alertDialog.resolving = true
-      axios.post('api/v1/ratepre/resolveAlert',
+      axios.post('api/v1/vitals/alerts/resolve',
         { recordId: this.alertDialog.recordId, kind: kind },
         {
           headers: { 'content-type': 'application/json' },
@@ -104,10 +104,10 @@ export const healthAlertMethods = {
       var _this = this
       var tasks = []
       if (row.rateState == 1) {
-        tasks.push(axios.post('api/v1/ratepre/resolveAlert', { recordId: row.recordId, kind: 'rate' }, _this.postConfig()))
+        tasks.push(axios.post('api/v1/vitals/alerts/resolve', { recordId: row.recordId, kind: 'rate' }, _this.postConfig()))
       }
       if (row.preState == 1) {
-        tasks.push(axios.post('api/v1/ratepre/resolveAlert', { recordId: row.recordId, kind: 'pre' }, _this.postConfig()))
+        tasks.push(axios.post('api/v1/vitals/alerts/resolve', { recordId: row.recordId, kind: 'pre' }, _this.postConfig()))
       }
       Promise.all(tasks).then(function () {
         _this.$message({ type: 'success', message: '已处理，红点已消除' })

@@ -163,7 +163,7 @@ func TestReadLatencyAudit(t *testing.T) {
 	stats := map[string]any{"oldId": 1, "source": "watch", "sourceDevice": "AUDIT", "metric": "heart_rate", "semantics": "instant", "from": from, "to": from.Add(24 * time.Hour)}
 	endpoints := []endpoint{
 		{"authenticated_probe", "/api/v1/audit/probe", map[string]any{}, "", 0, false},
-		{"text/select", "/api/v1/text/select", page, "texts", 20, false},
+		{"text/select", "/api/v1/notices/list", page, "texts", 20, false},
 		{"customer/select", "/api/v1/customer/select", page, "customers", 20, false},
 		{"oldPerson/select", "/api/v1/oldPerson/select", page, "oldPeople", 20, false},
 		{"family/select", "/api/v1/family/select", page, "familyDtos", 20, false},
@@ -325,7 +325,7 @@ func TestReadLatencyAudit(t *testing.T) {
 	if !peer.Destroy(sess.ID) || store.Get(sess.ID) != nil {
 		t.Fatal("cross-replica revoke failed")
 	}
-	req := httptest.NewRequest(http.MethodPost, "/api/v1/text/select", bytes.NewReader([]byte(`{}`)))
+	req := httptest.NewRequest(http.MethodPost, "/api/v1/notices/list", bytes.NewReader([]byte(`{}`)))
 	req.AddCookie(&http.Cookie{Name: session.CookieName, Value: sess.ID})
 	req.Header.Set(csrf.HeaderName, sess.CSRFToken)
 	w := httptest.NewRecorder()

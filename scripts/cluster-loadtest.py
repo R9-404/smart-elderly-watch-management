@@ -42,7 +42,7 @@ def generate(process, config, run, start, duration, threads, batch):
                 headers = {'Content-Type': 'application/json'}
             else:
                 body = {'title': f'cl-{identity}', 'textMain': 'Synthetic cluster benchmark', 'fileListName': []}
-                path = '/api/v1/text/add'
+                path = '/api/v1/notices/create'
                 headers = {'Content-Type': 'application/json', 'Cookie': config['cookie'], 'X-CSRF-TOKEN': config['csrf']}
             body = json.dumps(body, separators=(',', ':'))
             endpoint = (process*threads+index+sequence) % len(urls)

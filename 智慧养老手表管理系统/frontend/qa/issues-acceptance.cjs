@@ -21,7 +21,7 @@ run(async ({ page, context, base, report, setRole, setSignedIn }) => {
   for (const endpoint of ['select', 'selectFamily']) await context.route('**/api/v1/position/' + endpoint, route => route.fulfill({
     contentType: 'application/json', body: JSON.stringify({returnCode:'1111', positionDtos: [coordinates], total: 1 })
   }))
-  for (const [route, role] of [['/position', 'ADMIN'], ['/positionfamily', 'FAMILY']]) {
+  for (const [route, role] of [['/operations/locations', 'ADMIN'], ['/family-portal/location', 'FAMILY']]) {
     await visit(route, role)
     await page.getByRole('button', { name: role === 'ADMIN' ? '详细情况' : '地图查看', exact: true }).first().click()
     await page.locator('.leaflet-tooltip').waitFor()
@@ -39,31 +39,31 @@ run(async ({ page, context, base, report, setRole, setSignedIn }) => {
   }
   failTiles = true
   coordinates = { ...coordinates, lng: '12', lat: '50' }
-  await visit('/positionfamily', 'FAMILY')
+  await visit('/family-portal/location', 'FAMILY')
   await page.getByRole('button', { name: '地图查看', exact: true }).first().click()
   await page.getByRole('button', { name: '加载在线地图', exact: true }).click()
   await page.getByRole('status').filter({ hasText: '在线地图加载失败' }).waitFor()
   check('tile failures retain the marker and coordinates', await page.locator('.leaflet-tooltip').count() === 1)
-  await visit('/familyMain', 'FAMILY')
+  await visit('/family-portal/overview', 'FAMILY')
   await page.setViewportSize({ width: 390, height: 844 })
   check('map cleanup survives navigation and resize', report.pageErrors.length === 0)
 
   // Exercise actual paging controls and verify the request window.
   for (const [route, endpoint, key, button] of [
-    ['/step', 'step/selectStep', 'stepDtos', '查询长者姓名'],
-    ['/ratepre', 'ratepre/selectRatepre', 'ratepreDtoList', '查询长者姓名'],
-    ['/position', 'position/select', 'positionDtos', '查询长者姓名'],
-    ['/device', 'device/list', 'devices', null],
-    ['/life', 'oldPerson/select', 'oldPeople', '查询长者姓名'],
-    ['/person', 'oldPerson/selectDetail', 'oldPersonDetails', '查询长者姓名'],
-    ['/watch', 'watchInfo/select', 'watchDtos', '查询长者姓名'],
-    ['/customer', 'customer/select', 'customers', '查询监护人姓名'],
-    ['/family', 'family/select', 'familyDtos', '查询家属姓名'],
-    ['/main', 'text/select', 'texts', '搜索公告'],
-    ['/textOpt', 'text/select', 'texts', '搜索公告'],
-    ['/inviteCode', 'inviteCode/list', 'inviteCodes', null],
-    ['/saidOperation', 'said/selectByUser', 'saidDtos', null],
-    ['/familyMain', 'text/select', 'texts', null]
+    ['/operations/activity', 'step/selectStep', 'activityRecords', '查询长者姓名'],
+    ['/operations/vitals', 'ratepre/selectRatepre', 'vitalRecords', '查询长者姓名'],
+    ['/operations/locations', 'position/select', 'positionDtos', '查询长者姓名'],
+    ['/operations/devices', 'device/list', 'devices', null],
+    ['/operations/life', 'oldPerson/select', 'oldPeople', '查询长者姓名'],
+    ['/operations/residents', 'oldPerson/selectDetail', 'oldPersonDetails', '查询长者姓名'],
+    ['/operations/monitoring-profiles', 'watchInfo/select', 'watchDtos', '查询长者姓名'],
+    ['/operations/guardians', 'customer/select', 'customers', '查询监护人姓名'],
+    ['/operations/families', 'family/select', 'familyDtos', '查询家属姓名'],
+    ['/operations/overview', 'text/select', 'texts', '搜索公告'],
+    ['/operations/notices', 'text/select', 'texts', '搜索公告'],
+    ['/operations/invitations', 'inviteCode/list', 'inviteCodes', null],
+    ['/operations/comments', 'said/selectByUser', 'moderatedComments', null],
+    ['/family-portal/overview', 'text/select', 'texts', null]
   ]) {
     await context.route('**/api/v1/' + endpoint, r => {
       const input = r.request().postDataJSON()
@@ -72,7 +72,7 @@ run(async ({ page, context, base, report, setRole, setSignedIn }) => {
         total: 45, onlineCount: 0
       }) })
     })
-    await visit(route, route === '/familyMain' ? 'FAMILY' : 'ADMIN')
+    await visit(route, route === '/family-portal/overview' ? 'FAMILY' : 'ADMIN')
     await page.locator('.el-pagination .btn-next:not([disabled])').waitFor()
     const request = page.waitForRequest(r => r.url().endsWith('/api/v1/' + endpoint) && r.postDataJSON().page === 2)
     await page.locator('.el-pagination .btn-next').click()

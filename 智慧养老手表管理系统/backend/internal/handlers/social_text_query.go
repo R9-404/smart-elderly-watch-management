@@ -6,7 +6,7 @@ import (
 	"suining-care/internal/response"
 )
 
-type textDTO struct {
+type noticeRecord struct {
 	TextID   *int64  `json:"textId"`
 	Title    *string `json:"title"`
 	TextMain *string `json:"textMain"`
@@ -14,15 +14,15 @@ type textDTO struct {
 	PicID    *int64  `json:"picId"`
 }
 
-type picDTO struct {
+type noticeImage struct {
 	PicID   *int64  `json:"picId"`
 	PicName *string `json:"picName"`
 }
 
 const textColumns = `text_id, title, text_main, TO_CHAR(time,'YYYY-MM-DD HH24:MI:SS.MS') AS time, pic_id`
 
-// POST /api/v1/text/select —— 公告列表（标题模糊+分页）。
-func (h *Handler) textSelect(w http.ResponseWriter, r *http.Request) {
+// POST /api/v1/notices/list —— 公告列表（标题模糊+分页）。
+func (h *Handler) listNotices(w http.ResponseWriter, r *http.Request) {
 	m, ok := bodyMap(w, r)
 	if !ok {
 		return
@@ -45,9 +45,9 @@ func (h *Handler) textSelect(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	defer rows.Close()
-	items := []textDTO{}
+	items := []noticeRecord{}
 	for rows.Next() {
-		var d textDTO
+		var d noticeRecord
 		if err := rows.Scan(&d.TextID, &d.Title, &d.TextMain, &d.Time, &d.PicID, &total); err != nil {
 			rows.Close()
 			response.Error500(w, ref())
@@ -67,8 +67,8 @@ func (h *Handler) textSelect(w http.ResponseWriter, r *http.Request) {
 	})
 }
 
-// POST /api/v1/text/selectDetail —— 公告详情+关联图片。
-func (h *Handler) textSelectDetail(w http.ResponseWriter, r *http.Request) {
+// POST /api/v1/notices/detail —— 公告详情+关联图片。
+func (h *Handler) getNotice(w http.ResponseWriter, r *http.Request) {
 	m, ok := bodyMap(w, r)
 	if !ok {
 		return
@@ -78,7 +78,7 @@ func (h *Handler) textSelectDetail(w http.ResponseWriter, r *http.Request) {
 		response.Fail(w, "参数不正确")
 		return
 	}
-	var t textDTO
+	var t noticeRecord
 	err := h.DB.QueryRow(r.Context(), "SELECT "+textColumns+" FROM "+socialTextTable(h.DB.IsMySQL())+" WHERE text_id=$1", textID).Scan(
 		&t.TextID, &t.Title, &t.TextMain, &t.Time, &t.PicID)
 	if err == pgx.ErrNoRows {
@@ -89,7 +89,7 @@ func (h *Handler) textSelectDetail(w http.ResponseWriter, r *http.Request) {
 		response.Error500(w, ref())
 		return
 	}
-	pics := []picDTO{}
+	pics := []noticeImage{}
 	if t.PicID != nil {
 		rows, err := h.DB.Query(r.Context(), "SELECT pic_id, pic_name FROM pic WHERE pic_id=$1", *t.PicID)
 		if err != nil {
@@ -98,7 +98,7 @@ func (h *Handler) textSelectDetail(w http.ResponseWriter, r *http.Request) {
 		}
 		defer rows.Close()
 		for rows.Next() {
-			var p picDTO
+			var p noticeImage
 			if err := rows.Scan(&p.PicID, &p.PicName); err != nil {
 				rows.Close()
 				response.Error500(w, ref())

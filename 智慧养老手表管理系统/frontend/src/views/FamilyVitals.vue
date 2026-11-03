@@ -114,7 +114,7 @@ export default {
 
       _this.isLoading = true
       _this.loadError = ''
-      axios.post('api/v1/ratepre/selectRatepreFamily',
+      axios.post('api/v1/vitals/history',
         {
 					"oldId":oldId
 				},
@@ -125,7 +125,7 @@ export default {
           withCredentials: true
         }).then(function (response) {
 
-        _this.oldsList = response.data && Array.isArray(response.data.ratepreDtoList) ? response.data.ratepreDtoList : []
+        _this.oldsList = response.data && Array.isArray(response.data.vitalRecords) ? response.data.vitalRecords : []
       })
         .catch(function (error) {
 
@@ -142,7 +142,7 @@ export default {
       _this.chartLoading = true
       _this.chartError = ''
       _this.name = curOld.name || ''
-			axios.post('api/v1/ratepre/selectRatepreDetail',{
+			axios.post('api/v1/vitals/chart',{
           "oldId":oldId
         },
 				{

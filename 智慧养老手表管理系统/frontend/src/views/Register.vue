@@ -219,7 +219,7 @@ export default {
             })
             localStorage.setItem('login_phone', this.registerForm.familyPhone)
             setTimeout(() => {
-              this.$router.push({ path: '/login' })
+              this.$router.push({ path: '/sign-in' })
             }, 1500)
           } else {
             this.$message({
@@ -239,7 +239,7 @@ export default {
       })
     },
     goLogin () {
-      this.$router.push({ path: '/login' })
+      this.$router.push({ path: '/sign-in' })
     }
   }
 }

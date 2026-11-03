@@ -84,7 +84,7 @@ export default {
       localStorage.setItem('large_text', String(this.largeText))
       this.applyTextSize()
     },
-    goRegister () { this.$router.push({ path: '/register' }) },
+    goRegister () { this.$router.push({ path: '/join-family' }) },
     submitForm () {
       var _this = this
       if (_this.submitting) return
@@ -100,7 +100,7 @@ export default {
           if (data.authenticated === true) {
             return loadSession(true).then(account => {
               if (!account) throw new Error('Login session not established')
-              _this.$router.push({ path: account.role === 'ADMIN' ? '/home' : '/familyHome' })
+              _this.$router.push({ path: account.role === 'ADMIN' ? '/operations' : '/family-portal' })
             })
           }
           _this.errorMessage = data.message || '手机号或密码不正确，请重试'
