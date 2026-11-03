@@ -182,6 +182,7 @@ Historical performance experiments and release-stage notes are not current-versi
 
 | Topic | Guides |
 | --- | --- |
+| Guide index and maintenance policy | [Documentation map](docs/README.md) |
 | Releases and upgrades | [2.1.0 release notes](docs/releases/2.1.0.md) · [Changelog](CHANGELOG.md) |
 | Databases and backups | [Dual-database guide](docs/DUAL_DATABASES.md) · [Backup and restore runbook](docs/runbooks/backup-restore.md) |
 | Operations and support | [Care service deployment](docs/CARE_SERVICE_DEPLOYMENT.md) · [Support and troubleshooting](docs/SUPPORT.md) |
