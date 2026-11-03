@@ -59,17 +59,12 @@ func (h *Handler) inviteCheckCode(w http.ResponseWriter, r *http.Request) {
 		response.Error(w, http.StatusConflict, "INVITE_EXPIRED", "该邀请码已过期，请向管理员重新获取")
 		return
 	}
-	remain := -1
-	now := time.Now()
-	if expire != nil {
-		remain = int(expire.Sub(now).Hours() / 24)
-	}
 	nm := ""
 	if oldName != nil {
 		nm = *oldName
 	}
 	response.OK(w, map[string]any{
-		"oldPersonName": nm, "expireTime": fmtTS(expire), "remainDays": remain,
+		"oldPersonName": nm, "expireTime": fmtTS(expire), "remainDays": inviteRemainingDays(expire, time.Now()),
 	})
 }
 

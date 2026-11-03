@@ -10,7 +10,6 @@ import (
 	"time"
 	"unicode/utf8"
 
-	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgtype"
 
 	"suining-care/internal/auth"
@@ -70,11 +69,8 @@ func (h *Handler) sessionInfo(w http.ResponseWriter, r *http.Request) {
 			"oldId": p.OldID, "displayName": p.DisplayName,
 		}
 		if p.Role == auth.RoleAdmin {
-			var duty string
-			err := h.DB.QueryRow(ctx, "SELECT duty FROM care_staff_permission WHERE admin_id=$1", p.ID).Scan(&duty)
-			if err == pgx.ErrNoRows {
-				duty = "supervisor"
-			} else if internalError(w, err) {
+			duty, ok := h.careDuty(w, r, p.ID)
+			if !ok {
 				return
 			}
 			account["duty"] = duty

@@ -33,6 +33,13 @@ func inviteStatus(used int16, expire *time.Time, now time.Time) string {
 	return "unused"
 }
 
+func inviteRemainingDays(expire *time.Time, now time.Time) int {
+	if expire == nil {
+		return -1
+	}
+	return int(expire.Sub(now).Hours() / 24)
+}
+
 func fmtTS(t *time.Time) string {
 	if t == nil {
 		return ""
@@ -86,10 +93,6 @@ func (h *Handler) inviteList(w http.ResponseWriter, r *http.Request) {
 			return nil, err
 		}
 		st := inviteStatus(used, expire, now)
-		remain := -1 // 长期有效
-		if expire != nil {
-			remain = int(expire.Sub(now).Hours() / 24)
-		}
 		nm := "（老人已删除）"
 		if oldName != nil {
 			nm = *oldName
@@ -97,7 +100,7 @@ func (h *Handler) inviteList(w http.ResponseWriter, r *http.Request) {
 		return map[string]any{
 			"id": id, "code": code, "oldId": oldID, "oldPersonName": nm,
 			"createUser": createUser, "createTime": fmtTS(createTime),
-			"expireTime": fmtTS(expire), "remainDays": remain,
+			"expireTime": fmtTS(expire), "remainDays": inviteRemainingDays(expire, now),
 			"usedTime": fmtTS(usedTime), "status": st, "statusText": statusText[st],
 		}, nil
 	},
