@@ -33,9 +33,7 @@ func (h *Handler) deviceSos(w http.ResponseWriter, r *http.Request) {
 	}
 	rollback := func() { _ = tx.Rollback(ctx) }
 	d, code, msg, err := h.lockSOSDevice(ctx, tx, deviceNo, secret, bindingVersion)
-	if err != nil {
-		rollback()
-		response.Error500(w, ref())
+	if rollbackOnError(w, rollback, err) {
 		return
 	}
 	if d == nil {
@@ -69,8 +67,7 @@ func (h *Handler) deviceSos(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 		if err != pgx.ErrNoRows {
-			rollback()
-			response.Error500(w, ref())
+			rollbackFailure(w, rollback)
 			return
 		}
 	}
@@ -95,15 +92,11 @@ func (h *Handler) deviceSos(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	incidentID, err := (telemetryRepository{box: h.Box}).PersistSOSIncident(ctx, tx, d, lng, lat, requestID, position, now)
-	if err != nil {
-		rollback()
-		response.Error500(w, ref())
+	if rollbackOnError(w, rollback, err) {
 		return
 	}
 	notificationState, err := h.queueSOSNotification(ctx, tx, incidentID, *d.OldID)
-	if err != nil {
-		rollback()
-		response.Error500(w, ref())
+	if rollbackOnError(w, rollback, err) {
 		return
 	}
 	if internalError(w, tx.Commit(ctx)) {

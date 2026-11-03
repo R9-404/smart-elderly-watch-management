@@ -169,9 +169,7 @@ func (h *Handler) deleteResident(w http.ResponseWriter, r *http.Request) {
 	}
 	rollback := func() { _ = tx.Rollback(ctx) }
 	var exists bool
-	if err := tx.QueryRow(ctx, `SELECT EXISTS(SELECT 1 FROM oldperson WHERE old_id=$1)`, oldID).Scan(&exists); err != nil {
-		rollback()
-		response.Error500(w, ref())
+	if err := tx.QueryRow(ctx, `SELECT EXISTS(SELECT 1 FROM oldperson WHERE old_id=$1)`, oldID).Scan(&exists); rollbackOnError(w, rollback, err) {
 		return
 	}
 	if !exists {
@@ -180,9 +178,7 @@ func (h *Handler) deleteResident(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	var devCount int64
-	if err := tx.QueryRow(ctx, `SELECT COUNT(*) FROM device WHERE old_id=$1`, oldID).Scan(&devCount); err != nil {
-		rollback()
-		response.Error500(w, ref())
+	if err := tx.QueryRow(ctx, `SELECT COUNT(*) FROM device WHERE old_id=$1`, oldID).Scan(&devCount); rollbackOnError(w, rollback, err) {
 		return
 	}
 	if devCount > 0 {
@@ -191,9 +187,7 @@ func (h *Handler) deleteResident(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	// 删除该老人名下所有邀请码（含已使用的），避免无主邀请码。
-	if _, err := tx.Exec(ctx, `DELETE FROM invite_code WHERE old_id=$1`, oldID); err != nil {
-		rollback()
-		response.Error500(w, ref())
+	if _, err := tx.Exec(ctx, `DELETE FROM invite_code WHERE old_id=$1`, oldID); rollbackOnError(w, rollback, err) {
 		return
 	}
 	ct, err := tx.Exec(ctx, `DELETE FROM oldperson WHERE old_id=$1`, oldID)
@@ -207,8 +201,7 @@ func (h *Handler) deleteResident(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	if ct.RowsAffected() != 1 {
-		rollback()
-		response.Error500(w, ref())
+		rollbackFailure(w, rollback)
 		return
 	}
 	if internalError(w, tx.Commit(ctx)) {

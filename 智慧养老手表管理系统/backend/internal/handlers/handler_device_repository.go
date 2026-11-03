@@ -35,6 +35,15 @@ func secretHash(clear string) (string, error) {
 	return "sha256$" + base64.RawURLEncoding.EncodeToString(h.Sum(nil)), nil
 }
 
+func newDeviceSecret() (clear, hashed string, err error) {
+	clear, err = randAlpha(32)
+	if err != nil {
+		return "", "", err
+	}
+	hashed, err = secretHash(clear)
+	return clear, hashed, err
+}
+
 var errSecretLen = errors.New("Invalid device credential length")
 
 func secretMatches(supplied, stored string) bool {
@@ -185,15 +194,12 @@ func watchProfileInsertSQL(mysql bool) string {
 		 ON CONFLICT(device_id) DO NOTHING`
 }
 
-// saveWatchProfileUpsert fills a missing default profile without replacing a
+// saveDefaultWatchProfile fills a missing default profile without replacing a
 // caregiver's customized thresholds during device registration or binding.
-func saveWatchProfileUpsert(ctx context.Context, q deviceQueries, mysql bool, deviceID int64, hrf, hrl, bpf, bpl int, opTime time.Time) (int64, error) {
-	ct, err := q.Exec(ctx, watchProfileInsertSQL(mysql),
-		deviceID, opTime, bpf, bpl, hrf, hrl)
-	if err != nil {
-		return 0, err
-	}
-	return ct.RowsAffected(), nil
+func saveDefaultWatchProfile(ctx context.Context, tx *dbstore.Transaction, deviceID int64, now time.Time) error {
+	day := time.Date(now.Year(), now.Month(), now.Day(), 0, 0, 0, 0, time.Local)
+	_, err := tx.Exec(ctx, watchProfileInsertSQL(tx.IsMySQL()), deviceID, day, 140, 90, 110, 55)
+	return err
 }
 
 // lockDeviceID holds the device row lock until the caller finishes its transaction.

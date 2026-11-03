@@ -35,9 +35,7 @@ func (h *Handler) deviceReport(w http.ResponseWriter, r *http.Request) {
 	}
 	rollback := func() { _ = tx.Rollback(ctx) }
 	d, code, msg, err := h.hwAuth(ctx, tx, deviceNo, secret, "设备已停用")
-	if err != nil {
-		rollback()
-		response.Error500(w, ref())
+	if rollbackOnError(w, rollback, err) {
 		return
 	}
 	if d == nil {
@@ -77,9 +75,7 @@ func (h *Handler) deviceReport(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	persisted, err := (telemetryRepository{box: h.Box}).PersistDeviceReport(ctx, tx, d, parsed)
-	if err != nil {
-		rollback()
-		response.Error500(w, ref())
+	if rollbackOnError(w, rollback, err) {
 		return
 	}
 	if internalError(w, tx.Commit(ctx)) {

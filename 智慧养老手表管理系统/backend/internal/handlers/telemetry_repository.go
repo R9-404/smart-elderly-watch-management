@@ -70,63 +70,46 @@ func (repo telemetryRepository) PersistDeviceReport(ctx context.Context, tx *dbs
 	return result, nil
 }
 
+func measurementState(value *int, low, high int) any {
+	if value == nil {
+		return nil
+	}
+	if *value < low || *value > high {
+		return "1"
+	}
+	return "0"
+}
+
 func (repo telemetryRepository) persistReportVitals(ctx context.Context, tx *dbstore.Transaction, d *deviceRecord, oldID int64, parsed *parsedDeviceTelemetry) (telemetryPersisted, error) {
-	hr, bp, beTime := parsed.hr, parsed.bp, parsed.beTime
-	// Zero vital signs are legacy "not measured" sentinels. Keep raw parsing
-	// compatible, but never persist or classify them as actual measurements.
+	hr, bp := parsed.hr, parsed.bp
+	// Zero vital signs are legacy "not measured" sentinels.
 	if hr != nil && *hr == 0 {
 		hr = nil
 	}
 	if bp != nil && *bp == 0 {
 		bp = nil
 	}
-	hrv, bpv := 0, 0
-	if hr != nil {
-		hrv = *hr
-	}
-	if bp != nil {
-		bpv = *bp
-	}
-	// 读阈值（兼容旧数据上下限写反，取 min/max）；无档案行用默认 55–110 / 90–140。
-	hrLow, hrHigh, bpLow, bpHigh := 55, 110, 90, 140
-	if hrv > 0 || bpv > 0 {
-		var hrf, hrl, bpf, bpl *int
-		if err := tx.QueryRow(ctx,
-			`SELECT hrf, hrl, bpf, bpl FROM watch_info WHERE device_id=$1`, d.ID).
-			Scan(&hrf, &hrl, &bpf, &bpl); err != nil && err != pgx.ErrNoRows {
-			return telemetryPersisted{}, err
-		} else if err == nil {
-			if hrf != nil && hrl != nil {
-				hrLow, hrHigh = min(*hrf, *hrl), max(*hrf, *hrl)
-			}
-			if bpf != nil && bpl != nil {
-				bpLow, bpHigh = min(*bpf, *bpl), max(*bpf, *bpl)
-			}
-		}
-	}
-	var rateState, preState any
-	if hr != nil {
-		rateState = "0"
-		if hrv < hrLow || hrv > hrHigh {
-			rateState = "1"
-		}
-	}
-	if bp != nil {
-		preState = "0"
-		if bpv < bpLow || bpv > bpHigh {
-			preState = "1"
-		}
-	}
-
-	if hrv > 0 || bpv > 0 {
-		if _, err := tx.Exec(ctx,
-			`INSERT INTO ratepre(device_id,old_id,rate_state,pre_state,create_time,hr,bp)
-			 VALUES($1,$2,$3,$4,$5,$6,$7)`,
-			d.ID, oldID, rateState, preState, beTime, hr, bp); err != nil {
+	hasMeasurements := (hr != nil && *hr > 0) || (bp != nil && *bp > 0)
+	var hrf, hrl, bpf, bpl *int
+	if hasMeasurements {
+		err := tx.QueryRow(ctx, `SELECT hrf, hrl, bpf, bpl FROM watch_info WHERE device_id=$1`, d.ID).
+			Scan(&hrf, &hrl, &bpf, &bpl)
+		if err != nil && err != pgx.ErrNoRows {
 			return telemetryPersisted{}, err
 		}
 	}
-	return telemetryPersisted{rateState: rateState, preState: preState}, nil
+	hrLow, hrHigh := alertThresholds(hrf, hrl, 55, 110)
+	bpLow, bpHigh := alertThresholds(bpf, bpl, 90, 140)
+	result := telemetryPersisted{rateState: measurementState(hr, hrLow, hrHigh), preState: measurementState(bp, bpLow, bpHigh)}
+	if !hasMeasurements {
+		return result, nil
+	}
+	if _, err := tx.Exec(ctx,
+		`INSERT INTO ratepre(device_id,old_id,rate_state,pre_state,create_time,hr,bp)
+    VALUES($1,$2,$3,$4,$5,$6,$7)`, d.ID, oldID, result.rateState, result.preState, parsed.beTime, hr, bp); err != nil {
+		return telemetryPersisted{}, err
+	}
+	return result, nil
 }
 
 func (repo telemetryRepository) persistReportDay(ctx context.Context, tx *dbstore.Transaction, d *deviceRecord, oldID int64, parsed *parsedDeviceTelemetry) error {
@@ -174,13 +157,21 @@ func (repo telemetryRepository) persistReportDay(ctx context.Context, tx *dbstor
 	return nil
 }
 
+func (repo telemetryRepository) insertDeviceLocation(ctx context.Context, tx *dbstore.Transaction, deviceID, oldID int64, lng, lat, source string, at time.Time, position string) error {
+	_, err := tx.Exec(ctx,
+		`INSERT INTO device_location(device_id, old_id, lng, lat, source, be_time, create_time, position_metadata)
+    VALUES($1,$2,$3,$4,$5,$6,now(),$7)`,
+		deviceID, oldID, sealCoordinate(repo.box, lng), sealCoordinate(repo.box, lat), source, at, position)
+	return err
+}
+
+const insertTelemetryAlarm = `INSERT INTO alarm_precess(status, old_id, device_id, be_time, lng, lat, kind, position_metadata)
+ VALUES('1',$1,$2,$3,$4,$5,$6,$7)`
+
 func (repo telemetryRepository) persistReportPositionAndAlarm(ctx context.Context, tx *dbstore.Transaction, d *deviceRecord, oldID int64, parsed *parsedDeviceTelemetry, position string) error {
 	lng, lat, sourceStr, alarm, beTime := parsed.lng, parsed.lat, parsed.sourceStr, parsed.alarm, parsed.beTime
 	if lng != "" && lat != "" {
-		if _, err := tx.Exec(ctx,
-			`INSERT INTO device_location(device_id, old_id, lng, lat, source, be_time, create_time, position_metadata)
-			 VALUES($1,$2,$3,$4,$5,$6,now(),$7)`,
-			d.ID, oldID, sealCoordinate(repo.box, lng), sealCoordinate(repo.box, lat), sourceStr, beTime, position); err != nil {
+		if err := repo.insertDeviceLocation(ctx, tx, d.ID, oldID, lng, lat, sourceStr, beTime, position); err != nil {
 			return err
 		}
 		if _, err := tx.Exec(ctx, `UPDATE device SET last_lng=$1, last_lat=$2 WHERE device_id=$3
@@ -197,8 +188,7 @@ func (repo telemetryRepository) persistReportPositionAndAlarm(ctx context.Contex
 			kind = "fall"
 		}
 		if _, err := tx.Exec(ctx,
-			`INSERT INTO alarm_precess(status, old_id, device_id, be_time, lng, lat, kind, position_metadata)
-			 VALUES('1',$1,$2,$3,$4,$5,$6,$7)`,
+			insertTelemetryAlarm,
 			oldID, d.ID, beTime, alarmLng, alarmLat, kind, position); err != nil {
 			return err
 		}
@@ -215,16 +205,12 @@ func (repo telemetryRepository) PersistSOSIncident(ctx context.Context, tx *dbst
 	}
 	var alarmID int64
 	if err := tx.QueryRow(ctx,
-		`INSERT INTO alarm_precess(status, old_id, device_id, be_time, lng, lat, kind, position_metadata)
-		 VALUES('1',$1,$2,$3,$4,$5,'sos',$6) RETURNING id`,
-		*d.OldID, d.ID, now, coordinateArg(repo.box, lng), coordinateArg(repo.box, lat), position).Scan(&alarmID); err != nil {
+		insertTelemetryAlarm+" RETURNING id",
+		*d.OldID, d.ID, now, coordinateArg(repo.box, lng), coordinateArg(repo.box, lat), "sos", position).Scan(&alarmID); err != nil {
 		return 0, err
 	}
 	if lng != "" && lat != "" {
-		if _, err := tx.Exec(ctx,
-			`INSERT INTO device_location(device_id, old_id, lng, lat, source, be_time, create_time, position_metadata)
-			 VALUES($1,$2,$3,$4,'sos',$5,now(),$6)`,
-			d.ID, *d.OldID, sealCoordinate(repo.box, lng), sealCoordinate(repo.box, lat), now, position); err != nil {
+		if err := repo.insertDeviceLocation(ctx, tx, d.ID, *d.OldID, lng, lat, "sos", now, position); err != nil {
 			return 0, err
 		}
 	}

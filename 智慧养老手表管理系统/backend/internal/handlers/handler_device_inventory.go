@@ -46,9 +46,7 @@ func (h *Handler) deviceCreate(w http.ResponseWriter, r *http.Request) {
 	rollback := func() { _ = tx.Rollback(ctx) }
 	if oldID != nil {
 		var exists bool
-		if err := tx.QueryRow(ctx, `SELECT EXISTS(SELECT 1 FROM oldperson WHERE old_id=$1)`, *oldID).Scan(&exists); err != nil {
-			rollback()
-			response.Error500(w, ref())
+		if err := tx.QueryRow(ctx, `SELECT EXISTS(SELECT 1 FROM oldperson WHERE old_id=$1)`, *oldID).Scan(&exists); rollbackOnError(w, rollback, err) {
 			return
 		}
 		if !exists {
@@ -58,21 +56,11 @@ func (h *Handler) deviceCreate(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 	deviceNo, err := h.genDeviceNo(ctx)
-	if err != nil {
-		rollback()
-		response.Error500(w, ref())
+	if rollbackOnError(w, rollback, err) {
 		return
 	}
-	clearSecret, err := randAlpha(32)
-	if err != nil {
-		rollback()
-		response.Error500(w, ref())
-		return
-	}
-	hashed, err := secretHash(clearSecret)
-	if err != nil {
-		rollback()
-		response.Error500(w, ref())
+	clearSecret, hashed, err := newDeviceSecret()
+	if rollbackOnError(w, rollback, err) {
 		return
 	}
 	now := time.Now()
@@ -98,14 +86,10 @@ func (h *Handler) deviceCreate(w http.ResponseWriter, r *http.Request) {
 	if oldID != nil {
 		ct, err := tx.Exec(ctx, `UPDATE oldperson SET device_id=COALESCE(device_id,$1) WHERE old_id=$2`, deviceID, *oldID)
 		if err != nil || ct.RowsAffected() != 1 {
-			rollback()
-			response.Error500(w, ref())
+			rollbackFailure(w, rollback)
 			return
 		}
-		today := time.Date(now.Year(), now.Month(), now.Day(), 0, 0, 0, 0, time.Local)
-		if _, err := saveWatchProfileUpsert(ctx, tx, tx.IsMySQL(), deviceID, 110, 55, 140, 90, today); err != nil {
-			rollback()
-			response.Error500(w, ref())
+		if err := saveDefaultWatchProfile(ctx, tx, deviceID, now); rollbackOnError(w, rollback, err) {
 			return
 		}
 	}
@@ -137,11 +121,7 @@ func (h *Handler) deviceResetSecret(w http.ResponseWriter, r *http.Request) {
 		response.Fail(w, "设备不存在")
 		return
 	}
-	clearSecret, err := randAlpha(32)
-	if internalError(w, err) {
-		return
-	}
-	hashed, err := secretHash(clearSecret)
+	clearSecret, hashed, err := newDeviceSecret()
 	if internalError(w, err) {
 		return
 	}
@@ -181,27 +161,21 @@ func (h *Handler) detachDevice(w http.ResponseWriter, r *http.Request, remove bo
 		return
 	}
 	rollback := func() { _ = tx.Rollback(ctx) }
-	if _, err := tx.Exec(ctx, `UPDATE oldperson SET device_id=(SELECT min(d.device_id) FROM device d WHERE d.old_id=oldperson.old_id AND d.device_id<>$1) WHERE device_id=$1`, deviceID); err != nil {
-		rollback()
-		response.Error500(w, ref())
+	if _, err := tx.Exec(ctx, `UPDATE oldperson SET device_id=(SELECT min(d.device_id) FROM device d WHERE d.old_id=oldperson.old_id AND d.device_id<>$1) WHERE device_id=$1`, deviceID); rollbackOnError(w, rollback, err) {
 		return
 	}
 	query := `UPDATE device SET old_id=NULL, family_id=NULL, bind_time=NULL, last_lng=NULL, last_lat=NULL
 		WHERE device_id=$1`
 	failureMessage := "解绑失败"
 	if remove {
-		if _, err := tx.Exec(ctx, `DELETE FROM watch_info WHERE device_id=$1`, deviceID); err != nil {
-			rollback()
-			response.Error500(w, ref())
+		if _, err := tx.Exec(ctx, `DELETE FROM watch_info WHERE device_id=$1`, deviceID); rollbackOnError(w, rollback, err) {
 			return
 		}
 		query = `DELETE FROM device WHERE device_id=$1`
 		failureMessage = "删除失败"
 	}
 	result, err := tx.Exec(ctx, query, deviceID)
-	if err != nil {
-		rollback()
-		response.Error500(w, ref())
+	if rollbackOnError(w, rollback, err) {
 		return
 	}
 	if affected := result.RowsAffected(); affected < 1 || (remove && affected != 1) {

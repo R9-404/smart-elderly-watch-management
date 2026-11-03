@@ -206,6 +206,14 @@ func scanVitalAlert(row dbstore.Row) (alertRow, bool, error) {
 	return alert, err == nil, err
 }
 
+// Callers validate kind before selecting a mutation.
+func vitalAlertUpdate(kind string) string {
+	if kind == "pre" {
+		return "UPDATE ratepre AS r SET pre_handled=1, pre_handled_at=now(), pre_state='0'"
+	}
+	return "UPDATE ratepre AS r SET rate_handled=1, rate_handled_at=now(), rate_state='0'"
+}
+
 // POST /api/v1/vitals/alerts/resolve —— 处置异常（消除红点），事务内执行。
 func (h *Handler) handleResolveVitalAlert(w http.ResponseWriter, r *http.Request) {
 	m, ok := bodyMap(w, r)
@@ -245,11 +253,7 @@ func (h *Handler) handleResolveVitalAlert(w http.ResponseWriter, r *http.Request
 	defer tx.Rollback(r.Context())
 	var rows int64
 	for _, k := range kinds {
-		stateCol, handledCol, handledAtCol := "rate_state", "rate_handled", "rate_handled_at"
-		if k == "pre" {
-			stateCol, handledCol, handledAtCol = "pre_state", "pre_handled", "pre_handled_at"
-		}
-		ct, err := tx.Exec(r.Context(), "UPDATE ratepre SET "+handledCol+"=1, "+handledAtCol+"=NOW(), "+stateCol+"='0' WHERE id=$1", recordID)
+		ct, err := tx.Exec(r.Context(), vitalAlertUpdate(k)+" WHERE id=$1", recordID)
 		if internalError(w, err) {
 			return
 		}

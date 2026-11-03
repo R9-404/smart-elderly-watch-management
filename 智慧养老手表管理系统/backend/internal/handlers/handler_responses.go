@@ -27,3 +27,17 @@ func writeSingleMutation(w http.ResponseWriter, affected int64) {
 	}
 	recordNotFound(w)
 }
+
+// Release transaction locks before returning an error to the client.
+func rollbackFailure(w http.ResponseWriter, rollback func()) {
+	rollback()
+	response.Error500(w, ref())
+}
+
+func rollbackOnError(w http.ResponseWriter, rollback func(), err error) bool {
+	if err == nil {
+		return false
+	}
+	rollbackFailure(w, rollback)
+	return true
+}

@@ -3,7 +3,6 @@ package handlers
 import (
 	"context"
 	"github.com/jackc/pgx/v5"
-	"github.com/jackc/pgx/v5/pgconn"
 	"net/http"
 	"strconv"
 	"strings"
@@ -144,9 +143,7 @@ func (h *Handler) deviceResolveAlert(w http.ResponseWriter, r *http.Request) {
 	}
 	rollback := func() { _ = tx.Rollback(ctx) }
 	var exists bool
-	if err := tx.QueryRow(ctx, `SELECT EXISTS(SELECT 1 FROM device WHERE device_id=$1)`, deviceID).Scan(&exists); err != nil {
-		rollback()
-		response.Error500(w, ref())
+	if err := tx.QueryRow(ctx, `SELECT EXISTS(SELECT 1 FROM device WHERE device_id=$1)`, deviceID).Scan(&exists); rollbackOnError(w, rollback, err) {
 		return
 	}
 	if !exists {
@@ -155,18 +152,14 @@ func (h *Handler) deviceResolveAlert(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	before, err := h.alertResolutionReason(ctx, tx, deviceID, kind, recordID)
-	if err != nil {
-		rollback()
-		response.Error500(w, ref())
+	if rollbackOnError(w, rollback, err) {
 		return
 	}
 	var rows int64
 	switch kind {
 	case "rate", "pre":
 		rows, err = h.resolveVitalAlert(ctx, tx, deviceID, kind, recordID)
-		if err != nil {
-			rollback()
-			response.Error500(w, ref())
+		if rollbackOnError(w, rollback, err) {
 			return
 		}
 	case "person":
@@ -174,9 +167,7 @@ func (h *Handler) deviceResolveAlert(w http.ResponseWriter, r *http.Request) {
 		ct, err := tx.Exec(ctx,
 			`UPDATE device SET person_handled=1, person_handled_at=now(), handled_seq=boot_seq
 			 WHERE device_id=$1`, deviceID)
-		if err != nil {
-			rollback()
-			response.Error500(w, ref())
+		if rollbackOnError(w, rollback, err) {
 			return
 		}
 		rows = ct.RowsAffected()
@@ -260,38 +251,30 @@ func (h *Handler) alertResolutionReason(ctx context.Context, tx *dbstore.Transac
 }
 
 func (h *Handler) resolveVitalAlert(ctx context.Context, tx *dbstore.Transaction, deviceID int64, kind string, recordID *int64) (int64, error) {
-	handledCol, hatCol, stateCol := "rate_handled", "rate_handled_at", "rate_state"
+	handled, pending := "rate_handled", pendingRate
 	if kind == "pre" {
-		handledCol, hatCol, stateCol = "pre_handled", "pre_handled_at", "pre_state"
+		handled, pending = "pre_handled", pendingPressure
 	}
-	var ct pgconn.CommandTag
-	var err error
+	query := vitalAlertUpdate(kind) + " WHERE device_id=$1 AND "
+	args := []any{deviceID}
 	if recordID != nil {
-		// 按 recordId 处置必须校验记录归属该设备。
-		ct, err = tx.Exec(ctx,
-			`UPDATE ratepre SET `+handledCol+`=1, `+hatCol+`=now(), `+stateCol+`='0'
-			 WHERE id=$1 AND device_id=$2`, *recordID, deviceID)
+		query += "id=$2"
+		args = append(args, *recordID)
 	} else {
-		ct, err = tx.Exec(ctx,
-			`UPDATE ratepre SET `+handledCol+`=1, `+hatCol+`=now(), `+stateCol+`='0'
-			 WHERE device_id=$1 AND `+stateCol+`='1'
-			   AND (`+hatCol+` IS NULL OR create_time > `+hatCol+`)`, deviceID)
+		query += pending
 	}
+	result, err := tx.Exec(ctx, query, args...)
 	if err != nil {
 		return 0, err
 	}
-	rows := ct.RowsAffected()
-	// 该类已无未处理异常 → 设备层面的标记也置上，红点彻底消失。
-	if a, err := h.findRatepreAlert(ctx, tx, deviceID, kind, nil); err != nil {
+	var hasPending bool
+	if err := tx.QueryRow(ctx, "SELECT EXISTS(SELECT 1 FROM ratepre r WHERE r.device_id=$1 AND "+pending+")", deviceID).Scan(&hasPending); err != nil {
 		return 0, err
-	} else if a == nil {
-		flagCol := "rate_handled"
-		if kind == "pre" {
-			flagCol = "pre_handled"
-		}
-		if _, err := tx.Exec(ctx, `UPDATE device SET `+flagCol+`=1 WHERE device_id=$1`, deviceID); err != nil {
+	}
+	if !hasPending {
+		if _, err := tx.Exec(ctx, "UPDATE device SET "+handled+"=1 WHERE device_id=$1", deviceID); err != nil {
 			return 0, err
 		}
 	}
-	return rows, nil
+	return result.RowsAffected(), nil
 }

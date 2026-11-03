@@ -153,9 +153,7 @@ func (h *Handler) deviceBind(w http.ResponseWriter, r *http.Request) {
 	}
 	rollback := func() { _ = tx.Rollback(ctx) }
 	d, code, msg, err := h.hwAuth(ctx, tx, deviceNo, secret, "设备已停用")
-	if err != nil {
-		rollback()
-		response.Error500(w, ref())
+	if rollbackOnError(w, rollback, err) {
 		return
 	}
 	if d == nil {
@@ -170,9 +168,7 @@ func (h *Handler) deviceBind(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	bc, err := h.findBindCode(ctx, tx, bindCode)
-	if err != nil {
-		rollback()
-		response.Error500(w, ref())
+	if rollbackOnError(w, rollback, err) {
 		return
 	}
 	if code, msg := bindCodeFailure(bc); code != "" {
@@ -196,9 +192,7 @@ func (h *Handler) deviceBind(w http.ResponseWriter, r *http.Request) {
 	// Lock the elder before the device, matching unbind/delete lock order.
 	// Changing owners requires an explicit unbind so the old primary reference
 	// cannot be left pointing at a device that now reports for someone else.
-	if err := tx.QueryRow(ctx, `SELECT old_id FROM device WHERE device_id=$1 FOR UPDATE`, d.ID).Scan(&d.OldID); err != nil {
-		rollback()
-		response.Error500(w, ref())
+	if err := tx.QueryRow(ctx, `SELECT old_id FROM device WHERE device_id=$1 FOR UPDATE`, d.ID).Scan(&d.OldID); rollbackOnError(w, rollback, err) {
 		return
 	}
 	if d.OldID != nil && *d.OldID != *bc.OldID {
@@ -217,9 +211,7 @@ func (h *Handler) deviceBind(w http.ResponseWriter, r *http.Request) {
 		 WHERE device_id=$11`,
 		d.Alias, d.Model, *bc.OldID, bc.FamilyID, status, now,
 		d.LastLng, d.LastLat, d.Battery, d.AppVersion, d.ID)
-	if err != nil {
-		rollback()
-		response.Error500(w, ref())
+	if rollbackOnError(w, rollback, err) {
 		return
 	}
 	if ct.RowsAffected() != 1 {
@@ -227,18 +219,14 @@ func (h *Handler) deviceBind(w http.ResponseWriter, r *http.Request) {
 		conflict409(w, "设备绑定失败")
 		return
 	}
-	if err := linkBoundDevice(ctx, tx, d.ID, bc, oldDeviceID, oldFamilyID, now); err != nil {
-		rollback()
-		response.Error500(w, ref())
+	if err := linkBoundDevice(ctx, tx, d.ID, bc, oldDeviceID, oldFamilyID, now); rollbackOnError(w, rollback, err) {
 		return
 	}
 	// 标记绑定码已用（used=0 乐观锁）。
 	ct, err = tx.Exec(ctx,
 		`UPDATE bind_code SET used=1, used_device_id=$1, used_time=$2 WHERE id=$3 AND used=0`,
 		d.ID, now, bc.ID)
-	if err != nil {
-		rollback()
-		response.Error500(w, ref())
+	if rollbackOnError(w, rollback, err) {
 		return
 	}
 	if ct.RowsAffected() != 1 {
@@ -327,10 +315,5 @@ func linkBoundDevice(ctx context.Context, tx *dbstore.Transaction, deviceID int6
 			return err
 		}
 	}
-	// watch_info upsert 默认阈值行（心率 55–110、血压 90–140）。
-	if _, err := saveWatchProfileUpsert(ctx, tx, tx.IsMySQL(), deviceID, 110, 55, 140, 90,
-		time.Date(now.Year(), now.Month(), now.Day(), 0, 0, 0, 0, time.Local)); err != nil {
-		return err
-	}
-	return nil
+	return saveDefaultWatchProfile(ctx, tx, deviceID, now)
 }
