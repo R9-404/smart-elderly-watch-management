@@ -6,12 +6,13 @@ package health
 #cgo CXXFLAGS: -O3
 #cgo LDFLAGS: -lstdc++
 #include <stdint.h>
-typedef struct { int64_t seconds; uint32_t nanos; uint32_t index; } suining_sleep_key;
-void suining_sort_sleep(suining_sleep_key *rows, uint32_t count);
+void suining_sort_sleep(uint64_t *keys, uint32_t count);
 #cgo noescape suining_sort_sleep
 #cgo nocallback suining_sort_sleep
 */
 import "C"
+
+import "math/bits"
 
 func sortSleepNative(samples []*Sample) bool {
 	if len(samples) < 2048 || uint64(len(samples)) > uint64(^uint32(0)) {
@@ -37,25 +38,39 @@ func sortSleepNative(samples []*Sample) bool {
 	if ordered {
 		return true
 	}
-	keys := make([]C.suining_sleep_key, len(samples))
+	// Keep the original index in the low bits and a signed nanosecond
+	// offset in the high bits. The bias maps signed offsets to unsigned
+	// order, so C++ can sort the keys with a single integer comparison.
+	indexBits := bits.Len(uint(len(samples) - 1))
+	indexMask := (C.uint64_t(1) << indexBits) - 1
+	limit := int64(1) << (63 - indexBits)
+	const minSeconds, maxSeconds = -62167219200, 253402300800
+	origin := samples[0].Start.Unix()
+	if origin < minSeconds || origin >= maxSeconds {
+		return false
+	}
+	maxDeltaSeconds := limit/1000000000 + 1
+	firstSecond := max(int64(minSeconds), origin-maxDeltaSeconds)
+	lastSecond := min(int64(maxSeconds-1), origin+maxDeltaSeconds)
+	keys := make([]C.uint64_t, len(samples))
 	for i, sample := range samples {
 		start := sample.Start
 		seconds := start.Unix()
-		// Preserve time.Time comparison for monotonic clocks and dates outside
-		// the RFC 3339 year range used by persisted samples.
-		if start != start.Round(0) || seconds < -62167219200 || seconds >= 253402300800 {
+		if start != start.Round(0) || seconds < firstSecond || seconds > lastSecond {
 			return false
 		}
-		keys[i].seconds = C.int64_t(seconds)
-		keys[i].nanos = C.uint32_t(start.Nanosecond())
-		keys[i].index = C.uint32_t(i)
+		offset := (seconds-origin)*1000000000 + int64(start.Nanosecond())
+		if offset < -limit || offset >= limit {
+			return false
+		}
+		keys[i] = C.uint64_t(uint64(offset+limit)<<indexBits | uint64(i))
 	}
 	C.suining_sort_sleep(&keys[0], C.uint32_t(len(keys)))
 
 	// Apply the sorted permutation in place. Replacing each visited index
 	// with its own position marks the cycle as complete.
 	for i := range keys {
-		next := int(keys[i].index)
+		next := int(keys[i] & indexMask)
 		if next == i {
 			continue
 		}
@@ -63,12 +78,12 @@ func sortSleepNative(samples []*Sample) bool {
 		at := i
 		for next != i {
 			samples[at] = samples[next]
-			keys[at].index = C.uint32_t(at)
+			keys[at] = C.uint64_t(at)
 			at = next
-			next = int(keys[at].index)
+			next = int(keys[at] & indexMask)
 		}
 		samples[at] = saved
-		keys[at].index = C.uint32_t(at)
+		keys[at] = C.uint64_t(at)
 	}
 	return true
 }

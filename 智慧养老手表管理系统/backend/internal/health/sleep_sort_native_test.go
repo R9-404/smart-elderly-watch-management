@@ -18,6 +18,7 @@ func TestNativeSleepPermutation(t *testing.T) {
 		samples[i] = &Sample{Start: start.Add(time.Duration(delta/8)*time.Second + time.Duration(delta%8))}
 		original[samples[i]] = true
 	}
+	samples[0], samples[1] = samples[1], samples[0]
 	if !sortSleepNative(samples) {
 		t.Fatal("eligible input did not use native sort")
 	}
@@ -33,5 +34,17 @@ func TestNativeSleepPermutation(t *testing.T) {
 	samples[len(samples)-1].Start = time.Now()
 	if sortSleepNative(samples) {
 		t.Fatal("expected Go fallback for monotonic timestamps")
+	}
+}
+
+func TestNativeSortWideRangeFallback(t *testing.T) {
+	start := time.Date(2026, 10, 26, 0, 0, 0, 0, time.UTC)
+	samples := make([]*Sample, 2048)
+	for i := range samples {
+		samples[i] = &Sample{Start: start.Add(-time.Duration(i) * time.Hour)}
+	}
+	original := slices.Clone(samples)
+	if sortSleepNative(samples) || !slices.Equal(samples, original) {
+		t.Fatal("wide span must fall back before changing sample order")
 	}
 }
