@@ -46,3 +46,25 @@ GOMAXPROCS=2 go test ./internal/health -run '^$' -bench BenchmarkIdentityScan -b
 
 已执行字节等价、向量/尾部边界、Linux guard page 测试及相关 health/rules 包测试；
 Windows amd64 与 Linux arm64 仅完成交叉编译，未执行目标平台测试。未运行数据库压测。
+
+## Linux amd64 原生内核
+
+Linux amd64 在启用 CGO 的构建中使用 C/C++ 工具链。可在 backend 目录执行
+`CGO_ENABLED=1 go build -trimpath -o suining ./cmd/server` 构建带原生内核的服务端。
+`CGO_ENABLED=0`、`-tags purego` 及其他平台使用 Go 实现。
+
+- 24/32 位无压缩 BMP 通过 Go 的尺寸和长度校验后，达到 4096 像素时由 C 批量转换 RGBA。
+- 2048 条及以上的乱序睡眠记录在 C++ 中排序连续时间戳键，随后由 Go 原地重排样本。
+  已按时间排序的数据直接进入原有聚合流程，带单调时钟的输入由 Go 排序。
+
+Go 1.26.10、Linux amd64、Xeon Platinum 8573C 本机三次对照的中位数：
+
+| 测量 | Go | 原生实现 |
+|---|---:|---:|
+| 1024×1024 24 位 BMP 解码，Go 基线直接写 RGBA 缓冲区 | 3.37 ms | 1.81 ms |
+| 1024×1024 32 位 BMP 解码，Go 基线直接写 RGBA 缓冲区 | 4.77 ms | 3.17 ms |
+| 10,000 条乱序睡眠记录完整聚合，含打包和重排 | 4.87 ms | 3.10 ms |
+| 同一睡眠聚合的进程 CPU 时间 | 4.89 ms | 3.70 ms |
+
+BMP 对照包含输出缓冲区分配。睡眠聚合的分配从 310,840 增至 474,680 B/op。
+测量范围为解码和聚合函数，生产接口延迟仍需在真实负载下测量。

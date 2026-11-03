@@ -48,7 +48,9 @@ func aggregateSleep(samples []*Sample, from, to time.Time) (map[string]float64, 
 	samples = kept
 	// Clipping start to from preserves chronological order. Equal clipped
 	// starts overlap, so their relative order cannot change any union endpoint.
-	slices.SortFunc(samples, func(a, b *Sample) int { return a.Start.Compare(b.Start) })
+	if !sortSleepNative(samples) {
+		slices.SortFunc(samples, func(a, b *Sample) int { return a.Start.Compare(b.Start) })
+	}
 	stages := map[string]*sleepUnion{}
 	var asleep, awake, combined sleepUnion
 	for _, sample := range samples {
