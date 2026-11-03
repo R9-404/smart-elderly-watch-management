@@ -2,20 +2,15 @@
 package apidoc
 
 import (
-	"embed"
+	_ "embed"
 	"net/http"
 )
 
 //go:embed openapi.json
-var files embed.FS
+var schema []byte
 
-func ServeHTTP(w http.ResponseWriter, r *http.Request) {
-	b, err := files.ReadFile("openapi.json")
-	if err != nil {
-		http.Error(w, "schema unavailable", http.StatusInternalServerError)
-		return
-	}
+func ServeHTTP(w http.ResponseWriter, _ *http.Request) {
 	w.Header().Set("Content-Type", "application/json; charset=utf-8")
 	w.Header().Set("Cache-Control", "no-store")
-	w.Write(b)
+	w.Write(schema)
 }

@@ -49,6 +49,128 @@
             }
           }
         }
+      },
+      "Success": {
+        "description": "Go JSON response; payload varies by operation.",
+        "content": {
+          "application/json": {
+            "schema": {
+              "type": "object",
+              "additionalProperties": true,
+              "required": [
+                "returnCode"
+              ],
+              "properties": {
+                "returnCode": {
+                  "type": "string",
+                  "const": "1111"
+                }
+              }
+            }
+          }
+        }
+      },
+      "ItemsSuccess": {
+        "description": "Go JSON response; payload varies by operation.",
+        "content": {
+          "application/json": {
+            "schema": {
+              "type": "object",
+              "additionalProperties": true,
+              "required": [
+                "returnCode"
+              ],
+              "properties": {
+                "returnCode": {
+                  "type": "string",
+                  "const": "1111"
+                },
+                "items": {}
+              }
+            }
+          }
+        }
+      }
+    },
+    "parameters": {
+      "CsrfToken": {
+        "name": "X-CSRF-TOKEN",
+        "in": "header",
+        "required": true,
+        "schema": {
+          "type": "string"
+        }
+      }
+    },
+    "requestBodies": {
+      "JsonObject": {
+        "required": true,
+        "content": {
+          "application/json": {
+            "schema": {
+              "type": "object",
+              "additionalProperties": true
+            }
+          }
+        }
+      },
+      "ResidentId": {
+        "required": true,
+        "content": {
+          "application/json": {
+            "schema": {
+              "type": "object",
+              "additionalProperties": true,
+              "properties": {
+                "oldId": {}
+              }
+            }
+          }
+        }
+      },
+      "DeviceId": {
+        "required": true,
+        "content": {
+          "application/json": {
+            "schema": {
+              "type": "object",
+              "additionalProperties": true,
+              "properties": {
+                "deviceId": {}
+              }
+            }
+          }
+        }
+      },
+      "NoticeId": {
+        "required": true,
+        "content": {
+          "application/json": {
+            "schema": {
+              "type": "object",
+              "additionalProperties": true,
+              "properties": {
+                "textId": {}
+              }
+            }
+          }
+        }
+      },
+      "NamePage": {
+        "required": true,
+        "content": {
+          "application/json": {
+            "schema": {
+              "type": "object",
+              "additionalProperties": true,
+              "properties": {
+                "name": {},
+                "page": {},
+                "pageSize": {}
+              }
+            }
+          }
+        }
       }
     }
   },
@@ -127,24 +249,11 @@
         ],
         "parameters": [
           {
-            "name": "X-CSRF-TOKEN",
-            "in": "header",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
+            "$ref": "#/components/parameters/CsrfToken"
           }
         ],
         "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "type": "object",
-                "additionalProperties": true
-              }
-            }
-          }
+          "$ref": "#/components/requestBodies/JsonObject"
         },
         "description": "Implementation: 智慧养老手表管理系统/backend/internal/handlers/handler_vitals.go. Go API DTOs without explicit schemas remain open objects; consult implementation.",
         "x-request-fields": [],
@@ -226,27 +335,11 @@
         ],
         "parameters": [
           {
-            "name": "X-CSRF-TOKEN",
-            "in": "header",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
+            "$ref": "#/components/parameters/CsrfToken"
           }
         ],
         "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "type": "object",
-                "additionalProperties": true,
-                "properties": {
-                  "oldId": {}
-                }
-              }
-            }
-          }
+          "$ref": "#/components/requestBodies/ResidentId"
         },
         "description": "Implementation: 智慧养老手表管理系统/backend/internal/handlers/handler_vitals.go. Go API DTOs without explicit schemas remain open objects; consult implementation.",
         "x-request-fields": [
@@ -330,27 +423,11 @@
         ],
         "parameters": [
           {
-            "name": "X-CSRF-TOKEN",
-            "in": "header",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
+            "$ref": "#/components/parameters/CsrfToken"
           }
         ],
         "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "type": "object",
-                "additionalProperties": true,
-                "properties": {
-                  "oldId": {}
-                }
-              }
-            }
-          }
+          "$ref": "#/components/requestBodies/ResidentId"
         },
         "description": "Implementation: 智慧养老手表管理系统/backend/internal/handlers/handler_vitals.go. Go API DTOs without explicit schemas remain open objects; consult implementation.",
         "x-request-fields": [
@@ -435,12 +512,7 @@
         ],
         "parameters": [
           {
-            "name": "X-CSRF-TOKEN",
-            "in": "header",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
+            "$ref": "#/components/parameters/CsrfToken"
           }
         ],
         "requestBody": {
@@ -550,12 +622,7 @@
         ],
         "parameters": [
           {
-            "name": "X-CSRF-TOKEN",
-            "in": "header",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
+            "$ref": "#/components/parameters/CsrfToken"
           }
         ],
         "requestBody": {
@@ -611,25 +678,7 @@
         ],
         "responses": {
           "200": {
-            "description": "Go JSON response; payload varies by operation.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "additionalProperties": true,
-                  "properties": {
-                    "items": {},
-                    "returnCode": {
-                      "type": "string",
-                      "const": "1111"
-                    }
-                  },
-                  "required": [
-                    "returnCode"
-                  ]
-                }
-              }
-            }
+            "$ref": "#/components/responses/ItemsSuccess"
           },
           "400": {
             "$ref": "#/components/responses/ApiError"
@@ -672,12 +721,7 @@
         ],
         "parameters": [
           {
-            "name": "X-CSRF-TOKEN",
-            "in": "header",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
+            "$ref": "#/components/parameters/CsrfToken"
           }
         ],
         "requestBody": {
@@ -784,12 +828,7 @@
         "security": [],
         "parameters": [
           {
-            "name": "X-CSRF-TOKEN",
-            "in": "header",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
+            "$ref": "#/components/parameters/CsrfToken"
           }
         ],
         "requestBody": {
@@ -839,24 +878,7 @@
         ],
         "responses": {
           "200": {
-            "description": "Go JSON response; payload varies by operation.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "additionalProperties": true,
-                  "properties": {
-                    "returnCode": {
-                      "type": "string",
-                      "const": "1111"
-                    }
-                  },
-                  "required": [
-                    "returnCode"
-                  ]
-                }
-              }
-            }
+            "$ref": "#/components/responses/Success"
           },
           "400": {
             "$ref": "#/components/responses/ApiError"
@@ -899,24 +921,11 @@
         ],
         "parameters": [
           {
-            "name": "X-CSRF-TOKEN",
-            "in": "header",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
+            "$ref": "#/components/parameters/CsrfToken"
           }
         ],
         "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "type": "object",
-                "additionalProperties": true
-              }
-            }
-          }
+          "$ref": "#/components/requestBodies/JsonObject"
         },
         "description": "Implementation: 智慧养老手表管理系统/backend/internal/handlers/handler_auth.go. Go API DTOs without explicit schemas remain open objects; consult implementation.",
         "x-request-fields": [],
@@ -1075,24 +1084,11 @@
         ],
         "parameters": [
           {
-            "name": "X-CSRF-TOKEN",
-            "in": "header",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
+            "$ref": "#/components/parameters/CsrfToken"
           }
         ],
         "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "type": "object",
-                "additionalProperties": true
-              }
-            }
-          }
+          "$ref": "#/components/requestBodies/JsonObject"
         },
         "description": "Implementation: 智慧养老手表管理系统/backend/internal/handlers/handler_care_incident.go. Go API DTOs without explicit schemas remain open objects; consult implementation.",
         "x-request-fields": [],
@@ -1173,12 +1169,7 @@
         ],
         "parameters": [
           {
-            "name": "X-CSRF-TOKEN",
-            "in": "header",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
+            "$ref": "#/components/parameters/CsrfToken"
           }
         ],
         "requestBody": {
@@ -1290,24 +1281,11 @@
         ],
         "parameters": [
           {
-            "name": "X-CSRF-TOKEN",
-            "in": "header",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
+            "$ref": "#/components/parameters/CsrfToken"
           }
         ],
         "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "type": "object",
-                "additionalProperties": true
-              }
-            }
-          }
+          "$ref": "#/components/requestBodies/JsonObject"
         },
         "description": "Implementation: 智慧养老手表管理系统/backend/internal/handlers/handler_care_incident.go. Go API DTOs without explicit schemas remain open objects; consult implementation.",
         "x-request-fields": [],
@@ -1402,12 +1380,7 @@
         ],
         "parameters": [
           {
-            "name": "X-CSRF-TOKEN",
-            "in": "header",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
+            "$ref": "#/components/parameters/CsrfToken"
           }
         ],
         "requestBody": {
@@ -1516,12 +1489,7 @@
         ],
         "parameters": [
           {
-            "name": "X-CSRF-TOKEN",
-            "in": "header",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
+            "$ref": "#/components/parameters/CsrfToken"
           }
         ],
         "requestBody": {
@@ -1720,24 +1688,11 @@
         ],
         "parameters": [
           {
-            "name": "X-CSRF-TOKEN",
-            "in": "header",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
+            "$ref": "#/components/parameters/CsrfToken"
           }
         ],
         "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "type": "object",
-                "additionalProperties": true
-              }
-            }
-          }
+          "$ref": "#/components/requestBodies/JsonObject"
         },
         "description": "Implementation: 智慧养老手表管理系统/backend/internal/handlers/handler_care_incident.go. Go API DTOs without explicit schemas remain open objects; consult implementation.",
         "x-request-fields": [],
@@ -1818,12 +1773,7 @@
         ],
         "parameters": [
           {
-            "name": "X-CSRF-TOKEN",
-            "in": "header",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
+            "$ref": "#/components/parameters/CsrfToken"
           }
         ],
         "requestBody": {
@@ -1923,15 +1873,7 @@
         "security": [],
         "parameters": [],
         "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "type": "object",
-                "additionalProperties": true
-              }
-            }
-          }
+          "$ref": "#/components/requestBodies/JsonObject"
         },
         "description": "Implementation: 智慧养老手表管理系统/backend/internal/handlers/handler_auth.go. Go API DTOs without explicit schemas remain open objects; consult implementation.",
         "x-request-fields": [],
@@ -2012,12 +1954,7 @@
         ],
         "parameters": [
           {
-            "name": "X-CSRF-TOKEN",
-            "in": "header",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
+            "$ref": "#/components/parameters/CsrfToken"
           }
         ],
         "requestBody": {
@@ -2131,12 +2068,7 @@
         ],
         "parameters": [
           {
-            "name": "X-CSRF-TOKEN",
-            "in": "header",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
+            "$ref": "#/components/parameters/CsrfToken"
           }
         ],
         "requestBody": {
@@ -2188,25 +2120,7 @@
         ],
         "responses": {
           "200": {
-            "description": "Go JSON response; payload varies by operation.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "additionalProperties": true,
-                  "properties": {
-                    "items": {},
-                    "returnCode": {
-                      "type": "string",
-                      "const": "1111"
-                    }
-                  },
-                  "required": [
-                    "returnCode"
-                  ]
-                }
-              }
-            }
+            "$ref": "#/components/responses/ItemsSuccess"
           },
           "400": {
             "$ref": "#/components/responses/ApiError"
@@ -2249,12 +2163,7 @@
         ],
         "parameters": [
           {
-            "name": "X-CSRF-TOKEN",
-            "in": "header",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
+            "$ref": "#/components/parameters/CsrfToken"
           }
         ],
         "requestBody": {
@@ -2361,24 +2270,11 @@
         ],
         "parameters": [
           {
-            "name": "X-CSRF-TOKEN",
-            "in": "header",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
+            "$ref": "#/components/parameters/CsrfToken"
           }
         ],
         "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "type": "object",
-                "additionalProperties": true
-              }
-            }
-          }
+          "$ref": "#/components/requestBodies/JsonObject"
         },
         "description": "Implementation: 智慧养老手表管理系统/backend/internal/handlers/handler_resident_devices.go. Go API DTOs without explicit schemas remain open objects; consult implementation.",
         "x-request-fields": [],
@@ -2479,12 +2375,7 @@
         ],
         "parameters": [
           {
-            "name": "X-CSRF-TOKEN",
-            "in": "header",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
+            "$ref": "#/components/parameters/CsrfToken"
           }
         ],
         "requestBody": {
@@ -2695,27 +2586,11 @@
         ],
         "parameters": [
           {
-            "name": "X-CSRF-TOKEN",
-            "in": "header",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
+            "$ref": "#/components/parameters/CsrfToken"
           }
         ],
         "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "type": "object",
-                "additionalProperties": true,
-                "properties": {
-                  "oldId": {}
-                }
-              }
-            }
-          }
+          "$ref": "#/components/requestBodies/ResidentId"
         },
         "description": "Implementation: 智慧养老手表管理系统/backend/internal/handlers/handler_resident_devices.go. Go API DTOs without explicit schemas remain open objects; consult implementation.",
         "x-request-fields": [
@@ -2993,12 +2868,7 @@
         ],
         "parameters": [
           {
-            "name": "X-CSRF-TOKEN",
-            "in": "header",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
+            "$ref": "#/components/parameters/CsrfToken"
           }
         ],
         "requestBody": {
@@ -3104,12 +2974,7 @@
         ],
         "parameters": [
           {
-            "name": "X-CSRF-TOKEN",
-            "in": "header",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
+            "$ref": "#/components/parameters/CsrfToken"
           }
         ],
         "requestBody": {
@@ -3152,24 +3017,7 @@
         ],
         "responses": {
           "200": {
-            "description": "Go JSON response; payload varies by operation.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "additionalProperties": true,
-                  "properties": {
-                    "returnCode": {
-                      "type": "string",
-                      "const": "1111"
-                    }
-                  },
-                  "required": [
-                    "returnCode"
-                  ]
-                }
-              }
-            }
+            "$ref": "#/components/responses/Success"
           },
           "400": {
             "$ref": "#/components/responses/ApiError"
@@ -3212,27 +3060,11 @@
         ],
         "parameters": [
           {
-            "name": "X-CSRF-TOKEN",
-            "in": "header",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
+            "$ref": "#/components/parameters/CsrfToken"
           }
         ],
         "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "type": "object",
-                "additionalProperties": true,
-                "properties": {
-                  "deviceId": {}
-                }
-              }
-            }
-          }
+          "$ref": "#/components/requestBodies/DeviceId"
         },
         "description": "Implementation: 智慧养老手表管理系统/backend/internal/handlers/handler_resident_devices.go. Go API DTOs without explicit schemas remain open objects; consult implementation.",
         "x-request-fields": [
@@ -3252,24 +3084,7 @@
         ],
         "responses": {
           "200": {
-            "description": "Go JSON response; payload varies by operation.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "additionalProperties": true,
-                  "properties": {
-                    "returnCode": {
-                      "type": "string",
-                      "const": "1111"
-                    }
-                  },
-                  "required": [
-                    "returnCode"
-                  ]
-                }
-              }
-            }
+            "$ref": "#/components/responses/Success"
           },
           "400": {
             "$ref": "#/components/responses/ApiError"
@@ -3312,12 +3127,7 @@
         ],
         "parameters": [
           {
-            "name": "X-CSRF-TOKEN",
-            "in": "header",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
+            "$ref": "#/components/parameters/CsrfToken"
           }
         ],
         "requestBody": {
@@ -3722,12 +3532,7 @@
         ],
         "parameters": [
           {
-            "name": "X-CSRF-TOKEN",
-            "in": "header",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
+            "$ref": "#/components/parameters/CsrfToken"
           }
         ],
         "requestBody": {
@@ -4105,27 +3910,11 @@
         ],
         "parameters": [
           {
-            "name": "X-CSRF-TOKEN",
-            "in": "header",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
+            "$ref": "#/components/parameters/CsrfToken"
           }
         ],
         "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "type": "object",
-                "additionalProperties": true,
-                "properties": {
-                  "deviceId": {}
-                }
-              }
-            }
-          }
+          "$ref": "#/components/requestBodies/DeviceId"
         },
         "description": "Implementation: 智慧养老手表管理系统/backend/internal/handlers/handler_resident_devices.go. Go API DTOs without explicit schemas remain open objects; consult implementation.",
         "x-request-fields": [
@@ -4208,12 +3997,7 @@
         ],
         "parameters": [
           {
-            "name": "X-CSRF-TOKEN",
-            "in": "header",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
+            "$ref": "#/components/parameters/CsrfToken"
           }
         ],
         "requestBody": {
@@ -4385,24 +4169,7 @@
         ],
         "responses": {
           "200": {
-            "description": "Go JSON response; payload varies by operation.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "additionalProperties": true,
-                  "properties": {
-                    "returnCode": {
-                      "type": "string",
-                      "const": "1111"
-                    }
-                  },
-                  "required": [
-                    "returnCode"
-                  ]
-                }
-              }
-            }
+            "$ref": "#/components/responses/Success"
           },
           "400": {
             "$ref": "#/components/responses/ApiError"
@@ -4445,27 +4212,11 @@
         ],
         "parameters": [
           {
-            "name": "X-CSRF-TOKEN",
-            "in": "header",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
+            "$ref": "#/components/parameters/CsrfToken"
           }
         ],
         "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "type": "object",
-                "additionalProperties": true,
-                "properties": {
-                  "deviceId": {}
-                }
-              }
-            }
-          }
+          "$ref": "#/components/requestBodies/DeviceId"
         },
         "description": "Implementation: 智慧养老手表管理系统/backend/internal/handlers/handler_resident_devices.go. Go API DTOs without explicit schemas remain open objects; consult implementation.",
         "x-request-fields": [
@@ -4485,24 +4236,7 @@
         ],
         "responses": {
           "200": {
-            "description": "Go JSON response; payload varies by operation.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "additionalProperties": true,
-                  "properties": {
-                    "returnCode": {
-                      "type": "string",
-                      "const": "1111"
-                    }
-                  },
-                  "required": [
-                    "returnCode"
-                  ]
-                }
-              }
-            }
+            "$ref": "#/components/responses/Success"
           },
           "400": {
             "$ref": "#/components/responses/ApiError"
@@ -4545,12 +4279,7 @@
         ],
         "parameters": [
           {
-            "name": "X-CSRF-TOKEN",
-            "in": "header",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
+            "$ref": "#/components/parameters/CsrfToken"
           }
         ],
         "requestBody": {
@@ -4595,24 +4324,7 @@
         ],
         "responses": {
           "200": {
-            "description": "Go JSON response; payload varies by operation.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "additionalProperties": true,
-                  "properties": {
-                    "returnCode": {
-                      "type": "string",
-                      "const": "1111"
-                    }
-                  },
-                  "required": [
-                    "returnCode"
-                  ]
-                }
-              }
-            }
+            "$ref": "#/components/responses/Success"
           },
           "400": {
             "$ref": "#/components/responses/ApiError"
@@ -4655,12 +4367,7 @@
         ],
         "parameters": [
           {
-            "name": "X-CSRF-TOKEN",
-            "in": "header",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
+            "$ref": "#/components/parameters/CsrfToken"
           }
         ],
         "requestBody": {
@@ -4759,12 +4466,7 @@
         ],
         "parameters": [
           {
-            "name": "X-CSRF-TOKEN",
-            "in": "header",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
+            "$ref": "#/components/parameters/CsrfToken"
           }
         ],
         "requestBody": {
@@ -4868,12 +4570,7 @@
         ],
         "parameters": [
           {
-            "name": "X-CSRF-TOKEN",
-            "in": "header",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
+            "$ref": "#/components/parameters/CsrfToken"
           }
         ],
         "requestBody": {
@@ -4909,24 +4606,7 @@
         ],
         "responses": {
           "200": {
-            "description": "Go JSON response; payload varies by operation.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "additionalProperties": true,
-                  "properties": {
-                    "returnCode": {
-                      "type": "string",
-                      "const": "1111"
-                    }
-                  },
-                  "required": [
-                    "returnCode"
-                  ]
-                }
-              }
-            }
+            "$ref": "#/components/responses/Success"
           },
           "400": {
             "$ref": "#/components/responses/ApiError"
@@ -4969,12 +4649,7 @@
         ],
         "parameters": [
           {
-            "name": "X-CSRF-TOKEN",
-            "in": "header",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
+            "$ref": "#/components/parameters/CsrfToken"
           }
         ],
         "requestBody": {
@@ -5019,24 +4694,7 @@
         ],
         "responses": {
           "200": {
-            "description": "Go JSON response; payload varies by operation.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "additionalProperties": true,
-                  "properties": {
-                    "returnCode": {
-                      "type": "string",
-                      "const": "1111"
-                    }
-                  },
-                  "required": [
-                    "returnCode"
-                  ]
-                }
-              }
-            }
+            "$ref": "#/components/responses/Success"
           },
           "400": {
             "$ref": "#/components/responses/ApiError"
@@ -5079,12 +4737,7 @@
         ],
         "parameters": [
           {
-            "name": "X-CSRF-TOKEN",
-            "in": "header",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
+            "$ref": "#/components/parameters/CsrfToken"
           }
         ],
         "requestBody": {
@@ -5123,24 +4776,7 @@
         ],
         "responses": {
           "200": {
-            "description": "Go JSON response; payload varies by operation.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "additionalProperties": true,
-                  "properties": {
-                    "returnCode": {
-                      "type": "string",
-                      "const": "1111"
-                    }
-                  },
-                  "required": [
-                    "returnCode"
-                  ]
-                }
-              }
-            }
+            "$ref": "#/components/responses/Success"
           },
           "400": {
             "$ref": "#/components/responses/ApiError"
@@ -5183,12 +4819,7 @@
         ],
         "parameters": [
           {
-            "name": "X-CSRF-TOKEN",
-            "in": "header",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
+            "$ref": "#/components/parameters/CsrfToken"
           }
         ],
         "requestBody": {
@@ -5225,24 +4856,7 @@
         ],
         "responses": {
           "200": {
-            "description": "Go JSON response; payload varies by operation.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "additionalProperties": true,
-                  "properties": {
-                    "returnCode": {
-                      "type": "string",
-                      "const": "1111"
-                    }
-                  },
-                  "required": [
-                    "returnCode"
-                  ]
-                }
-              }
-            }
+            "$ref": "#/components/responses/Success"
           },
           "400": {
             "$ref": "#/components/responses/ApiError"
@@ -5285,12 +4899,7 @@
         ],
         "parameters": [
           {
-            "name": "X-CSRF-TOKEN",
-            "in": "header",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
+            "$ref": "#/components/parameters/CsrfToken"
           }
         ],
         "requestBody": {
@@ -5333,25 +4942,7 @@
         ],
         "responses": {
           "200": {
-            "description": "Go JSON response; payload varies by operation.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "additionalProperties": true,
-                  "properties": {
-                    "items": {},
-                    "returnCode": {
-                      "type": "string",
-                      "const": "1111"
-                    }
-                  },
-                  "required": [
-                    "returnCode"
-                  ]
-                }
-              }
-            }
+            "$ref": "#/components/responses/ItemsSuccess"
           },
           "400": {
             "$ref": "#/components/responses/ApiError"
@@ -5394,12 +4985,7 @@
         ],
         "parameters": [
           {
-            "name": "X-CSRF-TOKEN",
-            "in": "header",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
+            "$ref": "#/components/parameters/CsrfToken"
           }
         ],
         "requestBody": {
@@ -5501,12 +5087,7 @@
         ],
         "parameters": [
           {
-            "name": "X-CSRF-TOKEN",
-            "in": "header",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
+            "$ref": "#/components/parameters/CsrfToken"
           }
         ],
         "requestBody": {
@@ -5569,25 +5150,7 @@
         ],
         "responses": {
           "200": {
-            "description": "Go JSON response; payload varies by operation.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "additionalProperties": true,
-                  "properties": {
-                    "items": {},
-                    "returnCode": {
-                      "type": "string",
-                      "const": "1111"
-                    }
-                  },
-                  "required": [
-                    "returnCode"
-                  ]
-                }
-              }
-            }
+            "$ref": "#/components/responses/ItemsSuccess"
           },
           "400": {
             "$ref": "#/components/responses/ApiError"
@@ -5630,27 +5193,11 @@
         ],
         "parameters": [
           {
-            "name": "X-CSRF-TOKEN",
-            "in": "header",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
+            "$ref": "#/components/parameters/CsrfToken"
           }
         ],
         "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "type": "object",
-                "additionalProperties": true,
-                "properties": {
-                  "deviceId": {}
-                }
-              }
-            }
-          }
+          "$ref": "#/components/requestBodies/DeviceId"
         },
         "description": "Implementation: 智慧养老手表管理系统/backend/internal/handlers/handler_capability_routes.go. Go API DTOs without explicit schemas remain open objects; consult implementation.",
         "x-request-fields": [
@@ -5732,12 +5279,7 @@
         ],
         "parameters": [
           {
-            "name": "X-CSRF-TOKEN",
-            "in": "header",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
+            "$ref": "#/components/parameters/CsrfToken"
           }
         ],
         "requestBody": {
@@ -5775,24 +5317,7 @@
         ],
         "responses": {
           "200": {
-            "description": "Go JSON response; payload varies by operation.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "additionalProperties": true,
-                  "properties": {
-                    "returnCode": {
-                      "type": "string",
-                      "const": "1111"
-                    }
-                  },
-                  "required": [
-                    "returnCode"
-                  ]
-                }
-              }
-            }
+            "$ref": "#/components/responses/Success"
           },
           "400": {
             "$ref": "#/components/responses/ApiError"
@@ -5835,12 +5360,7 @@
         ],
         "parameters": [
           {
-            "name": "X-CSRF-TOKEN",
-            "in": "header",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
+            "$ref": "#/components/parameters/CsrfToken"
           }
         ],
         "requestBody": {
@@ -5880,24 +5400,7 @@
         ],
         "responses": {
           "200": {
-            "description": "Go JSON response; payload varies by operation.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "additionalProperties": true,
-                  "properties": {
-                    "returnCode": {
-                      "type": "string",
-                      "const": "1111"
-                    }
-                  },
-                  "required": [
-                    "returnCode"
-                  ]
-                }
-              }
-            }
+            "$ref": "#/components/responses/Success"
           },
           "400": {
             "$ref": "#/components/responses/ApiError"
@@ -5940,12 +5443,7 @@
         ],
         "parameters": [
           {
-            "name": "X-CSRF-TOKEN",
-            "in": "header",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
+            "$ref": "#/components/parameters/CsrfToken"
           }
         ],
         "requestBody": {
@@ -5988,24 +5486,7 @@
         ],
         "responses": {
           "200": {
-            "description": "Go JSON response; payload varies by operation.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "additionalProperties": true,
-                  "properties": {
-                    "returnCode": {
-                      "type": "string",
-                      "const": "1111"
-                    }
-                  },
-                  "required": [
-                    "returnCode"
-                  ]
-                }
-              }
-            }
+            "$ref": "#/components/responses/Success"
           },
           "400": {
             "$ref": "#/components/responses/ApiError"
@@ -6048,12 +5529,7 @@
         ],
         "parameters": [
           {
-            "name": "X-CSRF-TOKEN",
-            "in": "header",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
+            "$ref": "#/components/parameters/CsrfToken"
           }
         ],
         "requestBody": {
@@ -6152,12 +5628,7 @@
         ],
         "parameters": [
           {
-            "name": "X-CSRF-TOKEN",
-            "in": "header",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
+            "$ref": "#/components/parameters/CsrfToken"
           }
         ],
         "requestBody": {
@@ -6200,24 +5671,7 @@
         ],
         "responses": {
           "200": {
-            "description": "Go JSON response; payload varies by operation.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "additionalProperties": true,
-                  "properties": {
-                    "returnCode": {
-                      "type": "string",
-                      "const": "1111"
-                    }
-                  },
-                  "required": [
-                    "returnCode"
-                  ]
-                }
-              }
-            }
+            "$ref": "#/components/responses/Success"
           },
           "400": {
             "$ref": "#/components/responses/ApiError"
@@ -6260,12 +5714,7 @@
         ],
         "parameters": [
           {
-            "name": "X-CSRF-TOKEN",
-            "in": "header",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
+            "$ref": "#/components/parameters/CsrfToken"
           }
         ],
         "requestBody": {
@@ -6385,24 +5834,11 @@
         ],
         "parameters": [
           {
-            "name": "X-CSRF-TOKEN",
-            "in": "header",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
+            "$ref": "#/components/parameters/CsrfToken"
           }
         ],
         "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "type": "object",
-                "additionalProperties": true
-              }
-            }
-          }
+          "$ref": "#/components/requestBodies/JsonObject"
         },
         "description": "Implementation: 智慧养老手表管理系统/backend/internal/handlers/handler_vitals.go. Go API DTOs without explicit schemas remain open objects; consult implementation.",
         "x-request-fields": [],
@@ -6487,12 +5923,7 @@
         ],
         "parameters": [
           {
-            "name": "X-CSRF-TOKEN",
-            "in": "header",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
+            "$ref": "#/components/parameters/CsrfToken"
           }
         ],
         "requestBody": {
@@ -6602,12 +6033,7 @@
         ],
         "parameters": [
           {
-            "name": "X-CSRF-TOKEN",
-            "in": "header",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
+            "$ref": "#/components/parameters/CsrfToken"
           }
         ],
         "requestBody": {
@@ -6829,12 +6255,7 @@
         ],
         "parameters": [
           {
-            "name": "X-CSRF-TOKEN",
-            "in": "header",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
+            "$ref": "#/components/parameters/CsrfToken"
           }
         ],
         "requestBody": {
@@ -6939,12 +6360,7 @@
         ],
         "parameters": [
           {
-            "name": "X-CSRF-TOKEN",
-            "in": "header",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
+            "$ref": "#/components/parameters/CsrfToken"
           }
         ],
         "requestBody": {
@@ -7132,12 +6548,7 @@
         ],
         "parameters": [
           {
-            "name": "X-CSRF-TOKEN",
-            "in": "header",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
+            "$ref": "#/components/parameters/CsrfToken"
           }
         ],
         "requestBody": {
@@ -7237,12 +6648,7 @@
         "security": [],
         "parameters": [
           {
-            "name": "X-CSRF-TOKEN",
-            "in": "header",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
+            "$ref": "#/components/parameters/CsrfToken"
           }
         ],
         "requestBody": {
@@ -7344,12 +6750,7 @@
         ],
         "parameters": [
           {
-            "name": "X-CSRF-TOKEN",
-            "in": "header",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
+            "$ref": "#/components/parameters/CsrfToken"
           }
         ],
         "requestBody": {
@@ -7394,24 +6795,7 @@
         ],
         "responses": {
           "200": {
-            "description": "Go JSON response; payload varies by operation.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "additionalProperties": true,
-                  "properties": {
-                    "returnCode": {
-                      "type": "string",
-                      "const": "1111"
-                    }
-                  },
-                  "required": [
-                    "returnCode"
-                  ]
-                }
-              }
-            }
+            "$ref": "#/components/responses/Success"
           },
           "400": {
             "$ref": "#/components/responses/ApiError"
@@ -7454,12 +6838,7 @@
         ],
         "parameters": [
           {
-            "name": "X-CSRF-TOKEN",
-            "in": "header",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
+            "$ref": "#/components/parameters/CsrfToken"
           }
         ],
         "requestBody": {
@@ -7553,12 +6932,7 @@
         "security": [],
         "parameters": [
           {
-            "name": "X-CSRF-TOKEN",
-            "in": "header",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
+            "$ref": "#/components/parameters/CsrfToken"
           }
         ],
         "requestBody": {
@@ -7672,12 +7046,7 @@
         ],
         "parameters": [
           {
-            "name": "X-CSRF-TOKEN",
-            "in": "header",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
+            "$ref": "#/components/parameters/CsrfToken"
           }
         ],
         "requestBody": {
@@ -7781,24 +7150,11 @@
         ],
         "parameters": [
           {
-            "name": "X-CSRF-TOKEN",
-            "in": "header",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
+            "$ref": "#/components/parameters/CsrfToken"
           }
         ],
         "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "type": "object",
-                "additionalProperties": true
-              }
-            }
-          }
+          "$ref": "#/components/requestBodies/JsonObject"
         },
         "description": "Implementation: 智慧养老手表管理系统/backend/internal/handlers/handler_family.go. Go API DTOs without explicit schemas remain open objects; consult implementation.",
         "x-request-fields": [],
@@ -7817,24 +7173,7 @@
         ],
         "responses": {
           "200": {
-            "description": "Go JSON response; payload varies by operation.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "additionalProperties": true,
-                  "properties": {
-                    "returnCode": {
-                      "type": "string",
-                      "const": "1111"
-                    }
-                  },
-                  "required": [
-                    "returnCode"
-                  ]
-                }
-              }
-            }
+            "$ref": "#/components/responses/Success"
           },
           "400": {
             "$ref": "#/components/responses/ApiError"
@@ -7877,27 +7216,11 @@
         ],
         "parameters": [
           {
-            "name": "X-CSRF-TOKEN",
-            "in": "header",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
+            "$ref": "#/components/parameters/CsrfToken"
           }
         ],
         "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "type": "object",
-                "additionalProperties": true,
-                "properties": {
-                  "oldId": {}
-                }
-              }
-            }
-          }
+          "$ref": "#/components/requestBodies/ResidentId"
         },
         "description": "Implementation: 智慧养老手表管理系统/backend/internal/handlers/handler_resident_devices.go. Go API DTOs without explicit schemas remain open objects; consult implementation.",
         "x-request-fields": [
@@ -7979,24 +7302,11 @@
         ],
         "parameters": [
           {
-            "name": "X-CSRF-TOKEN",
-            "in": "header",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
+            "$ref": "#/components/parameters/CsrfToken"
           }
         ],
         "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "type": "object",
-                "additionalProperties": true
-              }
-            }
-          }
+          "$ref": "#/components/requestBodies/JsonObject"
         },
         "description": "Implementation: 智慧养老手表管理系统/backend/internal/handlers/handler_resident_devices.go. Go API DTOs without explicit schemas remain open objects; consult implementation.",
         "x-request-fields": [],
@@ -8016,24 +7326,7 @@
         ],
         "responses": {
           "200": {
-            "description": "Go JSON response; payload varies by operation.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "additionalProperties": true,
-                  "properties": {
-                    "returnCode": {
-                      "type": "string",
-                      "const": "1111"
-                    }
-                  },
-                  "required": [
-                    "returnCode"
-                  ]
-                }
-              }
-            }
+            "$ref": "#/components/responses/Success"
           },
           "400": {
             "$ref": "#/components/responses/ApiError"
@@ -8076,12 +7369,7 @@
         ],
         "parameters": [
           {
-            "name": "X-CSRF-TOKEN",
-            "in": "header",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
+            "$ref": "#/components/parameters/CsrfToken"
           }
         ],
         "requestBody": {
@@ -8124,24 +7412,7 @@
         ],
         "responses": {
           "200": {
-            "description": "Go JSON response; payload varies by operation.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "additionalProperties": true,
-                  "properties": {
-                    "returnCode": {
-                      "type": "string",
-                      "const": "1111"
-                    }
-                  },
-                  "required": [
-                    "returnCode"
-                  ]
-                }
-              }
-            }
+            "$ref": "#/components/responses/Success"
           },
           "400": {
             "$ref": "#/components/responses/ApiError"
@@ -8184,27 +7455,11 @@
         ],
         "parameters": [
           {
-            "name": "X-CSRF-TOKEN",
-            "in": "header",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
+            "$ref": "#/components/parameters/CsrfToken"
           }
         ],
         "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "type": "object",
-                "additionalProperties": true,
-                "properties": {
-                  "deviceId": {}
-                }
-              }
-            }
-          }
+          "$ref": "#/components/requestBodies/DeviceId"
         },
         "description": "Implementation: 智慧养老手表管理系统/backend/internal/handlers/handler_resident_devices.go. Go API DTOs without explicit schemas remain open objects; consult implementation.",
         "x-request-fields": [
@@ -8288,12 +7543,7 @@
         ],
         "parameters": [
           {
-            "name": "X-CSRF-TOKEN",
-            "in": "header",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
+            "$ref": "#/components/parameters/CsrfToken"
           }
         ],
         "requestBody": {
@@ -8336,24 +7586,7 @@
         ],
         "responses": {
           "200": {
-            "description": "Go JSON response; payload varies by operation.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "additionalProperties": true,
-                  "properties": {
-                    "returnCode": {
-                      "type": "string",
-                      "const": "1111"
-                    }
-                  },
-                  "required": [
-                    "returnCode"
-                  ]
-                }
-              }
-            }
+            "$ref": "#/components/responses/Success"
           },
           "400": {
             "$ref": "#/components/responses/ApiError"
@@ -8396,12 +7629,7 @@
         ],
         "parameters": [
           {
-            "name": "X-CSRF-TOKEN",
-            "in": "header",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
+            "$ref": "#/components/parameters/CsrfToken"
           }
         ],
         "requestBody": {
@@ -8444,24 +7672,7 @@
         ],
         "responses": {
           "200": {
-            "description": "Go JSON response; payload varies by operation.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "additionalProperties": true,
-                  "properties": {
-                    "returnCode": {
-                      "type": "string",
-                      "const": "1111"
-                    }
-                  },
-                  "required": [
-                    "returnCode"
-                  ]
-                }
-              }
-            }
+            "$ref": "#/components/responses/Success"
           },
           "400": {
             "$ref": "#/components/responses/ApiError"
@@ -8504,12 +7715,7 @@
         ],
         "parameters": [
           {
-            "name": "X-CSRF-TOKEN",
-            "in": "header",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
+            "$ref": "#/components/parameters/CsrfToken"
           }
         ],
         "requestBody": {
@@ -8546,24 +7752,7 @@
         ],
         "responses": {
           "200": {
-            "description": "Go JSON response; payload varies by operation.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "additionalProperties": true,
-                  "properties": {
-                    "returnCode": {
-                      "type": "string",
-                      "const": "1111"
-                    }
-                  },
-                  "required": [
-                    "returnCode"
-                  ]
-                }
-              }
-            }
+            "$ref": "#/components/responses/Success"
           },
           "400": {
             "$ref": "#/components/responses/ApiError"
@@ -8606,12 +7795,7 @@
         ],
         "parameters": [
           {
-            "name": "X-CSRF-TOKEN",
-            "in": "header",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
+            "$ref": "#/components/parameters/CsrfToken"
           }
         ],
         "requestBody": {
@@ -8707,27 +7891,11 @@
         ],
         "parameters": [
           {
-            "name": "X-CSRF-TOKEN",
-            "in": "header",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
+            "$ref": "#/components/parameters/CsrfToken"
           }
         ],
         "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "type": "object",
-                "additionalProperties": true,
-                "properties": {
-                  "textId": {}
-                }
-              }
-            }
-          }
+          "$ref": "#/components/requestBodies/NoticeId"
         },
         "description": "Implementation: 智慧养老手表管理系统/backend/internal/handlers/handler_social.go. Go API DTOs without explicit schemas remain open objects; consult implementation.",
         "x-request-fields": [
@@ -8748,24 +7916,7 @@
         ],
         "responses": {
           "200": {
-            "description": "Go JSON response; payload varies by operation.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "additionalProperties": true,
-                  "properties": {
-                    "returnCode": {
-                      "type": "string",
-                      "const": "1111"
-                    }
-                  },
-                  "required": [
-                    "returnCode"
-                  ]
-                }
-              }
-            }
+            "$ref": "#/components/responses/Success"
           },
           "400": {
             "$ref": "#/components/responses/ApiError"
@@ -8808,12 +7959,7 @@
         ],
         "parameters": [
           {
-            "name": "X-CSRF-TOKEN",
-            "in": "header",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
+            "$ref": "#/components/parameters/CsrfToken"
           }
         ],
         "requestBody": {
@@ -8914,12 +8060,7 @@
         ],
         "parameters": [
           {
-            "name": "X-CSRF-TOKEN",
-            "in": "header",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
+            "$ref": "#/components/parameters/CsrfToken"
           }
         ],
         "requestBody": {
@@ -8960,24 +8101,7 @@
         ],
         "responses": {
           "200": {
-            "description": "Go JSON response; payload varies by operation.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "additionalProperties": true,
-                  "properties": {
-                    "returnCode": {
-                      "type": "string",
-                      "const": "1111"
-                    }
-                  },
-                  "required": [
-                    "returnCode"
-                  ]
-                }
-              }
-            }
+            "$ref": "#/components/responses/Success"
           },
           "400": {
             "$ref": "#/components/responses/ApiError"
@@ -9020,12 +8144,7 @@
         ],
         "parameters": [
           {
-            "name": "X-CSRF-TOKEN",
-            "in": "header",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
+            "$ref": "#/components/parameters/CsrfToken"
           }
         ],
         "requestBody": {
@@ -9060,24 +8179,7 @@
         ],
         "responses": {
           "200": {
-            "description": "Go JSON response; payload varies by operation.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "additionalProperties": true,
-                  "properties": {
-                    "returnCode": {
-                      "type": "string",
-                      "const": "1111"
-                    }
-                  },
-                  "required": [
-                    "returnCode"
-                  ]
-                }
-              }
-            }
+            "$ref": "#/components/responses/Success"
           },
           "400": {
             "$ref": "#/components/responses/ApiError"
@@ -9120,12 +8222,7 @@
         ],
         "parameters": [
           {
-            "name": "X-CSRF-TOKEN",
-            "in": "header",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
+            "$ref": "#/components/parameters/CsrfToken"
           }
         ],
         "requestBody": {
@@ -9169,24 +8266,7 @@
         ],
         "responses": {
           "200": {
-            "description": "Go JSON response; payload varies by operation.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "additionalProperties": true,
-                  "properties": {
-                    "returnCode": {
-                      "type": "string",
-                      "const": "1111"
-                    }
-                  },
-                  "required": [
-                    "returnCode"
-                  ]
-                }
-              }
-            }
+            "$ref": "#/components/responses/Success"
           },
           "400": {
             "$ref": "#/components/responses/ApiError"
@@ -9229,27 +8309,11 @@
         ],
         "parameters": [
           {
-            "name": "X-CSRF-TOKEN",
-            "in": "header",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
+            "$ref": "#/components/parameters/CsrfToken"
           }
         ],
         "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "type": "object",
-                "additionalProperties": true,
-                "properties": {
-                  "textId": {}
-                }
-              }
-            }
-          }
+          "$ref": "#/components/requestBodies/NoticeId"
         },
         "description": "Implementation: 智慧养老手表管理系统/backend/internal/handlers/handler_social.go. Go API DTOs without explicit schemas remain open objects; consult implementation.",
         "x-request-fields": [
@@ -9331,27 +8395,11 @@
         ],
         "parameters": [
           {
-            "name": "X-CSRF-TOKEN",
-            "in": "header",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
+            "$ref": "#/components/parameters/CsrfToken"
           }
         ],
         "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "type": "object",
-                "additionalProperties": true,
-                "properties": {
-                  "textId": {}
-                }
-              }
-            }
-          }
+          "$ref": "#/components/requestBodies/NoticeId"
         },
         "description": "Implementation: 智慧养老手表管理系统/backend/internal/handlers/handler_social.go. Go API DTOs without explicit schemas remain open objects; consult implementation.",
         "x-request-fields": [
@@ -9437,12 +8485,7 @@
         ],
         "parameters": [
           {
-            "name": "X-CSRF-TOKEN",
-            "in": "header",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
+            "$ref": "#/components/parameters/CsrfToken"
           }
         ],
         "requestBody": {
@@ -9485,24 +8528,7 @@
         ],
         "responses": {
           "200": {
-            "description": "Go JSON response; payload varies by operation.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "additionalProperties": true,
-                  "properties": {
-                    "returnCode": {
-                      "type": "string",
-                      "const": "1111"
-                    }
-                  },
-                  "required": [
-                    "returnCode"
-                  ]
-                }
-              }
-            }
+            "$ref": "#/components/responses/Success"
           },
           "400": {
             "$ref": "#/components/responses/ApiError"
@@ -9545,12 +8571,7 @@
         ],
         "parameters": [
           {
-            "name": "X-CSRF-TOKEN",
-            "in": "header",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
+            "$ref": "#/components/parameters/CsrfToken"
           }
         ],
         "requestBody": {
@@ -9596,25 +8617,7 @@
         ],
         "responses": {
           "200": {
-            "description": "Go JSON response; payload varies by operation.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "additionalProperties": true,
-                  "properties": {
-                    "items": {},
-                    "returnCode": {
-                      "type": "string",
-                      "const": "1111"
-                    }
-                  },
-                  "required": [
-                    "returnCode"
-                  ]
-                }
-              }
-            }
+            "$ref": "#/components/responses/ItemsSuccess"
           },
           "400": {
             "$ref": "#/components/responses/ApiError"
@@ -9657,12 +8660,7 @@
         ],
         "parameters": [
           {
-            "name": "X-CSRF-TOKEN",
-            "in": "header",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
+            "$ref": "#/components/parameters/CsrfToken"
           }
         ],
         "requestBody": {
@@ -9768,29 +8766,11 @@
         ],
         "parameters": [
           {
-            "name": "X-CSRF-TOKEN",
-            "in": "header",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
+            "$ref": "#/components/parameters/CsrfToken"
           }
         ],
         "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "type": "object",
-                "additionalProperties": true,
-                "properties": {
-                  "name": {},
-                  "page": {},
-                  "pageSize": {}
-                }
-              }
-            }
-          }
+          "$ref": "#/components/requestBodies/NamePage"
         },
         "description": "Implementation: 智慧养老手表管理系统/backend/internal/handlers/handler_resident_devices.go. Go API DTOs without explicit schemas remain open objects; consult implementation.",
         "x-request-fields": [
@@ -9877,27 +8857,11 @@
         ],
         "parameters": [
           {
-            "name": "X-CSRF-TOKEN",
-            "in": "header",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
+            "$ref": "#/components/parameters/CsrfToken"
           }
         ],
         "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "type": "object",
-                "additionalProperties": true,
-                "properties": {
-                  "oldId": {}
-                }
-              }
-            }
-          }
+          "$ref": "#/components/requestBodies/ResidentId"
         },
         "description": "Implementation: 智慧养老手表管理系统/backend/internal/handlers/handler_resident_devices.go. Go API DTOs without explicit schemas remain open objects; consult implementation.",
         "x-request-fields": [
@@ -9918,24 +8882,7 @@
         ],
         "responses": {
           "200": {
-            "description": "Go JSON response; payload varies by operation.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "additionalProperties": true,
-                  "properties": {
-                    "returnCode": {
-                      "type": "string",
-                      "const": "1111"
-                    }
-                  },
-                  "required": [
-                    "returnCode"
-                  ]
-                }
-              }
-            }
+            "$ref": "#/components/responses/Success"
           },
           "400": {
             "$ref": "#/components/responses/ApiError"
@@ -9978,12 +8925,7 @@
         ],
         "parameters": [
           {
-            "name": "X-CSRF-TOKEN",
-            "in": "header",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
+            "$ref": "#/components/parameters/CsrfToken"
           }
         ],
         "requestBody": {
@@ -10040,24 +8982,7 @@
         ],
         "responses": {
           "200": {
-            "description": "Go JSON response; payload varies by operation.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "additionalProperties": true,
-                  "properties": {
-                    "returnCode": {
-                      "type": "string",
-                      "const": "1111"
-                    }
-                  },
-                  "required": [
-                    "returnCode"
-                  ]
-                }
-              }
-            }
+            "$ref": "#/components/responses/Success"
           },
           "400": {
             "$ref": "#/components/responses/ApiError"
@@ -10100,27 +9025,11 @@
         ],
         "parameters": [
           {
-            "name": "X-CSRF-TOKEN",
-            "in": "header",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
+            "$ref": "#/components/parameters/CsrfToken"
           }
         ],
         "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "type": "object",
-                "additionalProperties": true,
-                "properties": {
-                  "oldId": {}
-                }
-              }
-            }
-          }
+          "$ref": "#/components/requestBodies/ResidentId"
         },
         "description": "Implementation: 智慧养老手表管理系统/backend/internal/handlers/handler_resident_devices.go. Go API DTOs without explicit schemas remain open objects; consult implementation.",
         "x-request-fields": [
@@ -10204,29 +9113,11 @@
         ],
         "parameters": [
           {
-            "name": "X-CSRF-TOKEN",
-            "in": "header",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
+            "$ref": "#/components/parameters/CsrfToken"
           }
         ],
         "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "type": "object",
-                "additionalProperties": true,
-                "properties": {
-                  "name": {},
-                  "page": {},
-                  "pageSize": {}
-                }
-              }
-            }
-          }
+          "$ref": "#/components/requestBodies/NamePage"
         },
         "description": "Implementation: 智慧养老手表管理系统/backend/internal/handlers/handler_resident_devices.go. Go API DTOs without explicit schemas remain open objects; consult implementation.",
         "x-request-fields": [
@@ -10316,29 +9207,11 @@
         ],
         "parameters": [
           {
-            "name": "X-CSRF-TOKEN",
-            "in": "header",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
+            "$ref": "#/components/parameters/CsrfToken"
           }
         ],
         "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "type": "object",
-                "additionalProperties": true,
-                "properties": {
-                  "name": {},
-                  "page": {},
-                  "pageSize": {}
-                }
-              }
-            }
-          }
+          "$ref": "#/components/requestBodies/NamePage"
         },
         "description": "Implementation: 智慧养老手表管理系统/backend/internal/handlers/handler_resident_devices.go. Go API DTOs without explicit schemas remain open objects; consult implementation.",
         "x-request-fields": [
@@ -10364,24 +9237,7 @@
         ],
         "responses": {
           "200": {
-            "description": "Go JSON response; payload varies by operation.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "additionalProperties": true,
-                  "properties": {
-                    "returnCode": {
-                      "type": "string",
-                      "const": "1111"
-                    }
-                  },
-                  "required": [
-                    "returnCode"
-                  ]
-                }
-              }
-            }
+            "$ref": "#/components/responses/Success"
           },
           "400": {
             "$ref": "#/components/responses/ApiError"
@@ -10424,12 +9280,7 @@
         ],
         "parameters": [
           {
-            "name": "X-CSRF-TOKEN",
-            "in": "header",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
+            "$ref": "#/components/parameters/CsrfToken"
           }
         ],
         "requestBody": {
@@ -10552,12 +9403,7 @@
         ],
         "parameters": [
           {
-            "name": "X-CSRF-TOKEN",
-            "in": "header",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
+            "$ref": "#/components/parameters/CsrfToken"
           }
         ],
         "requestBody": {
@@ -10668,12 +9514,7 @@
         ],
         "parameters": [
           {
-            "name": "X-CSRF-TOKEN",
-            "in": "header",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
+            "$ref": "#/components/parameters/CsrfToken"
           }
         ],
         "requestBody": {
@@ -10722,25 +9563,7 @@
         ],
         "responses": {
           "200": {
-            "description": "Go JSON response; payload varies by operation.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "additionalProperties": true,
-                  "properties": {
-                    "items": {},
-                    "returnCode": {
-                      "type": "string",
-                      "const": "1111"
-                    }
-                  },
-                  "required": [
-                    "returnCode"
-                  ]
-                }
-              }
-            }
+            "$ref": "#/components/responses/ItemsSuccess"
           },
           "400": {
             "$ref": "#/components/responses/ApiError"
@@ -10783,12 +9606,7 @@
         ],
         "parameters": [
           {
-            "name": "X-CSRF-TOKEN",
-            "in": "header",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
+            "$ref": "#/components/parameters/CsrfToken"
           }
         ],
         "requestBody": {
@@ -10902,24 +9720,7 @@
         ],
         "responses": {
           "200": {
-            "description": "Go JSON response; payload varies by operation.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "additionalProperties": true,
-                  "properties": {
-                    "returnCode": {
-                      "type": "string",
-                      "const": "1111"
-                    }
-                  },
-                  "required": [
-                    "returnCode"
-                  ]
-                }
-              }
-            }
+            "$ref": "#/components/responses/Success"
           },
           "400": {
             "$ref": "#/components/responses/ApiError"
@@ -11054,12 +9855,7 @@
         ],
         "parameters": [
           {
-            "name": "X-CSRF-TOKEN",
-            "in": "header",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
+            "$ref": "#/components/parameters/CsrfToken"
           }
         ],
         "requestBody": {
@@ -11158,24 +9954,11 @@
         ],
         "parameters": [
           {
-            "name": "X-CSRF-TOKEN",
-            "in": "header",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
+            "$ref": "#/components/parameters/CsrfToken"
           }
         ],
         "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "type": "object",
-                "additionalProperties": true
-              }
-            }
-          }
+          "$ref": "#/components/requestBodies/JsonObject"
         },
         "description": "Implementation: 智慧养老手表管理系统/backend/internal/handlers/handler_vitals.go. Go API DTOs without explicit schemas remain open objects; consult implementation.",
         "x-request-fields": [],
@@ -11270,12 +10053,7 @@
         ],
         "parameters": [
           {
-            "name": "X-CSRF-TOKEN",
-            "in": "header",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
+            "$ref": "#/components/parameters/CsrfToken"
           }
         ],
         "requestBody": {
@@ -11398,24 +10176,11 @@
         ],
         "parameters": [
           {
-            "name": "X-CSRF-TOKEN",
-            "in": "header",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
+            "$ref": "#/components/parameters/CsrfToken"
           }
         ],
         "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "type": "object",
-                "additionalProperties": true
-              }
-            }
-          }
+          "$ref": "#/components/requestBodies/JsonObject"
         },
         "description": "Implementation: 智慧养老手表管理系统/backend/internal/handlers/handler_vitals.go. Go API DTOs without explicit schemas remain open objects; consult implementation.",
         "x-request-fields": [],
@@ -11496,12 +10261,7 @@
         ],
         "parameters": [
           {
-            "name": "X-CSRF-TOKEN",
-            "in": "header",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
+            "$ref": "#/components/parameters/CsrfToken"
           }
         ],
         "requestBody": {
@@ -11603,27 +10363,11 @@
         ],
         "parameters": [
           {
-            "name": "X-CSRF-TOKEN",
-            "in": "header",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
+            "$ref": "#/components/parameters/CsrfToken"
           }
         ],
         "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "type": "object",
-                "additionalProperties": true,
-                "properties": {
-                  "oldId": {}
-                }
-              }
-            }
-          }
+          "$ref": "#/components/requestBodies/ResidentId"
         },
         "description": "Implementation: 智慧养老手表管理系统/backend/internal/handlers/handler_vitals.go. Go API DTOs without explicit schemas remain open objects; consult implementation.",
         "x-request-fields": [
@@ -11708,27 +10452,11 @@
         ],
         "parameters": [
           {
-            "name": "X-CSRF-TOKEN",
-            "in": "header",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
+            "$ref": "#/components/parameters/CsrfToken"
           }
         ],
         "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "type": "object",
-                "additionalProperties": true,
-                "properties": {
-                  "oldId": {}
-                }
-              }
-            }
-          }
+          "$ref": "#/components/requestBodies/ResidentId"
         },
         "description": "Implementation: 智慧养老手表管理系统/backend/internal/handlers/handler_vitals.go. Go API DTOs without explicit schemas remain open objects; consult implementation.",
         "x-request-fields": [
@@ -11813,12 +10541,7 @@
         ],
         "parameters": [
           {
-            "name": "X-CSRF-TOKEN",
-            "in": "header",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
+            "$ref": "#/components/parameters/CsrfToken"
           }
         ],
         "requestBody": {

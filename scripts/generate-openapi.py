@@ -3,7 +3,6 @@
 Root field inventories accompany endpoint DTO schemas. --check detects drift in
 routes, OpenAPI output and frontend HTTP status definitions.
 """
-import copy
 import difflib
 import json
 from pathlib import Path
@@ -63,6 +62,11 @@ fields = {
     "/api/v1/alert-reviews": {"recordId": "integer", "kind": "string", "verdict": "string", "reason": "string", "expectedReviewId": "integer"},
     "/api/v1/alert-reviews/search": {"entity": "string", "recordId": "integer", "kind": "string", "after": "integer"},
 }
+def json_request(schema):
+    return {"required": True, "content": {"application/json": {"schema": schema}}}
+
+
+csrf_parameter = {"$ref": "#/components/parameters/CsrfToken"}
 registered_routes = {}
 for file in sorted((backend / "internal/handlers").glob("*.go")):
     if file.name.endswith("_test.go"):
@@ -80,7 +84,7 @@ for file in sorted((backend / "internal/handlers").glob("*.go")):
         operation = {"summary": path.removeprefix("/api/v1/"), "deprecated": False, "tags": ["v1"], "responses": {"200": {"description": "Go JSON response; payload varies by operation.", "content": {"application/json": {"schema": {"type": "object", "additionalProperties": True}}}}, "400": {"description": "Invalid request"}, "401": {"description": "Session, device credential or MFA required"}, "403": {"description": "Role, duty or CSRF denied"}, "409": {"description": "Version, binding or state conflict"}, "503": {"description": "Required storage/configuration unavailable"}}}
         operation["security"] = [] if access in {"Public", "Device"} else [{"sessionCookie": []}]
         if method != "GET":
-            operation["parameters"] = [] if path in csrf_exempt else [{"name": "X-CSRF-TOKEN", "in": "header", "required": True, "schema": {"type": "string"}}]
+            operation["parameters"] = [] if path in csrf_exempt else [csrf_parameter]
             schema = {"type": "object", "additionalProperties": True}
             if path in fields:
                 schema["properties"] = {key: {"type": kind} for key, kind in fields[path].items()}
@@ -90,7 +94,7 @@ for file in sorted((backend / "internal/handlers").glob("*.go")):
                     schema["properties"]["positionAccuracy"]["exclusiveMinimum"] = 0
                 # Device fields are incremental; existing telemetry stays an open object.
                 schema["additionalProperties"] = path in {"/api/v1/auth/login", "/api/v1/device/login", "/api/v1/device/report", "/api/v1/device/sos"}
-            operation["requestBody"] = {"required": True, "content": {"application/json": {"schema": schema}}}
+            operation["requestBody"] = json_request(schema)
         operation["description"] = f"Implementation: {file.relative_to(root).as_posix()}. " + ("Device body authentication or signed gateway receipt; not anonymous access." if access == "Device" else "Go API DTOs without explicit schemas remain open objects; consult implementation.")
         if path == "/api/v1/device/login":
             schema["required"] = ["deviceNo", "secret"]
@@ -196,6 +200,51 @@ else:
 spec = {"openapi": "3.1.0", "info": {"title": "岁宁后端 API", "version": (backend / "VERSION").read_text(encoding="utf-8").strip(), "description": "Native Go API v1 route inventory. No Java or legacy HTTP entry points."}, "components": {"securitySchemes": {"sessionCookie": {"type": "apiKey", "in": "cookie", "name": "SUINING_SESSION"}}}, "paths": dict(sorted(paths.items()))}
 spec['components']['schemas'] = {'ApiError': error_schema}
 spec['components']['responses'] = {'ApiError': {'description': 'API failure; HTTP status identifies the error category', 'content': {'application/json': {'schema': {'$ref': '#/components/schemas/ApiError'}}}}}
+
+# Reference common OpenAPI objects without changing the effective contract of
+# any operation. Keep specialized schemas inline.
+components = spec["components"]
+csrf_header = {
+    "name": "X-CSRF-TOKEN", "in": "header", "required": True,
+    "schema": {"type": "string"},
+}
+components["parameters"] = {"CsrfToken": csrf_header}
+
+shared_request_fields = {
+    "JsonObject": (),
+    "ResidentId": ("oldId",),
+    "DeviceId": ("deviceId",),
+    "NoticeId": ("textId",),
+    "NamePage": ("name", "page", "pageSize"),
+}
+request_bodies = components["requestBodies"] = {}
+for name, keys in shared_request_fields.items():
+    schema = {"type": "object", "additionalProperties": True}
+    if keys:
+        schema["properties"] = dict.fromkeys(keys, {})
+    request_bodies[name] = json_request(schema)
+
+responses = components["responses"]
+for name, keys in (("Success", ()), ("ItemsSuccess", ("items",))):
+    schema = {
+        "type": "object", "additionalProperties": True, "required": ["returnCode"],
+        "properties": {"returnCode": {"type": "string", "const": "1111"}, **dict.fromkeys(keys, {})},
+    }
+    responses[name] = {
+        "description": "Go JSON response; payload varies by operation.",
+        "content": {"application/json": {"schema": schema}},
+    }
+
+for methods in paths.values():
+    for op in methods.values():
+        for name, body in request_bodies.items():
+            if op.get("requestBody") == body:
+                op["requestBody"] = {"$ref": f"#/components/requestBodies/{name}"}
+                break
+        for name in ("Success", "ItemsSuccess"):
+            if op["responses"]["200"] == responses[name]:
+                op["responses"]["200"] = {"$ref": f"#/components/responses/{name}"}
+                break
 
 data = (json.dumps(spec, ensure_ascii=False, indent=2) + "\n").encode("utf-8")
 target = folder / "openapi.json"
