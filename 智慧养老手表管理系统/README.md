@@ -1,4 +1,4 @@
-# 岁宁 2.1.0 · 核心源码工程
+# 岁宁 · 核心源码工程
 
 本目录包含岁宁的 Tauri 2 / Rust 桌面壳、Go 业务后端、Vue 3 / Vite 前端界面以及 Node.js 手表协议模拟器。系统以独立部署的 MySQL 作为唯一业务主库，使用 PostgreSQL 异步存储分析投影。
 
@@ -18,7 +18,7 @@
 
 ## Windows 完整构建
 
-构建前请安装 PowerShell 7、Node.js（`^20.19.0 || >=22.12.0`）、Go（`go.mod` 要求 `1.26.0+`）、Rust 1.85+、C++ Build Tools 和 Windows SDK。
+构建依赖：PowerShell 7、Node.js（`^20.19.0 || >=22.12.0`）、Go 1.26+、Rust 1.85+、MSVC 与 Windows SDK。
 
 ```powershell
 ./desktop/validate-version.ps1
@@ -27,7 +27,7 @@
 ./desktop/build.ps1 -SelfSign
 ```
 
-构建脚本会按顺序安装锁定依赖、执行 Vue 生产构建、将静态产物复制至 Go 内嵌目录、运行 Go 测试与编译、生成 sidecar SHA-256 摘要、编译 Tauri 桌面壳，最后打包 NSIS 安装程序。若需额外生成免安装 ZIP、源码归档与校验清单，可继续运行 `desktop/package-release.ps1`。当目标机器缺少 WebView2 运行时，Setup 安装包会自动联网下载安装。
+构建脚本会按顺序安装锁定依赖、执行 Vue 生产构建、将静态产物复制至 Go 内嵌目录、运行 Go 测试与编译、生成 sidecar SHA-256 摘要、编译 Tauri 桌面壳，最后打包 NSIS 安装程序。免安装 ZIP、源码归档与校验清单由 `desktop/package-release.ps1` 生成。Setup 在缺少 WebView2 时联网补装。
 
 ## 前后端联调开发
 

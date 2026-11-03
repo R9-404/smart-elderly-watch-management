@@ -1,8 +1,8 @@
-# 岁宁前端 · 2.1.0
+# 岁宁前端
 
 岁宁前端基于 Vue 3、Vue Router 4、Element Plus 2 与 Vite 8 构建，使用 Axios 调用 Go 后端接口，通过 ECharts 6 渲染健康趋势图表，并集成 Leaflet 与 OpenStreetMap 展示定位与轨迹。在 Windows 桌面端中，Tauri 2（WebView2）直接加载编译内嵌在 Go 服务端中的生产静态资源。
 
-[整体技术栈与架构](../../README.md) · [源码工程总览](../README.md) · [后端接口与数据](../backend/README.md) · [历史改进记录](../../CHANGELOG.md)
+[整体架构](../../docs/ARCHITECTURE.md) · [API 契约](../../docs/API_CONTRACTS.md) · [测试指南](../../docs/TESTING.md)
 
 ## 模块职责
 
@@ -36,7 +36,7 @@ npm --prefix qa ci
 npm --prefix qa test
 ```
 
-`qa/` 目录下的端到端测试基于 Playwright 编写，默认拦截模拟 API 以验证页面交互、空状态与窄屏布局；如需针对真实后端运行验证，请先准备专用的空 MySQL 测试库。
+`qa/` 使用 Playwright 模拟 API 检查页面交互、空状态与窄屏布局。真实后端测试使用专用 MySQL 测试库。
 
 品牌图标、字体与配图位于 `public/static/`。在线地图瓦片依赖外部网络连接；对于设备尚未上报的健康指标，界面会直接显示缺失状态，不会用 `0` 填充。
 

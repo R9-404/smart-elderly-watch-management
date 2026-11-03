@@ -1,4 +1,4 @@
-# 岁宁 Go 后端 · 2.1.0
+# 岁宁 Go 后端
 
 Go 服务端负责处理业务 API、手表设备接入、服务端会话、图片存储、内嵌前端静态资源、照护通知作业以及分析数据同步。系统以 MySQL 作为唯一业务主库，以 PostgreSQL 作为异步分析库。在 Windows 桌面端中，Go 进程由 Tauri 托管生命周期；在需要全天候接收设备上报的场景下，也可作为独立后台服务常驻运行。
 
@@ -91,13 +91,13 @@ go run ./cmd/transfer-postgres --apply
 ```powershell
 go test -count=1 ./...
 go vet ./...
-# 在独立测试库上运行完整竞态与集成测试（切勿指向生产库）
+# 在独立测试库上运行竞态与集成测试
 $env:TEST_MYSQL_DSN='测试MySQL原生DSN'
 $env:TEST_DATABASE_URL='测试PG连接URL'
-go test -race -count=1 -timeout 240s ./...
+go test -race -count=1 -timeout 900s ./...
 ```
 
-运维与性能观察指标见 [性能运维指南](../../docs/reliability/performance.md)，双库连接、恢复与迁移边界见 [双库配置指南](../../docs/DUAL_DATABASES.md)。
+测试命令与 CI 范围见[测试指南](../../docs/TESTING.md)；性能基准见[性能测量](../../docs/reliability/performance.md)，数据库迁移见[双库配置](../../docs/DUAL_DATABASES.md)。
 
 ## 接口路由与会话约定（破坏性变更）
 

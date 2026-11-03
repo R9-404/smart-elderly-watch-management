@@ -1,6 +1,6 @@
 # 备份与灾难恢复 · MySQL 主库 / 可选 PostgreSQL 分析
 
-适用于当前 `preview` 的 Go + MySQL / PostgreSQL 双库架构。**MySQL 及上传图片是业务恢复的必要来源；PG 是可重建的分析投影，不能拿它代替 MySQL 备份。**
+业务恢复依赖 MySQL、上传图片和加密密钥。PostgreSQL 分析投影可从主库重建。
 
 ## 需要保护的资产
 
@@ -29,7 +29,7 @@ mysqldump --single-transaction --quick --routines --triggers --events \
   --set-gtid-purged=OFF --databases suining > /secure-backup/suining.sql
 ```
 
-该命令不是完整 HA 或 PITR 方案。根据数据库锁、binlog、MySQL 版本、数据规模以及是否混用非事务表确认一致性；勿把示例直接用于未知生产环境。
+精确时间点恢复（PITR）另需 binlog 及重放流程；备份前核对表引擎、锁与数据库版本。
 
 ## 隔离恢复演练：先核对，再切换
 
@@ -45,7 +45,7 @@ mysqldump --single-transaction --quick --routines --triggers --events \
 
 - MySQL 停机时 API 应拒绝写入，不允许把缓存数据或 PG 分析投影冒充正式业务成功。
 - PostgreSQL 离线时记录仍应进入 MySQL outbox；持续积压会消耗主库容量，需监控磁盘与补偿恢复进度。
-- Prometheus 告警**不等于已发送寻呼**，只有配置了独立 Alertmanager/值班渠道并实测送达及应答才能形成外部响应闭环。
-- 单机 systemd/Compose 重启不能等同跨机器高可用。数据库故障、供电网络故障及真实手表/短信供应商中断仍必须有人工备用救援流程。
+- 独立值守告警须完成 Alertmanager 接收、寻呼送达及人员应答验证。
+- 单机重启仅恢复应用进程；整机、网络及第三方服务故障按人工备用救援流程处理。
 
 历史数据库格式与当前 MySQL schema 不同，迁移和回退必须采用明确、经过实际核对的独立操作。应用回滚不会自动回滚数据库结构，也不能抹除迁移后新写入的业务记录。
