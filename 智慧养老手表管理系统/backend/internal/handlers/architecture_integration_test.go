@@ -51,7 +51,7 @@ func TestArchitectureFormattedRecordsAcrossDatabases(t *testing.T) {
 	mustExec(t, pool, "INSERT INTO text(title,text_main,time) VALUES('公告','内容','2026-10-19 08:01:02.123')")
 	mustExec(t, pool, "INSERT INTO said(said,said_time) VALUES('评论','2026-10-19 08:01:02.123')")
 	h := testHandler(t, pool)
-	for _, handler := range []http.HandlerFunc{h.listLatestVitals, h.listVitalAlertDevices, h.listLatestActivity, h.listNotices} {
+	for _, handler := range []http.HandlerFunc{h.listLatestVitals, h.countVitalAlertDevices, h.listLatestActivity, h.listNotices} {
 		out := callAPI(handler, map[string]any{})
 		if out.Code != 200 {
 			t.Fatalf("formatted record query returned %d: %s", out.Code, out.Body.String())

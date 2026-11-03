@@ -34,15 +34,15 @@ func TestContinuousSleepCountUsesLatestDay(t *testing.T) {
 	for _, v := range []struct{ day, state string }{{"2026-10-18 08:00:00", "1"}, {"2026-10-20 08:00:00", "0"}, {"2026-10-19 08:00:00", "1"}} {
 		api(t, h.deviceReport, map[string]any{"deviceNo": "WATCH001", "secret": testSecret, "sleep": 8, "sleepState": v.state, "beTime": v.day})
 	}
-	out := api(t, h.listActivityAlertDevices, map[string]any{})
-	if len(out["deviceIdList"].([]any)) != 0 {
+	out := api(t, h.countSleepAlertDevices, map[string]any{})
+	if out["sleep"] != float64(0) {
 		t.Errorf("old abnormal sleep still counted: %v", out)
 	}
-	if total := api(t, h.getStepTotal, map[string]any{}); total["allCount"] != float64(0) {
+	if total := api(t, h.countHealthAlertDevices, map[string]any{}); total["sleep"] != float64(0) {
 		t.Errorf("overview retained recovered sleep alert: %v", total)
 	}
 	api(t, h.deviceReport, map[string]any{"deviceNo": "WATCH001", "secret": testSecret, "sleepState": "1", "beTime": "2026-10-20 09:00:00"})
-	if list := api(t, h.listActivityAlertDevices, map[string]any{})["deviceIdList"].([]any); len(list) != 1 {
+	if list := api(t, h.countSleepAlertDevices, map[string]any{})["sleep"]; list != float64(1) {
 		t.Fatalf("latest abnormal sleep not counted: %v", list)
 	}
 }

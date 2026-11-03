@@ -137,25 +137,11 @@ export default {
           _this.$message.error(apiErrorMessage(error, '请求未完成，请重试'))
         })
     },
-		getCount(){
-
-			var _this=this
-			axios.post('api/v1/activity/alerts/devices',
-				{
-					
-				},
-				{
-					headers: {
-						'content-type': 'application/json'
-					},
-					withCredentials: true
-				}).then(function (response) {
-				_this.stepCount=response.data.deviceIdList.length
-			})
-				.catch(function (error) {
-					_this.$message.error(apiErrorMessage(error, '请求未完成，请重试'))
-				})
-		},
+    getCount () {
+      return axios.post('api/v1/activity/alerts/device-counts', {}, { withCredentials: true })
+        .then(({ data }) => { this.stepCount = data.sleep })
+        .catch(error => this.$message.error(apiErrorMessage(error, '请求未完成，请重试')))
+    },
 
     handleSizeChange (val) {
 

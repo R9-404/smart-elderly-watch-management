@@ -1102,12 +1102,12 @@
       "total"
     ]
   },
-  "POST /api/v1/vitals/alerts/devices": {
-    "file": "智慧养老手表管理系统/backend/internal/handlers/handler_vitals_measurements.go",
+  "POST /api/v1/vitals/alerts/device-counts": {
+    "file": "智慧养老手表管理系统/backend/internal/handlers/handler_vitals.go",
     "request": [],
     "response": [
-      "pres",
-      "rates",
+      "bloodPressure",
+      "heartRate",
       "returnCode"
     ]
   },
@@ -1245,12 +1245,14 @@
       "returnCode"
     ]
   },
-  "POST /api/v1/activity/steps/total": {
-    "file": "智慧养老手表管理系统/backend/internal/handlers/handler_vitals_activity.go",
+  "POST /api/v1/health/alerts/device-counts": {
+    "file": "智慧养老手表管理系统/backend/internal/handlers/handler_vitals.go",
     "request": [],
     "response": [
-      "allCount",
-      "returnCode"
+      "bloodPressure",
+      "heartRate",
+      "returnCode",
+      "sleep"
     ]
   },
   "POST /api/v1/activity/latest": {
@@ -1270,12 +1272,12 @@
       "total"
     ]
   },
-  "POST /api/v1/activity/alerts/devices": {
-    "file": "智慧养老手表管理系统/backend/internal/handlers/handler_vitals_activity.go",
+  "POST /api/v1/activity/alerts/device-counts": {
+    "file": "智慧养老手表管理系统/backend/internal/handlers/handler_vitals.go",
     "request": [],
     "response": [
-      "deviceIdList",
-      "returnCode"
+      "returnCode",
+      "sleep"
     ]
   },
   "POST /api/v1/activity/chart": {

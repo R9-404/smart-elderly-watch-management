@@ -44,7 +44,7 @@ func TestContinuousRebindCannotReadPreviousDailyData(t *testing.T) {
 			t.Errorf("%s exposed previous elder's data: %v", handler.name, out)
 		}
 	}
-	if out := api(t, h.listActivityAlertDevices, map[string]any{}); len(out["deviceIdList"].([]any)) != 0 {
+	if out := api(t, h.countSleepAlertDevices, map[string]any{}); out["sleep"] != float64(0) {
 		t.Errorf("previous binding's sleep alarm counted for current device: %v", out)
 	}
 }

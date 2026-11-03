@@ -34,7 +34,7 @@ func TestContinuousSleepFieldsKeepObservationOrder(t *testing.T) {
 	check(7, "1")
 	report("11:30:00", map[string]any{"sleep": 0, "sleepState": "0"})
 	check(0, "0")
-	if rows := api(t, h.listActivityAlertDevices, map[string]any{})["deviceIdList"].([]any); len(rows) != 0 {
+	if rows := api(t, h.countSleepAlertDevices, map[string]any{})["sleep"]; rows != float64(0) {
 		t.Fatalf("older sleep state created a current alert: %v", rows)
 	}
 }

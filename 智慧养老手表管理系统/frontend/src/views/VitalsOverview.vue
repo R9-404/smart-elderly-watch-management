@@ -186,24 +186,13 @@ export default {
           _this.$message.error(apiErrorMessage(error, '请求未完成，请重试'))
         })
     },
-    getCount(){
-      var _this=this
-      axios.post('api/v1/vitals/alerts/devices',
-        {
-
-        },
-        {
-          headers: {
-            'content-type': 'application/json'
-          },
-          withCredentials: true
-        }).then(function (response) {
-        _this.rateCount=response.data.rates.length
-        _this.preCount=response.data.pres.length
-      })
-        .catch(function (error) {
-          _this.$message.error(apiErrorMessage(error, '请求未完成，请重试'))
+    getCount () {
+      axios.post('api/v1/vitals/alerts/device-counts', {}, { withCredentials: true })
+        .then(({ data }) => {
+          this.rateCount = data.heartRate
+          this.preCount = data.bloodPressure
         })
+        .catch(error => this.$message.error(apiErrorMessage(error, '请求未完成，请重试')))
       // 红点数字用"未处理的异常条数"，而不是历史异常设备数
       this.loadAlertCount()
     },

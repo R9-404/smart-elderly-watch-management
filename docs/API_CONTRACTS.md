@@ -152,7 +152,7 @@ JSON 成功使用 HTTP 200，根字段 `returnCode` 固定为字符串 `1111`。
 | `POST /api/v1/vitals/alerts/detail` | `kind`, `oldId`, `recordId` | `hasAlert`, `message`, `recordId`, `deviceId`, `oldId`, `oldPersonName`, `hr`, `bp`, `rateBad`, `preBad`, `occurTime`, `reason`, `detail`, `advice` |
 | `POST /api/v1/vitals/alerts/resolve` | `kind`, `recordId` | `message` |
 | `POST /api/v1/vitals/latest` | `name`, `timeFirst`, `timeLast`, `page`, `pageSize` | `page`, `pageSize`, `vitalRecords`, `total` |
-| `POST /api/v1/vitals/alerts/devices` | 无 | `pres`, `rates` |
+| `POST /api/v1/vitals/alerts/device-counts` | 无 | `heartRate`, `bloodPressure` |
 | `POST /api/v1/vitals/chart` | `oldId` | `bps`, `createTimes`, `hrs`, `time` |
 | `POST /api/v1/vitals/history` | `oldId` | `vitalRecords` |
 | `POST /api/v1/rule-policies` | `deviceId`, `policy`, `revision` | `policy`, `revision` |
@@ -165,9 +165,9 @@ JSON 成功使用 HTTP 200，根字段 `returnCode` 固定为字符串 `1111`。
 | `POST /api/v1/security/factor` | `action`, `otp`, `password` | `secret`, `uri`, `recoveryCodes`, `reloginRequired` |
 | `POST /api/v1/security/login-audit` | `after` | `items` |
 | `POST /api/v1/setup` | `name`, `password`, `phone` | 结果包 |
-| `POST /api/v1/activity/steps/total` | 无 | `allCount` |
+| `POST /api/v1/health/alerts/device-counts` | 无 | `heartRate`, `bloodPressure`, `sleep` |
 | `POST /api/v1/activity/latest` | `name`, `timeFirst`, `timeLast`, `page`, `pageSize` | `page`, `pageSize`, `activityRecords`, `total` |
-| `POST /api/v1/activity/alerts/devices` | 无 | `deviceIdList` |
+| `POST /api/v1/activity/alerts/device-counts` | 无 | `sleep` |
 | `POST /api/v1/activity/chart` | `oldId` | `createTime`, `sleep`, `activityRecords` |
 | `POST /api/v1/activity/history` | `oldId` | `activityRecords` |
 | `POST /api/v1/notices/create` | `fileListName`, `textMain`, `title` | 结果包 |

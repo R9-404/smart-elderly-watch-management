@@ -120,8 +120,9 @@ run(async ({ page, context, base, report, setRole, setSignedIn }) => {
 
   let failCounts = false, failSummary = false
   let summaryRequests = 0
-  await context.route('**/api/v1/vitals/alerts/devices', route => route.fulfill({ json: failCounts ? { returnCode: '1111', rates: null, pres: [] } : { returnCode: '1111', rates: ['1', '2'], pres: ['1'] } }))
-  await context.route('**/api/v1/activity/alerts/devices', route => route.fulfill({ json: {returnCode:'1111', deviceIdList: ['1'] } }))
+  await context.route('**/api/v1/health/alerts/device-counts', route => route.fulfill({
+    json: { returnCode:'1111', heartRate:failCounts ? null : 2, bloodPressure:1, sleep:1 }
+  }))
   await context.route('**/api/v1/locations/alerts/summary', route => {
     summaryRequests++
     return failSummary

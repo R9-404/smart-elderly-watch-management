@@ -53,9 +53,9 @@
     }
   },
   "paths": {
-    "/api/v1/activity/alerts/devices": {
+    "/api/v1/activity/alerts/device-counts": {
       "post": {
-        "summary": "activity/alerts/devices",
+        "summary": "activity/alerts/device-counts",
         "deprecated": false,
         "tags": [
           "v1"
@@ -69,14 +69,18 @@
                   "type": "object",
                   "additionalProperties": true,
                   "properties": {
-                    "deviceIdList": {},
                     "returnCode": {
                       "type": "string",
                       "const": "1111"
+                    },
+                    "sleep": {
+                      "type": "integer",
+                      "minimum": 0
                     }
                   },
                   "required": [
-                    "returnCode"
+                    "returnCode",
+                    "sleep"
                   ]
                 }
               }
@@ -145,8 +149,8 @@
         "description": "Implementation: 智慧养老手表管理系统/backend/internal/handlers/handler_vitals.go. Go API DTOs without explicit schemas remain open objects; consult implementation.",
         "x-request-fields": [],
         "x-success-fields": [
-          "deviceIdList",
-          "returnCode"
+          "returnCode",
+          "sleep"
         ]
       }
     },
@@ -471,106 +475,6 @@
           "returnCode",
           "activityRecords",
           "total"
-        ]
-      }
-    },
-    "/api/v1/activity/steps/total": {
-      "post": {
-        "summary": "activity/steps/total",
-        "deprecated": false,
-        "tags": [
-          "v1"
-        ],
-        "responses": {
-          "200": {
-            "description": "Go JSON response; payload varies by operation.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "additionalProperties": true,
-                  "properties": {
-                    "allCount": {
-                      "type": "integer",
-                      "minimum": 0
-                    },
-                    "returnCode": {
-                      "type": "string",
-                      "const": "1111"
-                    }
-                  },
-                  "required": [
-                    "returnCode"
-                  ]
-                }
-              }
-            }
-          },
-          "400": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "401": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "403": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "409": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "503": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "404": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "405": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "413": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "415": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "429": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "500": {
-            "$ref": "#/components/responses/ApiError"
-          }
-        },
-        "security": [
-          {
-            "sessionCookie": []
-          }
-        ],
-        "parameters": [
-          {
-            "name": "X-CSRF-TOKEN",
-            "in": "header",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "type": "object",
-                "additionalProperties": true
-              }
-            }
-          }
-        },
-        "description": "Implementation: 智慧养老手表管理系统/backend/internal/handlers/handler_vitals.go. Go API DTOs without explicit schemas remain open objects; consult implementation.",
-        "x-request-fields": [],
-        "x-success-fields": [
-          "allCount",
-          "returnCode"
         ]
       }
     },
@@ -6397,6 +6301,119 @@
         ]
       }
     },
+    "/api/v1/health/alerts/device-counts": {
+      "post": {
+        "summary": "health/alerts/device-counts",
+        "deprecated": false,
+        "tags": [
+          "v1"
+        ],
+        "responses": {
+          "200": {
+            "description": "Go JSON response; payload varies by operation.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": true,
+                  "properties": {
+                    "bloodPressure": {
+                      "type": "integer",
+                      "minimum": 0
+                    },
+                    "heartRate": {
+                      "type": "integer",
+                      "minimum": 0
+                    },
+                    "returnCode": {
+                      "type": "string",
+                      "const": "1111"
+                    },
+                    "sleep": {
+                      "type": "integer",
+                      "minimum": 0
+                    }
+                  },
+                  "required": [
+                    "bloodPressure",
+                    "heartRate",
+                    "returnCode",
+                    "sleep"
+                  ]
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/ApiError"
+          },
+          "401": {
+            "$ref": "#/components/responses/ApiError"
+          },
+          "403": {
+            "$ref": "#/components/responses/ApiError"
+          },
+          "409": {
+            "$ref": "#/components/responses/ApiError"
+          },
+          "503": {
+            "$ref": "#/components/responses/ApiError"
+          },
+          "404": {
+            "$ref": "#/components/responses/ApiError"
+          },
+          "405": {
+            "$ref": "#/components/responses/ApiError"
+          },
+          "413": {
+            "$ref": "#/components/responses/ApiError"
+          },
+          "415": {
+            "$ref": "#/components/responses/ApiError"
+          },
+          "429": {
+            "$ref": "#/components/responses/ApiError"
+          },
+          "500": {
+            "$ref": "#/components/responses/ApiError"
+          }
+        },
+        "security": [
+          {
+            "sessionCookie": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "X-CSRF-TOKEN",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "additionalProperties": true
+              }
+            }
+          }
+        },
+        "description": "Implementation: 智慧养老手表管理系统/backend/internal/handlers/handler_vitals.go. Go API DTOs without explicit schemas remain open objects; consult implementation.",
+        "x-request-fields": [],
+        "x-success-fields": [
+          "bloodPressure",
+          "heartRate",
+          "returnCode",
+          "sleep"
+        ]
+      }
+    },
     "/api/v1/health/changes": {
       "post": {
         "summary": "health/changes",
@@ -11302,9 +11319,9 @@
         ]
       }
     },
-    "/api/v1/vitals/alerts/devices": {
+    "/api/v1/vitals/alerts/device-counts": {
       "post": {
-        "summary": "vitals/alerts/devices",
+        "summary": "vitals/alerts/device-counts",
         "deprecated": false,
         "tags": [
           "v1"
@@ -11318,14 +11335,22 @@
                   "type": "object",
                   "additionalProperties": true,
                   "properties": {
-                    "pres": {},
-                    "rates": {},
+                    "bloodPressure": {
+                      "type": "integer",
+                      "minimum": 0
+                    },
+                    "heartRate": {
+                      "type": "integer",
+                      "minimum": 0
+                    },
                     "returnCode": {
                       "type": "string",
                       "const": "1111"
                     }
                   },
                   "required": [
+                    "bloodPressure",
+                    "heartRate",
                     "returnCode"
                   ]
                 }
@@ -11395,8 +11420,8 @@
         "description": "Implementation: 智慧养老手表管理系统/backend/internal/handlers/handler_vitals.go. Go API DTOs without explicit schemas remain open objects; consult implementation.",
         "x-request-fields": [],
         "x-success-fields": [
-          "pres",
-          "rates",
+          "bloodPressure",
+          "heartRate",
           "returnCode"
         ]
       }

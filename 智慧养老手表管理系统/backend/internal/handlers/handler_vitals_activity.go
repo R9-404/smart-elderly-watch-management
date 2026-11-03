@@ -176,35 +176,3 @@ func (h *Handler) getActivityChart(w http.ResponseWriter, r *http.Request) {
 		"activityRecords": items, "sleep": sleep, "createTime": createTime,
 	})
 }
-
-// POST /api/v1/activity/alerts/devices —— 睡眠异常设备 ID 列表。
-func (h *Handler) listActivityAlertDevices(w http.ResponseWriter, r *http.Request) {
-	if _, ok := optBody(w, r); !ok {
-		return
-	}
-	list, ok := h.deviceIDList(w, r, "watch_day_info", "sleep_sate")
-	if !ok {
-		return
-	}
-	response.JSON(w, http.StatusOK, map[string]any{"deviceIdList": list})
-}
-
-// POST /api/v1/activity/steps/total —— 异常总数汇总（心率+血压+睡眠）。
-func (h *Handler) getStepTotal(w http.ResponseWriter, r *http.Request) {
-	if _, ok := optBody(w, r); !ok {
-		return
-	}
-	rates, ok := h.deviceIDList(w, r, "ratepre", "rate_state")
-	if !ok {
-		return
-	}
-	pres, ok := h.deviceIDList(w, r, "ratepre", "pre_state")
-	if !ok {
-		return
-	}
-	devs, ok := h.deviceIDList(w, r, "watch_day_info", "sleep_sate")
-	if !ok {
-		return
-	}
-	response.JSON(w, http.StatusOK, map[string]any{"allCount": len(rates) + len(pres) + len(devs)})
-}

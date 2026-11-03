@@ -174,8 +174,12 @@ for key, contract in contracts.items():
         op['responses']['200'] = {'description': 'Image bytes', 'content': {'image/*': {'schema': {'type': 'string', 'format': 'binary'}}}}
     if path in {'/api/v1/notices/create', '/api/v1/notices/update', '/api/v1/gallery/replace'}:
         op['requestBody']['content']['application/json']['schema']['properties']['fileListName'] = {'type': 'array', 'items': {'type': 'string'}}
-    if path == '/api/v1/activity/steps/total':
-        op['responses']['200']['content']['application/json']['schema']['properties']['allCount'] = {'type': 'integer', 'minimum': 0}
+    if path in {'/api/v1/health/alerts/device-counts', '/api/v1/vitals/alerts/device-counts', '/api/v1/activity/alerts/device-counts'}:
+        schema = op['responses']['200']['content']['application/json']['schema']
+        for name in schema['properties'].keys() - {'returnCode'}:
+            schema['properties'][name] = {'type': 'integer', 'minimum': 0}
+            schema['required'].append(name)
+        schema['required'].sort()
     if path == '/api/v1/image/saveImage':
         op['requestBody'] = {'required': True, 'content': {'multipart/form-data': {'schema': {'type': 'object', 'required': ['file'], 'properties': {'file': {'type': 'string', 'format': 'binary'}}}}}}
 

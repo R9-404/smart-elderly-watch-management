@@ -131,14 +131,11 @@ export default {
       this.countError = ''
       this.allCount = null
       this.categoryCounts = null
-      return Promise.all([
-        axios.post('api/v1/vitals/alerts/devices', {}, { withCredentials: true }),
-        axios.post('api/v1/activity/alerts/devices', {}, { withCredentials: true })
-      ]).then(([vitals, steps]) => {
-        var rates = vitals.data.rates, pressures = vitals.data.pres, sleeps = steps.data.deviceIdList
-        if (![rates, pressures, sleeps].every(Array.isArray)) throw new Error('missing counts')
-        this.categoryCounts = { rate: rates.length, pressure: pressures.length, sleep: sleeps.length }
-        this.allCount = rates.length + pressures.length + sleeps.length
+      return axios.post('api/v1/health/alerts/device-counts', {}, { withCredentials: true }).then(({ data }) => {
+        const { heartRate, bloodPressure, sleep } = data
+        if (![heartRate, bloodPressure, sleep].every(count => Number.isSafeInteger(count) && count >= 0)) throw new Error('invalid counts')
+        this.categoryCounts = { rate: heartRate, pressure: bloodPressure, sleep }
+        this.allCount = heartRate + bloodPressure + sleep
       }).catch((error) => { this.countError = apiErrorMessage(error, '设备统计暂时无法加载') }).then(() => { this.countLoading = false })
     },
     async searchposition () {
