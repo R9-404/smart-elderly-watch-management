@@ -2,56 +2,90 @@
 package apidoc
 
 import (
+	"bytes"
 	_ "embed"
 	"encoding/json"
+	"fmt"
+	"maps"
 	"net/http"
+	"strings"
 	"sync"
 )
 
 //go:embed openapi-template.json
 var schemaTemplate []byte
 
-type jsonObject map[string]json.RawMessage
+//go:embed contracts.json
+var contractInventory []byte
 
-var schema = sync.OnceValues(func() ([]byte, error) {
-	var document jsonObject
-	if err := json.Unmarshal(schemaTemplate, &document); err != nil {
-		return nil, err
-	}
-	var common jsonObject
-	if err := json.Unmarshal(document["commonResponses"], &common); err != nil {
-		return nil, err
-	}
-	delete(document, "commonResponses")
+type object = map[string]any
 
-	var paths map[string]map[string]jsonObject
-	if err := json.Unmarshal(document["paths"], &paths); err != nil {
+type document struct {
+	OpenAPI    string                       `json:"openapi"`
+	Info       json.RawMessage              `json:"info"`
+	Components json.RawMessage              `json:"components"`
+	Paths      map[string]map[string]object `json:"paths"`
+}
+
+var schema = sync.OnceValues(buildSchema)
+
+func buildSchema() ([]byte, error) {
+	var template struct {
+		document
+		OperationDefaults object `json:"operationDefaults"`
+		WriteDefaults     object `json:"writeDefaults"`
+	}
+	decoder := json.NewDecoder(bytes.NewReader(schemaTemplate))
+	decoder.UseNumber()
+	if err := decoder.Decode(&template); err != nil {
 		return nil, err
 	}
-	for _, methods := range paths {
-		for _, operation := range methods {
-			responses := make(jsonObject, len(common)+1)
-			for status, response := range common {
-				responses[status] = response
+	var contracts map[string]struct {
+		Request  []string `json:"request"`
+		Response []string `json:"response"`
+	}
+	if err := json.Unmarshal(contractInventory, &contracts); err != nil {
+		return nil, err
+	}
+	for path, methods := range template.Paths {
+		for method, patch := range methods {
+			key := strings.ToUpper(method) + " " + path
+			contract, ok := contracts[key]
+			if !ok {
+				return nil, fmt.Errorf("missing API field inventory for %s", key)
 			}
-			// Operation-specific responses override shared defaults.
-			if err := json.Unmarshal(operation["responses"], &responses); err != nil {
-				return nil, err
+			operation := maps.Clone(template.OperationDefaults)
+			if method != "get" {
+				maps.Copy(operation, template.WriteDefaults)
 			}
-			data, err := json.Marshal(responses)
-			if err != nil {
-				return nil, err
-			}
-			operation["responses"] = data
+			operation["summary"] = strings.TrimPrefix(path, "/api/v1/")
+			applyOperationPatch(operation, patch)
+			operation["x-request-fields"] = contract.Request
+			operation["x-success-fields"] = contract.Response
+			methods[method] = operation
 		}
 	}
-	data, err := json.Marshal(paths)
-	if err != nil {
-		return nil, err
+	return json.Marshal(template.document)
+}
+
+// applyOperationPatch copies inherited objects before editing them so sibling
+// operations can reuse the same defaults.
+func applyOperationPatch(operation, patch object) {
+	for key, value := range patch {
+		switch value := value.(type) {
+		case nil:
+			delete(operation, key)
+		case object:
+			base, _ := operation[key].(object)
+			merged := make(object, len(base)+len(value))
+			maps.Copy(merged, base)
+			applyOperationPatch(merged, value)
+			operation[key] = merged
+		default:
+			operation[key] = value
+		}
 	}
-	document["paths"] = data
-	return json.Marshal(document)
-})
+}
 
 func ServeHTTP(w http.ResponseWriter, _ *http.Request) {
 	data, err := schema()

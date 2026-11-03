@@ -164,8 +164,6 @@ error_schema = {
 for key, contract in contracts.items():
     method, path = key.split(' ', 1)
     op = paths[path][method.lower()]
-    op['x-request-fields'] = contract['request']
-    op['x-success-fields'] = contract['response']
     if method != 'GET' and path != '/api/v1/image/saveImage':
         request_schema = op['requestBody']['content']['application/json']['schema']
         for name in contract['request']:
@@ -249,11 +247,48 @@ for methods in paths.values():
                 op["responses"]["200"] = {"$ref": f"#/components/responses/{name}"}
                 break
 
-# The server expands these defaults once before serving the public document.
-spec["commonResponses"] = dict.fromkeys(
-    (400, 401, 403, 404, 405, 409, 413, 415, 429, 500, 503),
+def operation_patch(defaults, operation):
+    """Keep only operation-specific values. Null removes an inherited key."""
+    patch = {key: None for key in defaults if key not in operation}
+    for key, value in operation.items():
+        if key not in defaults:
+            patch[key] = value
+        elif value != defaults[key]:
+            base = defaults[key]
+            patch[key] = operation_patch(base, value) if isinstance(base, dict) and isinstance(value, dict) else value
+    return patch
+
+
+success_schema = {
+    "type": "object", "additionalProperties": True, "required": ["returnCode"],
+    "properties": {"returnCode": {"type": "string", "const": "1111"}},
+}
+operation_defaults = {
+    "deprecated": False, "tags": ["v1"], "security": [{"sessionCookie": []}],
+    "responses": {"200": {
+        "description": "Go JSON response; payload varies by operation.",
+        "content": {"application/json": {"schema": success_schema}},
+    }},
+}
+write_defaults = {
+    "parameters": [csrf_parameter],
+    "requestBody": json_request({"type": "object", "additionalProperties": True}),
+}
+for path, methods in paths.items():
+    for method, operation in methods.items():
+        defaults = {**operation_defaults, "summary": path.removeprefix("/api/v1/")}
+        if method != "get":
+            defaults.update(write_defaults)
+        methods[method] = operation_patch(defaults, operation)
+
+# These errors apply to every operation. The field inventories are loaded from
+# contracts.json when the server materializes the public OpenAPI document.
+operation_defaults["responses"].update(dict.fromkeys(
+    ("400", "401", "403", "404", "405", "409", "413", "415", "429", "500", "503"),
     {"$ref": "#/components/responses/ApiError"},
-)
+))
+spec["operationDefaults"] = operation_defaults
+spec["writeDefaults"] = write_defaults
 
 data = (json.dumps(spec, ensure_ascii=False, indent=2) + "\n").encode("utf-8")
 target = folder / "openapi-template.json"
