@@ -53,14 +53,12 @@
     </record-cards>
     
     <div style="margin-top: 10px;text-align: center">
-      <el-pagination
+      <pager-bar
         @size-change="handleSizeChange"
         @current-change="changePage"
         v-model:current-page="currentPage"
         :page-size="pageSize"
-        layout="total, sizes, prev, pager, next, jumper"
-        :total="total">
-      </el-pagination>
+        :total="total" />
     </div>
 
     <el-dialog title="睡眠记录详情" v-model="detailsVisible" @opened="resizeCharts" @closed="disposeCharts">

@@ -15,10 +15,7 @@ export const deviceListMethods = {
       else if (command === 'delete') this.deleteDevice(row)
     },
     post (path, params) {
-      return axios.post('api/v1/device/' + path, params || {}, {
-        headers: { 'content-type': 'application/json' },
-        withCredentials: true
-      })
+      return axios.post('api/v1/device/' + path, params || {})
     },
     loadDevices () {
       if (this.deviceLoading) { this.reloadPending = true; return }

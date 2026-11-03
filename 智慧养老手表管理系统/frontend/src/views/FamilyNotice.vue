@@ -71,16 +71,16 @@ export default {
 </script>
 <style scoped>
 .notice-back { margin-bottom: 16px; }
-.notice-article, .notice-comments { padding: 32px 40px; border: 1px solid #dfe5d8; border-radius: 16px; background: #fff; }
+.notice-article, .notice-comments { padding: 32px 40px; border: 1px solid var(--care-border); border-radius: 16px; background: #fff; }
 .notice-article { min-height: 260px; }
 .notice-kicker { margin: 0 0 12px; color: #496151; font-size: 17px; }
-.notice-article h1 { margin: 0; color: #183e33; font-size: 32px; line-height: 1.6; overflow-wrap: anywhere; }
+.notice-article h1 { margin: 0; color: var(--care-brand-dark); font-size: 32px; line-height: 1.6; overflow-wrap: anywhere; }
 .notice-time { color: #59665f; font-size: 17px; }
 .notice-body { margin-top: 28px; padding-top: 24px; border-top: 1px solid #e8ece4; color: #33453c; white-space: pre-wrap; overflow-wrap: anywhere; font-size: 19px; line-height: 1.95; }
 .notice-attachment { margin: 24px 0 0; }
 .notice-attachment img { display: block; width: auto; max-width: 100%; height: auto; border-radius: 10px; }
 .notice-comments { margin-top: 22px; }
-.notice-comments h2 { margin: 0 0 24px; font-size: 24px; color: #213c32; }
+.notice-comments h2 { margin: 0 0 24px; font-size: 24px; color: var(--care-heading); }
 .notice-comments :deep(.el-form-item__label) { float: none; display: block; text-align: left; }
 .notice-comments :deep(.el-form-item__content) { margin-left: 0 !important; }
 .comment-list { margin-top: 28px; min-height: 80px; }
@@ -89,7 +89,7 @@ export default {
 .comment-heading { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 8px; }
 .comment-heading span, .comment-empty { color: #59665f; font-size: 16px; }
 .comment-reply { padding: 14px 18px; border-left: 3px solid #b3c6a8; background: #f4f7ef; border-radius: 0 8px 8px 0; }
-.notice-error { color: #a4262c; } .notice-success { color: #236b3d; }
+.notice-error { color: var(--care-danger); } .notice-success { color: #236b3d; }
 .notice-empty { text-align: center; }
 @media (max-width: 600px) { .notice-article, .notice-comments { padding: 24px; } .notice-article h1 { font-size: 26px; } }
 html.large-text .care-family .notice-body { font-size: 22px; }

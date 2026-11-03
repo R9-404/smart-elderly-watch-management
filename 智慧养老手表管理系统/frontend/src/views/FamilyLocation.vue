@@ -108,6 +108,6 @@ export default {
 </script>
 
 <style scoped>
-  .position-empty, .unknown-state { color: #53645c; font-size: 16px; }
+  .position-empty, .unknown-state { color: var(--care-text-muted); font-size: 16px; }
 
 </style>

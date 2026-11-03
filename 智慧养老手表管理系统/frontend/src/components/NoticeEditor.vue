@@ -73,7 +73,7 @@ export default {
         this.saveError = ''
         var params = { title: this.form.title.trim(), textMain: this.form.textMain.trim(), fileListName: this.successfulAttachments.map(file => file.name) }
         if (this.editing) { params.textId = this.$route.query.textId }
-        axios.post(this.editing ? 'api/v1/notices/update' : 'api/v1/notices/create', params, { withCredentials: true }).then((response) => {
+        axios.post(this.editing ? 'api/v1/notices/update' : 'api/v1/notices/create', params).then((response) => {
           if (response.data.returnCode !== '1111') throw new Error('save rejected')
           this.$message.success(this.editing ? '公告已保存' : '公告已发布')
           this.baseline = this.signature
@@ -88,24 +88,24 @@ export default {
 .notice-editor { display: grid; grid-template-columns: minmax(0, 1.45fr) minmax(260px, 1fr); gap: 24px; align-items: start; }
 .editor-main { padding: 28px; }
 .editor-section-heading { display: flex; align-items: flex-start; gap: 14px; margin-bottom: 24px; }
-.editor-section-heading h2 { margin: 0; color: #213c32; font-size: 20px; line-height: 1.6; }
-.editor-section-heading p, .editor-counter { color: #53645c; font-size: 14px; line-height: 1.8; margin: 4px 0 0; }
+.editor-section-heading h2 { margin: 0; color: var(--care-heading); font-size: 20px; line-height: 1.6; }
+.editor-section-heading p, .editor-counter { color: var(--care-text-muted); font-size: 14px; line-height: 1.8; margin: 4px 0 0; }
 .editor-counter { text-align: right; }
-.editor-attachments { margin-top: 28px; padding-top: 24px; border-top: 1px solid #e4eadd; }
-.editor-actions { display: flex; flex-wrap: wrap; gap: 16px; align-items: center; justify-content: space-between; margin-top: 28px; padding-top: 24px; border-top: 1px solid #e4eadd; }
-.editor-actions span { color: #53645c; font-size: 14px; }
-.editor-error { color: #a4262c; line-height: 1.8; }
+.editor-attachments { margin-top: 28px; padding-top: 24px; border-top: 1px solid var(--care-border-soft); }
+.editor-actions { display: flex; flex-wrap: wrap; gap: 16px; align-items: center; justify-content: space-between; margin-top: 28px; padding-top: 24px; border-top: 1px solid var(--care-border-soft); }
+.editor-actions span { color: var(--care-text-muted); font-size: 14px; }
+.editor-error { color: var(--care-danger); line-height: 1.8; }
 .editor-side { min-width: 0; }
 .notice-preview { padding: 28px; }
-.notice-preview h2 { margin: 16px 0 10px; color: #213c32; font-size: 24px; line-height: 1.65; overflow-wrap: anywhere; }
-.preview-time { color: #53645c; font-size: 13px; }
+.notice-preview h2 { margin: 16px 0 10px; color: var(--care-heading); font-size: 24px; line-height: 1.65; overflow-wrap: anywhere; }
+.preview-time { color: var(--care-text-muted); font-size: 13px; }
 .preview-body { min-height: 100px; margin-top: 24px; color: #33453c; font-size: 17px; line-height: 2; white-space: pre-wrap; overflow-wrap: anywhere; }
 .notice-preview img { display: block; width: 100%; height: auto; margin-top: 16px; border-radius: 8px; }
-.editor-guidance { margin-top: 20px; overflow: hidden; border: 1px solid #dfe5d8; border-radius: 16px; background: #edf1e5; }
+.editor-guidance { margin-top: 20px; overflow: hidden; border: 1px solid var(--care-border); border-radius: 16px; background: #edf1e5; }
 .editor-guidance > img { display: block; width: 100%; height: 130px; object-fit: cover; }
 .editor-guidance > div { padding: 20px 24px; }
-.editor-guidance h3 { margin: 0 0 8px; font-size: 17px; color: #213c32; }
-.editor-guidance p { margin: 0; color: #53645c; font-size: 14px; line-height: 1.9; }
+.editor-guidance h3 { margin: 0 0 8px; font-size: 17px; color: var(--care-heading); }
+.editor-guidance p { margin: 0; color: var(--care-text-muted); font-size: 14px; line-height: 1.9; }
 @media (max-width: 1100px) { .notice-editor { grid-template-columns: 1fr; } .editor-side { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 20px; } .editor-guidance { margin-top: 0; } }
 @media (max-width: 600px) { .editor-main, .notice-preview { padding: 22px 18px; } .editor-side { grid-template-columns: 1fr; } .editor-actions .el-button { width: 100%; } }
 </style>

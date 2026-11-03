@@ -16,15 +16,15 @@
 export default { name: 'FamilySlider' }
 </script>
 <style scoped>
-.care-sidebar { position: relative; display: flex; flex-direction: column; min-height: 100%; background: #183e33; color: #f2f4e9; }
+.care-sidebar { position: relative; display: flex; flex-direction: column; min-height: 100%; background: var(--care-brand-dark); color: #f2f4e9; }
 .sidebar-label { padding: 28px 26px 16px; color: #c4d4bd; font-size: 16px; font-weight: 500; letter-spacing: .08em; }
 .care-menu { padding: 0 14px; border-right: 0; background: transparent; }
 .care-menu .el-menu-item { position: relative; display: flex; align-items: center; height: 58px; margin: 6px 0; padding: 0 18px !important; border-radius: 9px; color: #ecf1e6; transition: background-color var(--care-motion-fast) var(--care-ease), color var(--care-motion-fast) var(--care-ease); }
 .care-menu .el-menu-item i { margin-right: 14px; color: #c2d1bb; font-size: 22px; }
 .care-menu .el-menu-item:hover,
 .care-menu .el-menu-item:focus { background: #2b5142; color: #fff; }
-.care-menu .el-menu-item.is-active { background: #e5eddc; color: #183e33; font-weight: 700; }
-.care-menu .el-menu-item.is-active i { color: #235442; }
+.care-menu .el-menu-item.is-active { background: #e5eddc; color: var(--care-brand-dark); font-weight: 700; }
+.care-menu .el-menu-item.is-active i { color: var(--care-primary); }
 .care-menu .el-menu-item:focus-visible { outline: 3px solid #e3cf8e; outline-offset: 2px; }
 .nav-profile-icon { display: grid; place-items: center; width: 24px; height: 24px; margin-right: 14px; }
 .nav-label-short { display: none; }
@@ -42,9 +42,9 @@ export default { name: 'FamilySlider' }
   .nav-profile-icon { margin-right: 0; }
   .care-menu .el-menu-item { display: flex; flex-direction: column; justify-content: center; gap: 4px; height: auto; min-height: 64px; margin: 0 2px; padding: 6px 0 !important; color: #536450; line-height: 1.35; text-align: center; font-size: 16px; }
   .care-menu .el-menu-item i { margin: 0; color: #536450; font-size: 23px; }
-  .care-menu .el-menu-item:hover, .care-menu .el-menu-item:focus { background: #f0f4ea; color: #183e33; }
+  .care-menu .el-menu-item:hover, .care-menu .el-menu-item:focus { background: #f0f4ea; color: var(--care-brand-dark); }
   .care-menu .el-menu-item.is-active { background: #e9f0e2; }
-  .care-menu .el-menu-item.is-active::after { content: ''; position: absolute; top: 0; left: 30%; right: 30%; height: 2px; border-radius: 2px; background: #235442; }
-  .care-menu .el-menu-item:focus-visible { outline-color: #235442; }
+  .care-menu .el-menu-item.is-active::after { content: ''; position: absolute; top: 0; left: 30%; right: 30%; height: 2px; border-radius: 2px; background: var(--care-primary); }
+  .care-menu .el-menu-item:focus-visible { outline-color: var(--care-primary); }
 }
 </style>

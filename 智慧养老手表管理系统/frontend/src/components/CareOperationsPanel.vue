@@ -95,7 +95,7 @@ onBeforeUnmount(()=>clearInterval(timer))
 .care-worker-critical{padding:12px;background:#fff5ec;border-left:3px solid #b94d29;color:#8e3619;font-weight:600}
 .care-operations{margin:16px 0;padding:18px;border:1px solid var(--care-border,#dce4da);border-radius:12px;background:#fff}
 .care-operations-head{display:flex;justify-content:space-between;gap:12px;align-items:center;flex-wrap:wrap}
-.care-operations-head h3,.care-operations-head h4{margin:0;color:var(--care-heading,#235442)}
+.care-operations-head h3,.care-operations-head h4{margin:0;color:var(--care-heading,var(--care-primary))}
 .care-operations-head p,.care-staff-settings p{margin:4px 0;color:var(--care-text-muted,#65756e)}
 .care-operation-metrics{display:flex;gap:16px;flex-wrap:wrap;margin:16px 0}
 .care-operation-metrics span{padding:12px;border-radius:8px;background:#f6f8f5}

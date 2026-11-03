@@ -50,19 +50,19 @@ export default {
   .admin-record { min-width: 0; padding: 20px 0; border-top: 1px solid #dce4da; }
   .admin-record:first-child { padding-top: 4px; border-top: 0; }
   .admin-record header { margin-bottom: 20px; }
-  .admin-record h2 { margin: 0; color: #183e33; font-size: 20px; font-weight: 500; line-height: 1.6; overflow-wrap: anywhere; }
-  .admin-record header > span { display: block; margin-top: 6px; color: #53645c; font-size: 14px; }
+  .admin-record h2 { margin: 0; color: var(--care-brand-dark); font-size: 20px; font-weight: 500; line-height: 1.6; overflow-wrap: anywhere; }
+  .admin-record header > span { display: block; margin-top: 6px; color: var(--care-text-muted); font-size: 14px; }
   .admin-record dl { display: grid; grid-template-columns: minmax(0, 100px) minmax(0, 1fr); gap: 14px 16px; margin: 0; line-height: 1.8; }
-  .admin-record dt { color: #53645c; font-size: 14px; }
-  .admin-record dd { margin: 0; color: #263632; font-size: 16px; overflow-wrap: anywhere; }
+  .admin-record dt { color: var(--care-text-muted); font-size: 14px; }
+  .admin-record dd { margin: 0; color: var(--care-text); font-size: 16px; overflow-wrap: anywhere; }
   .record-more { margin-top: 20px; }
-  .record-more summary { min-height: 44px; padding: 8px 0; color: #235442; cursor: pointer; }
+  .record-more summary { min-height: 44px; padding: 8px 0; color: var(--care-primary); cursor: pointer; }
   .record-more dl { padding: 12px 0; }
   .record-actions { display: flex; gap: 10px; flex-wrap: wrap; padding-top: 22px; }
   .record-actions :deep(.el-button) { margin: 0; }
-  .admin-record .status-danger { color: #a4262c; }
-  .admin-record .status-normal { color: #235442; }
-  .admin-record .status-handled { color: #70531f; }
-  .admin-record .status-unknown { color: #53645c; }
+  .admin-record .status-danger { color: var(--care-danger); }
+  .admin-record .status-normal { color: var(--care-primary); }
+  .admin-record .status-handled { color: var(--care-warning-strong); }
+  .admin-record .status-unknown { color: var(--care-text-muted); }
 }
 </style>

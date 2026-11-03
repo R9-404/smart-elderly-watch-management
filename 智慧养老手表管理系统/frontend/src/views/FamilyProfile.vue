@@ -67,20 +67,20 @@
 			  </div>
 </template>
 <style scoped>
-.profile-card { padding: 32px; border: 1px solid #dfe5d8; border-radius: 16px; background: #fff; }
+.profile-card { padding: 32px; border: 1px solid var(--care-border); border-radius: 16px; background: #fff; }
 .profile-summary { display: flex; align-items: center; gap: 22px; }
-.profile-avatar { display: grid; place-items: center; width: 88px; height: 88px; flex: 0 0 88px; overflow: hidden; border-radius: 50%; background: #e6eddd; color: #235442; font-size: 34px; font-weight: 600; }
+.profile-avatar { display: grid; place-items: center; width: 88px; height: 88px; flex: 0 0 88px; overflow: hidden; border-radius: 50%; background: #e6eddd; color: var(--care-primary); font-size: 34px; font-weight: 600; }
 .profile-avatar img { width: 100%; height: 100%; object-fit: cover; }
 .profile-identity { min-width: 0; overflow-wrap: anywhere; }
 .profile-identity p { margin: 0 0 6px; color: #59665f; font-size: 16px; }
-.profile-identity h2 { margin: 0 0 6px; color: #183e33; font-size: 28px; }
-.profile-identity span { color: #53645c; font-size: 17px; line-height: 1.7; }
+.profile-identity h2 { margin: 0 0 6px; color: var(--care-brand-dark); font-size: 28px; }
+.profile-identity span { color: var(--care-text-muted); font-size: 17px; line-height: 1.7; }
 .profile-actions { display: flex; flex-wrap: wrap; gap: 12px; margin: 28px 0; }
 .profile-actions :deep(.el-button) { margin: 0; }
 .profile-details { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 0 32px; margin: 0; }
 .profile-details div { padding: 20px 0; border-top: 1px solid #e8ece4; }
 .profile-details dt { color: #59665f; font-size: 16px; }
-.profile-details dd { margin: 6px 0 0; color: #263632; font-size: 19px; line-height: 1.7; overflow-wrap: anywhere; }
+.profile-details dd { margin: 6px 0 0; color: var(--care-text); font-size: 19px; line-height: 1.7; overflow-wrap: anywhere; }
 @media (max-width: 600px) { .profile-card { padding: 24px; } .profile-summary { align-items: flex-start; gap: 16px; } .profile-avatar { width: 64px; height: 64px; flex-basis: 64px; font-size: 28px; } .profile-identity h2 { font-size: 24px; } .profile-actions { gap: 10px; } .profile-actions :deep(.el-button) { width: 100%; } .profile-actions > * { flex: 1 0 100%; } .profile-actions :deep(.el-upload) { display: block; } .profile-details { grid-template-columns: 1fr; } }
 html.large-text .care-family .profile-identity span, html.large-text .care-family .profile-details dd { font-size: 21px; }
 </style>

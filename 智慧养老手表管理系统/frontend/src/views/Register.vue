@@ -247,7 +247,7 @@ export default {
 
 <style scoped>
 .register-page { display: grid; grid-template-columns: minmax(0, .9fr) minmax(560px, 1.1fr); min-height: 100vh; background: #f8f8f2; }
-.register-story { position: sticky; top: 0; height: 100vh; overflow: hidden; background: #183e33; }
+.register-story { position: sticky; top: 0; height: 100vh; overflow: hidden; background: var(--care-brand-dark); }
 .register-story img { width: 100%; height: 100%; object-fit: cover; object-position: 60% center; }
 .register-story-shade { position: absolute; inset: 0; background: linear-gradient(90deg, rgba(13,36,27,.66), rgba(13,36,27,.54)); }
 .register-story-copy { position: absolute; top: 22%; left: 9%; right: 8%; color: #fff; }
@@ -255,15 +255,15 @@ export default {
 .register-story-copy h1 { margin: 24px 0 16px; font-size: 42px; line-height: 1.5; font-weight: 600; }
 .register-story-copy p { max-width: 330px; font-size: 18px; line-height: 1.8; color: #fff; }
 .register-panel { display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 36px 36px 24px; }
-.register-card { width: 100%; max-width: 600px; padding: 28px; border: 1px solid #dfe5d8; border-radius: 16px; background: #fff; }
+.register-card { width: 100%; max-width: 600px; padding: 28px; border: 1px solid var(--care-border); border-radius: 16px; background: #fff; }
 .register-brand-row { display: flex; justify-content: space-between; align-items: center; gap: 8px; }
-.register-text-toggle { min-width: 64px; min-height: 48px; padding: 8px; border: 1px solid #c7d3c1; border-radius: 8px; color: #235442; font-size: 16px; font-weight: 600; }
-.password-visibility { width: 48px; height: 48px; padding: 0; border: 0; border-radius: 6px; background: transparent; color: #235442; cursor: pointer; }
+.register-text-toggle { min-width: 64px; min-height: 48px; padding: 8px; border: 1px solid #c7d3c1; border-radius: 8px; color: var(--care-primary); font-size: 16px; font-weight: 600; }
+.password-visibility { width: 48px; height: 48px; padding: 0; border: 0; border-radius: 6px; background: transparent; color: var(--care-primary); cursor: pointer; }
 .register-form :deep(.el-input__suffix) { right: 0; }
 .register-title { padding-bottom: 24px; }
-.register-brand { display: flex; align-items: center; gap: 12px; color: #183e33; font-size: 23px; font-weight: 700; }
+.register-brand { display: flex; align-items: center; gap: 12px; color: var(--care-brand-dark); font-size: 23px; font-weight: 700; }
 .register-mark { display: block; width: 64px; height: 64px; flex-shrink: 0; object-fit: contain; border-radius: 50%; }
-.register-sub { margin-top: 14px; color: #53645c; font-size: 17px; line-height: 1.8; }
+.register-sub { margin-top: 14px; color: var(--care-text-muted); font-size: 17px; line-height: 1.8; }
 .register-form { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 0 22px; padding-bottom: 4px; }
 .register-form :deep(.el-form-item) { min-width: 0; margin-bottom: 24px; }
 .register-form :deep(.el-form-item:first-child) , .register-form :deep(.el-form-item:nth-last-child(2)) , .register-form :deep(.el-form-item:last-child) { grid-column: 1 / -1; }
@@ -275,8 +275,8 @@ export default {
 .register-form :deep(.el-form-item:last-child .el-form-item__content) { display: flex; flex-wrap: wrap; gap: 10px; }
 .register-form :deep(.el-form-item:last-child .el-button) { margin: 0; flex: 1; }
 .tip-ok, .tip-error { margin-top: 6px; font-size: 16px; line-height: 1.6; }
-.tip-ok { color: #235442; } .tip-error { color: #a4262c; }
-.register-footer { margin-top: 24px; color: #53645c; font-size: 16px; text-align: center; }
+.tip-ok { color: var(--care-primary); } .tip-error { color: var(--care-danger); }
+.register-footer { margin-top: 24px; color: var(--care-text-muted); font-size: 16px; text-align: center; }
 html.large-text .register-page .register-sub { font-size: 19px; }
 html.large-text .register-page .register-form :deep(.el-form-item__label) ,
 html.large-text .register-page .register-form :deep(.el-input__inner) { font-size: 20px; }

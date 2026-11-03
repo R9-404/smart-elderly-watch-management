@@ -45,34 +45,34 @@
 .welcome-scene { position: relative; min-width: 0; height: 348px; overflow: hidden; border-radius: 24px 24px 80px 24px; }
 .welcome-scene img { display: block; width: 100%; height: 100%; object-fit: cover; object-position: 52% center; }
 .family-daily-grid { display: grid; grid-template-columns: minmax(0,1.3fr) minmax(0,1fr); gap: 32px; align-items: start; }
-.family-info-row { min-width: 0; border-top: 2px solid #235442; }
-.records-heading { margin: 0; padding: 22px 0 14px; color: #213c32; font-size: 22px; font-weight: 500; }
+.family-info-row { min-width: 0; border-top: 2px solid var(--care-primary); }
+.records-heading { margin: 0; padding: 22px 0 14px; color: var(--care-heading); font-size: 22px; font-weight: 500; }
 .info-tile { display: flex; align-items: flex-start; gap: 16px; min-width: 0; padding: 20px 8px 20px 0; border-bottom: 1px solid #dce4da; color: var(--care-ink); text-decoration: none; transition: background-color 180ms cubic-bezier(.2,.7,.3,1), transform 180ms cubic-bezier(.2,.7,.3,1); }
 .info-tile:hover { background: #edf2e9; }
 .info-tile:active { transform: translateY(1px); }
-.tile-icon { display: grid; place-items: center; flex: 0 0 44px; width: 44px; height: 44px; border-radius: 12px; background: #e8eee3; color: #235442; font-size: 24px; }
+.tile-icon { display: grid; place-items: center; flex: 0 0 44px; width: 44px; height: 44px; border-radius: 12px; background: #e8eee3; color: var(--care-primary); font-size: 24px; }
 .tile-copy { min-width: 0; flex: 1; }
-.tile-copy h3 { margin: 0; color: #213c32; font-size: 20px; line-height: 1.5; font-weight: 500; }
-.tile-copy p { margin: 6px 0 0; color: #53645c; font-size: 16px; line-height: 1.8; text-wrap: balance; }
-.tile-action { align-self: center; flex: 0 0 20px; color: #235442; font-size: 18px; }
+.tile-copy h3 { margin: 0; color: var(--care-heading); font-size: 20px; line-height: 1.5; font-weight: 500; }
+.tile-copy p { margin: 6px 0 0; color: var(--care-text-muted); font-size: 16px; line-height: 1.8; text-wrap: balance; }
+.tile-action { align-self: center; flex: 0 0 20px; color: var(--care-primary); font-size: 18px; }
 .announcement-panel { min-width: 0; padding: 24px 28px; border: 1px solid #dfe6dc; border-radius: 12px; background: #fff; }
 .panel-heading { display: flex; align-items: center; justify-content: space-between; gap: 16px; margin-bottom: 16px; }
-.panel-heading h2 { margin: 0; color: #213c32; font-size: 23px; font-weight: 500; }
-.panel-heading p { margin: 6px 0 0; color: #53645c; font-size: 16px; }
+.panel-heading h2 { margin: 0; color: var(--care-heading); font-size: 23px; font-weight: 500; }
+.panel-heading p { margin: 6px 0 0; color: var(--care-text-muted); font-size: 16px; }
 .announcement-content { min-height: 120px; }
 .announcement-list { padding: 0; margin: 0; list-style: none; }
 .announcement-list li { display: flex; align-items: center; flex-wrap: wrap; gap: 12px; padding: 22px 0; border-top: 1px solid #e4e9df; }
 .announcement-icon { display: grid; place-items: center; flex: 0 0 28px; height: 32px; color: #375844; font-size: 22px; }
 .announcement-copy { flex: 1; min-width: 120px; }
-.announcement-copy h3 { margin: 0; color: #213c32; font-size: 18px; font-weight: 500; line-height: 1.75; overflow-wrap: anywhere; }
-.announcement-copy p { margin: 5px 0 0; color: #53645c; font-size: 15px; }
+.announcement-copy h3 { margin: 0; color: var(--care-heading); font-size: 18px; font-weight: 500; line-height: 1.75; overflow-wrap: anywhere; }
+.announcement-copy p { margin: 5px 0 0; color: var(--care-text-muted); font-size: 15px; }
 .announcement-list :deep(.el-button) { flex-shrink: 0; }
-.table-empty { display: flex; flex-direction: column; align-items: center; gap: 8px; padding: 28px 10px; color: #53645c; text-align: center; }
+.table-empty { display: flex; flex-direction: column; align-items: center; gap: 8px; padding: 28px 10px; color: var(--care-text-muted); text-align: center; }
 .table-empty img { display: block; object-fit: contain; }
 .table-empty strong { font-size: 18px; color: #33453c; }
 .table-empty span { font-size: 16px; }
 .pagination-wrap { display: flex; justify-content: flex-end; padding-top: 18px; overflow-x: auto; }
-.data-caption { display: flex; align-items: flex-start; gap: 8px; max-width: 65em; margin: 26px 2px 0; color: #53645c; font-size: 16px; line-height: 1.8; }
+.data-caption { display: flex; align-items: flex-start; gap: 8px; max-width: 65em; margin: 26px 2px 0; color: var(--care-text-muted); font-size: 16px; line-height: 1.8; }
 .data-caption i { margin-top: 6px; flex-shrink: 0; }
 @media (min-width: 1200px) and (max-height: 900px) {
   .welcome-card { gap: 32px; margin: 0 0 24px; }

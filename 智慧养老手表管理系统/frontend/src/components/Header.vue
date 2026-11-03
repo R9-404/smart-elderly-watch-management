@@ -73,20 +73,20 @@ export default {
   background: #fff;
   border-bottom: 1px solid #e5ebe7;
 }
-.brand { display: inline-flex; align-items: center; gap: 12px; color: #263632; text-decoration: none; }
-.brand:focus-visible { outline: 2px solid #235442; outline-offset: 5px; border-radius: 4px; }
+.brand { display: inline-flex; align-items: center; gap: 12px; color: var(--care-text); text-decoration: none; }
+.brand:focus-visible { outline: 2px solid var(--care-primary); outline-offset: 5px; border-radius: 4px; }
 .brand-mark { display: block; width: 56px; height: 56px; flex-shrink: 0; object-fit: contain; border-radius: 50%; }
 .brand-copy { display: flex; flex-direction: column; gap: 3px; }
 .brand-copy strong { font-size: 22px; font-weight: 500; letter-spacing: .12em; }
-.brand-copy small { color: #53645c; font-size: 13px; letter-spacing: .04em; }
-.header-right { display: flex; align-items: center; gap: 12px; color: #53645c; }
+.brand-copy small { color: var(--care-text-muted); font-size: 13px; letter-spacing: .04em; }
+.header-right { display: flex; align-items: center; gap: 12px; color: var(--care-text-muted); }
 .header-divider { width: 1px; height: 24px; background: #e5ebe7; margin: 0 8px; }
 .user-avatar { display: grid; place-items: center; width: 32px; height: 32px; border-radius: 50%; background: #eaf3ef; color: #28776a; font-weight: 600; }
 .username { max-width: 160px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 14px; }
-.logout-button { min-width: 48px; min-height: 48px; color: #53645c; padding: 8px 4px; }
+.logout-button { min-width: 48px; min-height: 48px; color: var(--care-text-muted); padding: 8px 4px; }
 .logout-button:hover { color: #28776a; }
-.text-size-button { min-width: 64px; min-height: 48px; padding: 10px; border: 1px solid #d3dfce; border-radius: 8px; color: #235442; font-weight: 500; }
-.text-size-button:focus-visible { outline: 3px solid #235442; outline-offset: 2px; }
+.text-size-button { min-width: 64px; min-height: 48px; padding: 10px; border: 1px solid #d3dfce; border-radius: 8px; color: var(--care-primary); font-weight: 500; }
+.text-size-button:focus-visible { outline: 3px solid var(--care-primary); outline-offset: 2px; }
 @media (max-width: 600px) {
   .care-header { min-height: 72px; height: auto; padding: 10px 16px; gap: 8px; }
   .header-divider, .brand-copy small, .username { display: none; }

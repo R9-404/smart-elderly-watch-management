@@ -44,10 +44,10 @@ async function copyAddress() {
 
 <style scoped>
 .harmony-setup { margin-top: 20px; padding-top: 16px; border-top: 1px solid #dce4da; line-height: 1.8; overflow-wrap: anywhere; }
-.harmony-setup h3 { margin: 0 0 12px; font-size: 18px; color: #213c32; }
+.harmony-setup h3 { margin: 0 0 12px; font-size: 18px; color: var(--care-heading); }
 .harmony-setup label { display: block; margin: 12px 0 6px; }
 .harmony-setup ol { padding-left: 22px; }
 .harmony-setup li { margin-bottom: 8px; }
-.harmony-setup [role="alert"] { color: #a4262c; }
-.harmony-note { color: #53645c; font-size: 14px; }
+.harmony-setup [role="alert"] { color: var(--care-danger); }
+.harmony-note { color: var(--care-text-muted); font-size: 14px; }
 </style>

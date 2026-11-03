@@ -73,7 +73,7 @@ onBeforeUnmount(() => { observer?.disconnect(); disableTiles(); map?.remove(); m
 .position-map { margin-top: 24px; padding: clamp(16px, 3vw, 28px); border-top: 1px solid #dce3d8; }
 .position-map-heading { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 16px; margin-bottom: 18px; }
 .position-map-heading h2 { margin: 0; font-size: 22px; font-weight: 500; }
-.position-map-heading p, .position-map-note { color: #53645c; line-height: 1.7; overflow-wrap: anywhere; }
+.position-map-heading p, .position-map-note { color: var(--care-text-muted); line-height: 1.7; overflow-wrap: anywhere; }
 .position-map-heading p { margin: 6px 0 0; }
 .position-map-canvas { height: clamp(240px, 46vh, 440px); z-index: 0; border-radius: 16px; background-color: #eef1e9; background-image: linear-gradient(#dce3d833 1px, transparent 1px), linear-gradient(90deg, #dce3d833 1px, transparent 1px); background-size: 32px 32px; }
 .position-map-canvas:not(.has-location) { opacity: .55; pointer-events: none; }

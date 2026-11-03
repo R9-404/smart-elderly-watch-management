@@ -41,7 +41,7 @@
   </div>
 </template>
 <style scoped>
-.announcement-admin { display: grid; grid-template-columns: minmax(0, 1fr); gap: 20px; min-width: 0; color: #263632; }
+.announcement-admin { display: grid; grid-template-columns: minmax(0, 1fr); gap: 20px; min-width: 0; color: var(--care-text); }
 .announcement-list-panel, .upload-panel { min-width: 0; max-width: 100%; box-sizing: border-box; padding: 22px; border: 1px solid #e5ebe7; border-radius: 14px; background: #fff; box-shadow: 0 4px 18px rgba(29,63,51,.04); }
 .announcement-toolbar { display: flex; align-items: center; justify-content: space-between; gap: 20px; min-width: 0; margin-bottom: 18px; }
 .announcement-toolbar h2, .upload-heading h2 { margin: 0; font-size: 18px; font-weight: 600; }

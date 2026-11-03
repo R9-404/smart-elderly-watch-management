@@ -88,7 +88,7 @@ export default {
 </script>
 
 <style scoped>
-.skip-link { position: fixed; top: -80px; left: 16px; z-index: 3000; padding: 14px 20px; border-radius: 8px; background: #fff; color: #183e33; }
+.skip-link { position: fixed; top: -80px; left: 16px; z-index: 3000; padding: 14px 20px; border-radius: 8px; background: #fff; color: var(--care-brand-dark); }
 .skip-link:focus { top: 12px; }
 .care-app { display: grid; grid-template-rows: auto minmax(0, 1fr); height: 100vh; height: 100dvh; overflow: hidden; background: var(--care-canvas); }
 .workspace-layout { display: grid; grid-template-columns: 232px minmax(0, 1fr); min-height: 0; overflow: hidden; }
@@ -107,9 +107,9 @@ export default {
 .workspace-content :deep(.admin-record-dialog .el-dialog__headerbtn) { top: 8px; right: 12px; display: grid; place-items: center; width: 48px; height: 48px; font-size: 20px; }
 .workspace-content { min-width: 0; width: 100%; margin-right: auto; margin-left: auto; }
 .view-intro { margin: 0 0 20px; }
-.view-breadcrumb { margin: 0 0 10px; color: #53645c; font-size: 13px; }
+.view-breadcrumb { margin: 0 0 10px; color: var(--care-text-muted); font-size: 13px; }
 .view-breadcrumb i { margin: 0 5px; font-size: 9px; }
-.view-intro h1 { margin: 0; color: #263632; font-size: 28px; line-height: 1.25; font-weight: 500; letter-spacing: -.02em; }
+.view-intro h1 { margin: 0; color: var(--care-text); font-size: 28px; line-height: 1.25; font-weight: 500; letter-spacing: -.02em; }
 .view-description { margin: 8px 0 0; color: #64756c; font-size: 14px; line-height: 1.65; }
 @media (max-width: 900px) {
   .workspace-layout { grid-template-columns: minmax(0, 1fr); grid-template-rows: auto minmax(0, 1fr); }

@@ -95,10 +95,10 @@ export const healthAlertMethods = {
       var _this = this
       var tasks = []
       if (row.rateState == 1) {
-        tasks.push(axios.post('api/v1/vitals/alerts/resolve', { recordId: row.recordId, kind: 'rate' }, _this.postConfig()))
+        tasks.push(axios.post('api/v1/vitals/alerts/resolve', { recordId: row.recordId, kind: 'rate' }))
       }
       if (row.preState == 1) {
-        tasks.push(axios.post('api/v1/vitals/alerts/resolve', { recordId: row.recordId, kind: 'pre' }, _this.postConfig()))
+        tasks.push(axios.post('api/v1/vitals/alerts/resolve', { recordId: row.recordId, kind: 'pre' }))
       }
       Promise.all(tasks).then(function () {
         _this.$message({ type: 'success', message: '已处理，红点已消除' })
@@ -107,11 +107,5 @@ export const healthAlertMethods = {
       }).catch(function (error) {
         _this.$message({ type: 'error', message: apiErrorMessage(error, '处理失败') })
       })
-    },
-    postConfig () {
-      return {
-        headers: { 'content-type': 'application/json' },
-        withCredentials: true
-      }
-    },
+    }
 }

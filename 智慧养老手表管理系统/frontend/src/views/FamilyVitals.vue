@@ -129,6 +129,6 @@ export default {
 
 <style scoped>
 .health-chart-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 20px; }
-.rate-chart { width: 100%; min-width: 0; height: 320px; border: 1px solid #e4eadd; border-radius: 12px; background: #fbfcf8; }
+.rate-chart { width: 100%; min-width: 0; height: 320px; border: 1px solid var(--care-border-soft); border-radius: 12px; background: #fbfcf8; }
 @media (max-width: 760px) { .health-chart-grid { grid-template-columns: 1fr; gap: 16px; } .rate-chart { height: 280px; } }
 </style>

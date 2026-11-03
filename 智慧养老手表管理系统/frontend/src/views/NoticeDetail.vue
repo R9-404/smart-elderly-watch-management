@@ -52,21 +52,21 @@ export default {
 </script>
 
 <style scoped>
-.admin-notice { max-width: 1040px; margin: 0 auto; color: #263632; }
-.notice-panel { min-width: 0; margin-top: 20px; padding: 32px; border: 1px solid #dfe5d8; border-radius: 16px; background: #fff; }
-.notice-label { margin: 0 0 12px; color: #235442; font-size: 13px; font-weight: 600; letter-spacing: .12em; }
+.admin-notice { max-width: 1040px; margin: 0 auto; color: var(--care-text); }
+.notice-panel { min-width: 0; margin-top: 20px; padding: 32px; border: 1px solid var(--care-border); border-radius: 16px; background: #fff; }
+.notice-label { margin: 0 0 12px; color: var(--care-primary); font-size: 13px; font-weight: 600; letter-spacing: .12em; }
 .notice-panel h2 { margin: 0; font-size: 24px; line-height: 1.5; overflow-wrap: anywhere; }
-.notice-time, .notice-feedback { color: #53645c; font-size: 15px; line-height: 1.8; }
+.notice-time, .notice-feedback { color: var(--care-text-muted); font-size: 15px; line-height: 1.8; }
 .notice-body { margin-top: 28px; font-size: 17px; line-height: 2; white-space: pre-wrap; overflow-wrap: anywhere; }
 .notice-pictures { display: grid; gap: 16px; margin-top: 24px; }
 .notice-pictures img { display: block; max-width: 100%; height: auto; border-radius: 10px; }
 .comments-heading { display: flex; justify-content: space-between; align-items: center; gap: 16px; flex-wrap: wrap; }
 .comments-heading h2 { font-size: 20px; }
-.comments-heading h2 span { margin-left: 8px; font-size: 15px; font-weight: 400; color: #53645c; }
+.comments-heading h2 span { margin-left: 8px; font-size: 15px; font-weight: 400; color: var(--care-text-muted); }
 .comment-list { list-style: none; margin: 24px 0 0; padding: 0; }
 .comment-list li { padding: 20px 0; border-top: 1px solid #e8ece4; font-size: 16px; line-height: 1.8; overflow-wrap: anywhere; }
 .comment-list p { margin: 8px 0; white-space: pre-wrap; }
 .comment-reply { padding: 12px 16px; background: #f1f4eb; border-radius: 8px; }
-.comment-list small { color: #53645c; font-size: 14px; }
+.comment-list small { color: var(--care-text-muted); font-size: 14px; }
 @media (max-width: 600px) { .notice-panel { padding: 22px 18px; } .notice-panel h2 { font-size: 22px; } }
 </style>

@@ -156,25 +156,25 @@ onBeforeUnmount(() => { clearInterval(timer); reads.dispose(); historyReads.disp
 <style scoped>
 .care-inbox{margin-bottom:24px;padding:22px;border:1px solid #d8e2da;border-radius:14px;background:#fff}
 .care-inbox-heading{display:flex;justify-content:space-between;align-items:center;gap:16px;margin-bottom:15px}
-.care-inbox-heading h2{font-size:20px;font-weight:600;margin:0;color:#235442}
-.care-inbox-heading p{margin:6px 0 0;color:#53645c;font-size:14px}
+.care-inbox-heading h2{font-size:20px;font-weight:600;margin:0;color:var(--care-primary)}
+.care-inbox-heading p{margin:6px 0 0;color:var(--care-text-muted);font-size:14px}
 .care-inbox-tools{display:flex;align-items:center;gap:12px;flex-wrap:wrap}
 .care-inbox-tools .el-select{width:160px}
 .care-inbox :deep(.el-pagination){margin-top:18px;max-width:100%;overflow-x:auto}
 .care-task-list{display:grid;gap:10px}
 .care-task{display:flex;align-items:center;justify-content:space-between;gap:16px;padding:15px 18px;background:#f7f9f5;border:1px solid #dfe5df;border-radius:10px}
-.care-task.overdue{border-left:4px solid #a4262c}
+.care-task.overdue{border-left:4px solid var(--care-danger)}
 .care-task-main{display:grid;gap:4px;min-width:0}
-.care-task-main strong{color:#263632}
-.care-next-step{font-weight:600;color:#235442!important}
-.care-task-main span,.care-task-main small{color:#53645c}
+.care-task-main strong{color:var(--care-text)}
+.care-next-step{font-weight:600;color:var(--care-primary)!important}
+.care-task-main span,.care-task-main small{color:var(--care-text-muted)}
 .care-task-actions{display:flex;gap:8px;flex-wrap:wrap}
-.care-loading{margin:10px 0;color:#53645c;font-size:14px}
-.care-error{color:#a4262c}
+.care-loading{margin:10px 0;color:var(--care-text-muted);font-size:14px}
+.care-error{color:var(--care-danger)}
 .care-history{list-style:decimal;padding-left:24px}
 .care-history li{padding:10px 0;border-bottom:1px solid #e5ebe7}
 .care-history small{display:block;color:#64756c}
-.care-history p{margin:4px 0;color:#263632}
-.care-empty{color:#53645c}
+.care-history p{margin:4px 0;color:var(--care-text)}
+.care-empty{color:var(--care-text-muted)}
 @media(max-width:700px){.care-inbox-heading,.care-task{align-items:stretch;flex-direction:column}}
 </style>

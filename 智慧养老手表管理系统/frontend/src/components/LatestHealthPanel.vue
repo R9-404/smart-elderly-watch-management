@@ -52,15 +52,15 @@ const localTime = (value: string) => new Date(value).toLocaleString('zh-CN', { t
 </script>
 
 <style scoped>
-.latest-health { margin: 0 0 28px; padding: 24px 28px; border: 1px solid #dfe6dc; border-radius: 12px; background: #fff; color: #213c32; }
+.latest-health { margin: 0 0 28px; padding: 24px 28px; border: 1px solid #dfe6dc; border-radius: 12px; background: #fff; color: var(--care-heading); }
 .latest-heading { display: flex; justify-content: space-between; align-items: start; gap: 16px; }
 .latest-heading h2 { margin: 0; font-size: 23px; font-weight: 500; }
-.latest-heading p, .latest-empty { color: #53645c; line-height: 1.8; }
+.latest-heading p, .latest-empty { color: var(--care-text-muted); line-height: 1.8; }
 .latest-list { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 260px), 1fr)); gap: 20px; margin: 16px 0 0; padding: 0; list-style: none; }
 .latest-list li { padding-top: 16px; border-top: 1px solid #dfe6dc; min-width: 0; }
 .latest-list h3 { margin: 0; font-size: 18px; font-weight: 500; }
 .latest-list p { margin: 8px 0; line-height: 1.7; overflow-wrap: anywhere; }
-.latest-list .latest-value { font-size: 26px; color: #235442; }
-.latest-value span, .latest-source { font-size: 14px; color: #53645c; }
+.latest-list .latest-value { font-size: 26px; color: var(--care-primary); }
+.latest-value span, .latest-source { font-size: 14px; color: var(--care-text-muted); }
 @media (max-width: 700px) { .latest-health { padding: 20px 18px; } }
 </style>

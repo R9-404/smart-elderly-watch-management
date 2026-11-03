@@ -47,12 +47,12 @@
 </template>
 <style scoped>
 .mobile-announcements { display: none; }
-.mobile-notice { display: flex; width: 100%; min-height: 88px; justify-content: space-between; align-items: center; gap: 16px; padding: 20px 0; background: transparent; border: 0; border-top: 1px solid #e8ece4; font: inherit; text-align: left; color: #263632; cursor: pointer; }
+.mobile-notice { display: flex; width: 100%; min-height: 88px; justify-content: space-between; align-items: center; gap: 16px; padding: 20px 0; background: transparent; border: 0; border-top: 1px solid #e8ece4; font: inherit; text-align: left; color: var(--care-text); cursor: pointer; }
 .mobile-notice span { min-width: 0; }
 .mobile-notice strong { display: block; font-size: 16px; line-height: 1.7; overflow-wrap: anywhere; }
-.mobile-notice time { display: block; margin-top: 6px; font-size: 14px; color: #53645c; }
-.mobile-notice:focus-visible { outline: 3px solid #235442; outline-offset: 2px; }
-.dashboard { color: #263632; }
+.mobile-notice time { display: block; margin-top: 6px; font-size: 14px; color: var(--care-text-muted); }
+.mobile-notice:focus-visible { outline: 3px solid var(--care-primary); outline-offset: 2px; }
+.dashboard { color: var(--care-text); }
 .page-heading { display: flex; align-items: flex-end; justify-content: space-between; gap: 20px; margin-bottom: 24px; }
 .page-heading h1 { margin: 0; font-size: 28px; line-height: 1.4; font-weight: 500; letter-spacing: 0; }
 .page-subtitle { margin: 9px 0 0; color: #64756c; font-size: 14px; line-height: 1.6; }
@@ -64,10 +64,10 @@
 .metric-icon.amber { background: #fff5e5; color: #b7791f; }
 .metric-icon.rose { background: #fff0ed; color: #b5473c; }
 .metric-copy { display: flex; flex: 1; flex-direction: column; gap: 3px; min-width: 0; }
-.metric-copy span { color: #53645c; font-size: 14px; }
-.metric-copy .metric-error { color: #a4262c; font-size: 16px; line-height: 1.7; }
-.metric-copy strong { color: #263632; font-size: 30px; line-height: 1.15; font-weight: 600; }
-.metric-copy small { color: #53645c; font-size: 14px; line-height: 1.5; }
+.metric-copy span { color: var(--care-text-muted); font-size: 14px; }
+.metric-copy .metric-error { color: var(--care-danger); font-size: 16px; line-height: 1.7; }
+.metric-copy strong { color: var(--care-text); font-size: 30px; line-height: 1.15; font-weight: 600; }
+.metric-copy small { color: var(--care-text-muted); font-size: 14px; line-height: 1.5; }
 .overview-card :deep(.el-button.is-link) { min-height: 48px; flex: 0 0 auto; color: #28776a; font-size: 14px; }
 .overview-note { grid-column: 1 / -1; display: flex; gap: 12px; align-items: flex-start; padding: 16px 28px; border-top: 1px solid #e2e9e1; background: #f3f6f1; }
 .note-icon { color: #28776a; font-size: 17px; }
@@ -76,14 +76,14 @@
 .announcement-panel { padding: 21px; border: 1px solid #e5ebe7; border-radius: 12px; background: #fff; box-shadow: none; }
 .panel-heading { display: flex; align-items: center; justify-content: space-between; gap: 18px; margin-bottom: 16px; }
 .panel-heading h2 { margin: 0; font-size: 18px; font-weight: 500; }
-.panel-heading p { margin: 6px 0 0; color: #53645c; font-size: 14px; }
-.search-label { display: block; margin-bottom: 8px; font-size: 14px; color: #53645c; }
-.notice-count { display: inline-block; min-width: 28px; margin-left: 6px; padding: 1px 8px; border-radius: 6px; background: #edf2e6; color: #235442; font-size: 14px; text-align: center; vertical-align: middle; }
+.panel-heading p { margin: 6px 0 0; color: var(--care-text-muted); font-size: 14px; }
+.search-label { display: block; margin-bottom: 8px; font-size: 14px; color: var(--care-text-muted); }
+.notice-count { display: inline-block; min-width: 28px; margin-left: 6px; padding: 1px 8px; border-radius: 6px; background: #edf2e6; color: var(--care-primary); font-size: 14px; text-align: center; vertical-align: middle; }
 .search-box { width: min(100%, 280px); }
 .announcement-title { color: #33453c; font-weight: 500; }
-.table-empty { display: flex; flex-direction: column; align-items: center; gap: 8px; padding: 28px 10px; color: #53645c; }
+.table-empty { display: flex; flex-direction: column; align-items: center; gap: 8px; padding: 28px 10px; color: var(--care-text-muted); }
 .table-empty img { display: block; object-fit: contain; }
-.table-empty strong { color: #263632; font-size: 17px; line-height: 1.6; }
+.table-empty strong { color: var(--care-text); font-size: 17px; line-height: 1.6; }
 .table-empty span { max-width: 420px; font-size: 15px; line-height: 1.8; white-space: normal; }
 .pagination-wrap { display: flex; justify-content: flex-end; padding-top: 18px; }
 @media (min-width: 1800px) {
