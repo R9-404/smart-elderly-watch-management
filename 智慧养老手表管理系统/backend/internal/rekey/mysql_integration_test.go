@@ -32,6 +32,16 @@ func TestRekeyMySQL(t *testing.T) {
 		}
 		return value
 	}
+	column := func(columns []Column, name string) Column {
+		t.Helper()
+		for _, value := range columns {
+			if value.Name == name {
+				return value
+			}
+		}
+		t.Fatalf("column missing from report: %s", name)
+		return Column{}
+	}
 	s := func(scope string) string { return sealed(t, old, "synthetic protected value", scope) }
 	exec("INSERT INTO oldperson(old_id,name) VALUES(1,'synthetic')")
 	exec("INSERT INTO device(device_id,device_no,secret,old_id,last_lng,last_lat) VALUES(1,'REKEY-LAB',?,1,?,?)", strings.Repeat("x", 48), s("location"), s("location"))
@@ -60,6 +70,8 @@ func TestRekeyMySQL(t *testing.T) {
 		exec("INSERT INTO rule_state(device_id,epoch,kind,observation_key,streak,active,evidence,updated_at) VALUES(1,1,?,'synthetic',1,false,?,UTC_TIMESTAMP(6))", kind, string(wrapper))
 	}
 	exec("INSERT INTO telemetry_inbox(id,device_id,elder_id,binding_epoch,request_id,payload,next_retry_at,created_at) VALUES(1,1,1,1,'synthetic',?,UTC_TIMESTAMP(6),UTC_TIMESTAMP(6))", s("telemetry-inbox"))
+	exec(`INSERT INTO analytics_outbox(entity,entity_id,payload) VALUES('care_incident',98765,'{"note":"sne1:v2:A:not-a-coordinate"}')`)
+	unrelatedProjection := get("SELECT CAST(payload AS CHAR) FROM analytics_outbox WHERE entity='care_incident' AND entity_id=98765")
 	options := Options{BatchSize: 1, MaxRowsPerColumn: 1000}
 	beforeBusiness := get("SELECT CONCAT(health_epoch,':',old_id,':',device_no) FROM device WHERE device_id=1")
 	beforeIncident := get("SELECT CONCAT(state,':',updated_at) FROM care_incident WHERE id=1")
@@ -67,7 +79,7 @@ func TestRekeyMySQL(t *testing.T) {
 
 	t.Run("scan is readonly and covers all actual columns", func(t *testing.T) {
 		report, err := Run(ctx, database, current, old, options)
-		if err != nil || len(report.Before) != 19 || report.Stage != "complete" || report.EncryptedColumnsClean || report.RetirementAuthorized {
+		if err != nil || len(report.Before) != 20 || report.Stage != "complete" || report.EncryptedColumnsClean || report.RetirementAuthorized {
 			t.Fatalf("unexpected report: %+v err=%v", report, err)
 		}
 		for _, column := range report.Before {
@@ -92,7 +104,7 @@ func TestRekeyMySQL(t *testing.T) {
 				t.Fatal("incomplete apply")
 			}
 		}
-		if rewrites != 28 {
+		if rewrites != 30 {
 			t.Fatalf("pagination lost rows: rewrites=%d", rewrites)
 		}
 		options.Apply = false
@@ -109,8 +121,11 @@ func TestRekeyMySQL(t *testing.T) {
 		if get("SELECT JSON_EXTRACT(evidence,'$.future') FROM rule_state LIMIT 1") != "7" {
 			t.Fatal("JSON wrapper metadata lost")
 		}
-		if get("SELECT COUNT(*) FROM analytics_outbox WHERE CAST(payload AS CHAR) LIKE '%sne1:v2:A:%'") == "0" || report.RetirementAuthorized {
-			t.Fatal("subset scan was treated as retirement approval despite historical outbox ciphertext")
+		if get("SELECT COUNT(*) FROM analytics_outbox WHERE entity='device_location' AND CAST(payload AS CHAR) LIKE '%sne1:v2:A:%'") != "0" || report.RetirementAuthorized {
+			t.Fatal("historical coordinate events retain A or retirement was authorized")
+		}
+		if get("SELECT CAST(payload AS CHAR) FROM analytics_outbox WHERE entity='care_incident' AND entity_id=98765") != unrelatedProjection {
+			t.Fatal("unrelated projection was changed")
 		}
 		// The preserved old ciphertext is backup-like historical input, not a
 		// claim of a coordinated backup restore. Only an A reader can open it.
@@ -128,7 +143,7 @@ func TestRekeyMySQL(t *testing.T) {
 		exec("UPDATE telemetry_inbox SET payload='sne1:v2:MISSING:AAAA' WHERE id=1")
 		options.Apply = true
 		report, err := Run(ctx, database, current, old, options)
-		if err == nil || report.Stage != "preflight" || len(report.Applied) != 0 || report.Before[len(report.Before)-1].Invalid != 1 {
+		if err == nil || report.Stage != "preflight" || len(report.Applied) != 0 || column(report.Before, "telemetry_inbox.payload").Invalid != 1 {
 			t.Fatal("invalid late column did not fail before mutations")
 		}
 		if get("SELECT resolution_note FROM care_incident WHERE id=1") != valid {
@@ -152,6 +167,28 @@ func TestRekeyMySQL(t *testing.T) {
 			if column.Rewritten != 0 {
 				t.Fatal("idempotent rerun rewrote active data")
 			}
+		}
+	})
+	t.Run("historical projection authentication fails before direct field writes", func(t *testing.T) {
+		note := sealed(t, old, "valid earlier field", "care-text")
+		exec("UPDATE care_incident SET resolution_note=? WHERE id=1", note)
+		payload, _ := json.Marshal(map[string]any{"lng": sealed(t, old, "113.5", "location"), "lat": "sne1:v2:MISSING:AAAA", "source": "gps", "old_id": 1})
+		exec("INSERT INTO analytics_outbox(entity,entity_id,payload) VALUES('device_location',98766,?)", string(payload))
+		options.Apply = true
+		report, err := Run(ctx, database, current, old, options)
+		if err == nil || report.Stage != "preflight" || len(report.Applied) != 0 || column(report.Before, "analytics_outbox.payload").Invalid != 1 {
+			t.Fatal("bad nested coordinate did not block every write")
+		}
+		if get("SELECT resolution_note FROM care_incident WHERE id=1") != note {
+			t.Fatal("earlier direct field changed before projection authentication")
+		}
+		exec("UPDATE analytics_outbox SET payload=JSON_SET(payload,'$.lat',?) WHERE entity='device_location' AND entity_id=98766", sealed(t, current, "28.5", "location"))
+		report, err = Run(ctx, database, current, old, options)
+		if err != nil || !report.EncryptedColumnsClean || column(report.Applied, "analytics_outbox.payload").Rewritten != 1 {
+			t.Fatal("repaired mixed-version projection failed", err)
+		}
+		if get("SELECT JSON_UNQUOTE(JSON_EXTRACT(payload,'$.source')) FROM analytics_outbox WHERE entity='device_location' AND entity_id=98766") != "gps" {
+			t.Fatal("projection metadata changed")
 		}
 	})
 	t.Run("row budget fails incomplete before writes", func(t *testing.T) {
@@ -179,7 +216,7 @@ func TestRekeyMySQL(t *testing.T) {
 		original := get("SELECT payload FROM telemetry_inbox WHERE id=1")
 		exec("UPDATE telemetry_inbox SET payload=REPEAT('x',?) WHERE id=1", maxFieldBytes+1)
 		report, err := Run(ctx, database, current, old, options)
-		if err == nil || len(report.Applied) != 0 || report.Before[len(report.Before)-1].Invalid != 1 {
+		if err == nil || len(report.Applied) != 0 || column(report.Before, "telemetry_inbox.payload").Invalid != 1 {
 			t.Fatal("oversize value accepted")
 		}
 		exec("UPDATE telemetry_inbox SET payload=? WHERE id=1", original)
@@ -216,6 +253,31 @@ func TestRekeyMySQL(t *testing.T) {
 		report, err := Run(cancelled, database, current, old, Options{BatchSize: 1, MaxRowsPerColumn: 1000})
 		if err == nil || report.EncryptedColumnsClean || report.Stage == "complete" {
 			t.Fatal("cancelled scan was successful")
+		}
+	})
+	t.Run("projection CAS preserves consumer deletion and exact entity identity", func(t *testing.T) {
+		target := targets()[19]
+		payload, _ := json.Marshal(map[string]any{"lng": sealed(t, old, "113.5", "location"), "lat": nil})
+		exec("INSERT INTO analytics_outbox(entity,entity_id,payload) VALUES('device_location',98767,?)", string(payload))
+		id := get("SELECT CAST(id AS CHAR) FROM analytics_outbox WHERE entity='device_location' AND entity_id=98767")
+		stale := get("SELECT CAST(payload AS CHAR) FROM analytics_outbox WHERE id=?", id)
+		exec("DELETE FROM analytics_outbox WHERE id=?", id)
+		if changed, err := compareSwap(ctx, database, target, []any{id}, stale, stale); err != nil || changed {
+			t.Fatal("consumer-deleted event was rewritten", err)
+		}
+		exec("ALTER TABLE analytics_outbox MODIFY entity VARCHAR(32) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NOT NULL")
+		exec("INSERT INTO analytics_outbox(entity,entity_id,payload) VALUES('DEVICE_LOCATION',98768,?)", string(payload))
+		id = get("SELECT CAST(id AS CHAR) FROM analytics_outbox WHERE entity_id=98768")
+		stale = get("SELECT CAST(payload AS CHAR) FROM analytics_outbox WHERE id=?", id)
+		if changed, err := compareSwap(ctx, database, target, []any{id}, stale, stale); err != nil || changed {
+			t.Fatal("out-of-scope entity was rewritten", err)
+		}
+		options.Apply = false
+		if report, err := Run(ctx, database, current, old, options); err != nil || !report.EncryptedColumnsClean {
+			t.Fatal("out-of-scope entity was treated as a location event", err)
+		}
+		if get("SELECT CAST(payload AS CHAR) FROM analytics_outbox WHERE id=?", id) != stale {
+			t.Fatal("out-of-scope entity payload changed")
 		}
 	})
 }

@@ -21,6 +21,7 @@ type Options struct {
 
 type Counts struct {
 	Scanned   int64 `json:"scanned"`
+	Values    int64 `json:"values"`
 	Empty     int64 `json:"empty"`
 	Active    int64 `json:"active"`
 	OldKey    int64 `json:"old_key"`
@@ -57,7 +58,7 @@ type Report struct {
 // keys and never authorizes retirement based on a live scan alone.
 func Run(ctx context.Context, pool *sql.DB, current, previous *securestore.Box, options Options) (report Report, err error) {
 	report = Report{Version: 1, Mode: "scan", ActiveKey: current.ActiveKeyID(), StartedAt: time.Now().UTC().Format(time.RFC3339Nano), Stage: "validation",
-		Exclusions: []string{"plaintext fields and lookup-index migration", "blob objects and their references", "nested historical ciphertext in MySQL analytics_outbox payloads", "PostgreSQL projections and WAL", "backups and rollback binaries", "writer key-version barrier and independent review"}}
+		Exclusions: []string{"plaintext fields and lookup-index migration", "blob objects and their references", "MySQL binary logs, replicas and PostgreSQL projections/WAL", "backups and rollback binaries", "writer key-version barrier and independent review"}}
 	defer func() { report.FinishedAt = time.Now().UTC().Format(time.RFC3339Nano) }()
 	if pool == nil || current.ActiveKeyID() == "" || !current.SameLookupKey(previous) {
 		return report, errors.New("rekey requires a versioned active keyring and an unchanged previous lookup key")
@@ -182,7 +183,7 @@ func normalizeKeys(values []any) []any {
 
 func walk(ctx context.Context, pool *sql.DB, box *securestore.Box, t target, options Options, apply bool) (result Column, err error) {
 	result.Name = t.name()
-	upper, err := readKeys(pool.QueryRowContext(ctx, "SELECT "+strings.Join(t.keys, ",")+" FROM "+t.table+" ORDER BY "+strings.Join(t.keys, " DESC,")+" DESC LIMIT 1"), len(t.keys))
+	upper, err := readKeys(pool.QueryRowContext(ctx, "SELECT "+strings.Join(t.keys, ",")+" FROM "+t.table+" WHERE "+t.condition()+" ORDER BY "+strings.Join(t.keys, " DESC,")+" DESC LIMIT 1"), len(t.keys))
 	if errors.Is(err, sql.ErrNoRows) {
 		result.Complete = true
 		return result, nil
@@ -192,7 +193,7 @@ func walk(ctx context.Context, pool *sql.DB, box *securestore.Box, t target, opt
 	}
 	var cursor []any
 	for {
-		query := "SELECT " + strings.Join(t.keys, ",") + ",CASE WHEN OCTET_LENGTH(" + t.column + ")<=? THEN " + t.column + " ELSE NULL END,COALESCE(OCTET_LENGTH(" + t.column + ")>?,false) FROM " + t.table + " WHERE " + keyTuple(t.keys) + "<=" + placeholders(len(upper))
+		query := "SELECT " + strings.Join(t.keys, ",") + ",CASE WHEN OCTET_LENGTH(" + t.column + ")<=? THEN " + t.column + " ELSE NULL END,COALESCE(OCTET_LENGTH(" + t.column + ")>?,false) FROM " + t.table + " WHERE " + t.condition() + " AND " + keyTuple(t.keys) + "<=" + placeholders(len(upper))
 		args := append([]any{maxFieldBytes, maxFieldBytes}, upper...)
 		if cursor != nil {
 			query += " AND " + keyTuple(t.keys) + ">" + placeholders(len(cursor))
@@ -215,6 +216,7 @@ func walk(ctx context.Context, pool *sql.DB, box *securestore.Box, t target, opt
 			result.Scanned++
 			cursor = row.keys
 			if row.oversized {
+				result.Values++
 				result.Invalid++
 				continue
 			}
@@ -274,7 +276,7 @@ func readPage(ctx context.Context, pool *sql.DB, query string, args []any, keyCo
 // compareSwap deliberately compares bytes, including case and trailing spaces,
 // even if an old deployment uses a case-insensitive or PAD SPACE collation.
 func compareSwap(ctx context.Context, pool *sql.DB, t target, keys []any, old, replacement string) (bool, error) {
-	query := "UPDATE " + t.table + " SET " + t.column + "=? WHERE " + keyTuple(t.keys) + "=" + placeholders(len(keys)) + " AND CAST(" + t.column + " AS BINARY)=CAST(? AS BINARY)"
+	query := "UPDATE " + t.table + " SET " + t.column + "=? WHERE " + t.condition() + " AND " + keyTuple(t.keys) + "=" + placeholders(len(keys)) + " AND CAST(" + t.column + " AS BINARY)=CAST(? AS BINARY)"
 	args := append([]any{replacement}, keys...)
 	args = append(args, old)
 	result, err := pool.ExecContext(ctx, query, args...)
@@ -289,13 +291,17 @@ func compareSwap(ctx context.Context, pool *sql.DB, t target, keys []any, old, r
 }
 
 func convert(box *securestore.Box, t target, keys []any, stored sql.NullString, apply bool, counts *Counts) (string, bool, error) {
+	if t.format == coordinateProjection && stored.Valid && stored.String != "" {
+		return convertCoordinates(box, t, keys, stored.String, apply, counts)
+	}
+	counts.Values++
 	if !stored.Valid || stored.String == "" {
 		counts.Empty++
 		return "", false, nil
 	}
 	envelope := stored.String
 	var wrapper map[string]json.RawMessage
-	if t.jsonEnvelope {
+	if t.format == ruleEnvelope {
 		if json.Unmarshal([]byte(envelope), &wrapper) != nil || wrapper == nil {
 			counts.Invalid++
 			return "", false, nil
@@ -334,7 +340,7 @@ func convert(box *securestore.Box, t target, keys []any, stored sql.NullString, 
 	if err != nil {
 		return "", false, err
 	}
-	if t.jsonEnvelope {
+	if t.format == ruleEnvelope {
 		wrapper["encrypted"], err = json.Marshal(replacement)
 		if err != nil {
 			return "", false, err
