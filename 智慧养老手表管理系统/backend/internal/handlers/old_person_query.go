@@ -10,7 +10,7 @@ import (
 const oldPersonCols = `old_id, name, age, sex, phone, room, illness, warn, food_like,
 	food_hate, drag, family_id, customer_id, be_time, bothdate, device_id`
 
-func scanOldPersonRow(row dbstore.Row) (map[string]any, error) {
+func scanOldPersonRow(row dbstore.Rows) (map[string]any, error) {
 	var id int64
 	var name, sex, phone, room, illness, warn, drag, foodLike, foodHate *string
 	var age *int
@@ -50,20 +50,8 @@ func (h *Handler) listResidents(w http.ResponseWriter, r *http.Request) {
 	if internalError(w, h.DB.QueryRow(ctx, `SELECT COUNT(*) FROM (`+base+`) AS t`, name).Scan(&total)) {
 		return
 	}
-	rows, err := h.DB.Query(ctx, base+` LIMIT $2 OFFSET $3`, name, ps, (p-1)*ps)
-	if internalError(w, err) {
-		return
-	}
-	defer rows.Close()
-	list := []map[string]any{}
-	for rows.Next() {
-		item, err := scanOldPersonRow(rows)
-		if internalError(w, err) {
-			return
-		}
-		list = append(list, item)
-	}
-	if internalError(w, rows.Err()) {
+	list, ok := queryRows(h, w, ctx, scanOldPersonRow, base+` LIMIT $2 OFFSET $3`, name, ps, (p-1)*ps)
+	if !ok {
 		return
 	}
 	response.OK(w, map[string]any{
@@ -98,13 +86,7 @@ func (h *Handler) getResidentDetails(w http.ResponseWriter, r *http.Request) {
 	if internalError(w, h.DB.QueryRow(ctx, `SELECT COUNT(*) FROM (`+base+`) AS t`, name).Scan(&total)) {
 		return
 	}
-	rows, err := h.DB.Query(ctx, base+` LIMIT $2 OFFSET $3`, name, ps, (p-1)*ps)
-	if internalError(w, err) {
-		return
-	}
-	defer rows.Close()
-	list := []map[string]any{}
-	for rows.Next() {
+	list, ok := queryRows(h, w, ctx, func(rows dbstore.Rows) (map[string]any, error) {
 		var id int64
 		var name, sex, phone, room, illness, warn, drag, foodLike, foodHate *string
 		var age *int
@@ -114,10 +96,9 @@ func (h *Handler) getResidentDetails(w http.ResponseWriter, r *http.Request) {
 		if err := rows.Scan(&id, &name, &age, &sex, &phone, &room, &illness, &warn,
 			&foodLike, &foodHate, &drag, &familyID, &customerID, &beTime, &bothdate, &deviceID,
 			&familyName, &familyRelation, &familyPhone, &familySex, &familyAddress, &customerName); err != nil {
-			response.Error500(w, ref())
-			return
+			return nil, err
 		}
-		list = append(list, map[string]any{
+		return map[string]any{
 			"oldId": id, "name": name, "age": currentPersonAge(bothdate, age, time.Now()), "sex": sex, "phone": phone,
 			"room": room, "illness": illness, "warn": warn, "drag": drag,
 			"foodLike": foodLike, "foodHate": foodHate, "familyId": familyID,
@@ -126,9 +107,9 @@ func (h *Handler) getResidentDetails(w http.ResponseWriter, r *http.Request) {
 			"familyName": familyName, "familyRelation": familyRelation,
 			"familyPhone": familyPhone, "familySex": familySex,
 			"familyAddress": familyAddress, "customerName": customerName,
-		})
-	}
-	if internalError(w, rows.Err()) {
+		}, nil
+	}, base+` LIMIT $2 OFFSET $3`, name, ps, (p-1)*ps)
+	if !ok {
 		return
 	}
 	response.OK(w, map[string]any{

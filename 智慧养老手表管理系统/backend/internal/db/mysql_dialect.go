@@ -88,30 +88,12 @@ func rewriteSQLCodeSegments(query string, rewrite func(string) (string, error)) 
 				return "", err
 			}
 			out.WriteString(code)
-			quote := query[i]
-			start := i
-			i++
-			closed := false
-			for i < len(query) {
-				c := query[i]
-				i++
-				if c == '\\' && i < len(query) {
-					i++
-					continue
-				}
-				if c == quote {
-					if i < len(query) && query[i] == quote {
-						i++
-						continue
-					}
-					closed = true
-					break
-				}
+			end, err := quotedSQLEnd(query, i)
+			if err != nil {
+				return "", err
 			}
-			if !closed {
-				return "", errors.New("unterminated SQL quoted value")
-			}
-			out.WriteString(query[start:i])
+			out.WriteString(query[i:end])
+			i = end
 			codeStart = i
 			continue
 		}
@@ -150,29 +132,12 @@ func rewriteDialectExpressions(query string) (string, error) {
 			continue
 		}
 		if query[i] == '\'' || query[i] == '"' || query[i] == '`' {
-			quote, start := query[i], i
-			i++
-			closed := false
-			for i < len(query) {
-				c := query[i]
-				i++
-				if c == '\\' && i < len(query) {
-					i++
-					continue
-				}
-				if c == quote {
-					if i < len(query) && query[i] == quote {
-						i++
-						continue
-					}
-					closed = true
-					break
-				}
+			end, err := quotedSQLEnd(query, i)
+			if err != nil {
+				return "", err
 			}
-			if !closed {
-				return "", errors.New("unterminated SQL quoted value")
-			}
-			out.WriteString(query[start:i])
+			out.WriteString(query[i:end])
+			i = end
 			continue
 		}
 		if i == 0 || !identifierByte(query[i-1]) {
@@ -215,4 +180,21 @@ func containsSQLCodePattern(query string, pattern *regexp.Regexp) (bool, error) 
 		return code, nil
 	})
 	return found, err
+}
+
+// quotedSQLEnd returns the first byte after a quoted SQL token.
+func quotedSQLEnd(query string, start int) (int, error) {
+	quote := query[start]
+	for i := start + 1; i < len(query); i++ {
+		switch query[i] {
+		case '\\':
+			i++
+		case quote:
+			if i+1 == len(query) || query[i+1] != quote {
+				return i + 1, nil
+			}
+			i++
+		}
+	}
+	return 0, errors.New("unterminated SQL quoted value")
 }

@@ -81,20 +81,8 @@ func (h *Handler) positionSelect(w http.ResponseWriter, r *http.Request) {
 	if internalError(w, h.DB.QueryRow(ctx, `SELECT COUNT(*) FROM oldperson o`+filter, name).Scan(&total)) {
 		return
 	}
-	rows, err := h.DB.Query(ctx, positionLatestSQL()+filter+` ORDER BY be_time DESC, o.old_id LIMIT $2 OFFSET $3`, name, ps, (p-1)*ps)
-	if internalError(w, err) {
-		return
-	}
-	defer rows.Close()
-	list := []map[string]any{}
-	for rows.Next() {
-		item, err := scanPositionRow(h.Box, rows)
-		if internalError(w, err) {
-			return
-		}
-		list = append(list, item)
-	}
-	if internalError(w, rows.Err()) {
+	list, ok := queryRows(h, w, ctx, h.scanPosition, positionLatestSQL()+filter+` ORDER BY be_time DESC, o.old_id LIMIT $2 OFFSET $3`, name, ps, (p-1)*ps)
+	if !ok {
 		return
 	}
 	response.OK(w, map[string]any{
@@ -163,7 +151,7 @@ func (h *Handler) positionSelectFamily(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 	}
-	rows, err := h.DB.Query(ctx,
+	list, ok := queryRows(h, w, ctx, h.scanPosition,
 		`SELECT o.name, o.old_id, o.sex, l.lng, l.lat,
 			l.be_time AS be_time,
 			COALESCE(a.status, '0') AS status, a.be_time AS alarm_time, a.lng AS alarm_lng, a.lat AS alarm_lat,
@@ -174,20 +162,12 @@ func (h *Handler) positionSelectFamily(w http.ResponseWriter, r *http.Request) {
 		 LEFT JOIN (SELECT old_id, status, be_time, lng, lat, kind, position_metadata FROM alarm_precess WHERE old_id=$2 ORDER BY be_time DESC, id DESC LIMIT 1) a
 			ON a.old_id = o.old_id
 		 WHERE o.old_id=$3`, oldID, oldID, oldID)
-	if internalError(w, err) {
-		return
-	}
-	defer rows.Close()
-	list := []map[string]any{}
-	for rows.Next() {
-		item, err := scanPositionRow(h.Box, rows)
-		if internalError(w, err) {
-			return
-		}
-		list = append(list, item)
-	}
-	if internalError(w, rows.Err()) {
+	if !ok {
 		return
 	}
 	response.OK(w, map[string]any{"positionDtos": list})
+}
+
+func (h *Handler) scanPosition(rows dbstore.Rows) (map[string]any, error) {
+	return scanPositionRow(h.Box, rows)
 }

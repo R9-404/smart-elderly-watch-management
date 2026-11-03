@@ -3,6 +3,7 @@ package handlers
 import (
 	"net/http"
 	"strconv"
+	dbstore "suining-care/internal/db"
 
 	"suining-care/internal/response"
 )
@@ -38,27 +39,19 @@ func (h *Handler) careStaff(w http.ResponseWriter, r *http.Request) {
 		response.Error500(w, ref())
 		return
 	}
-	rows, err := h.DB.Query(r.Context(), `SELECT u.user_id,u.user_name,
- COALESCE(p.duty,'supervisor') FROM users u
- LEFT JOIN care_staff_permission p ON p.admin_id=u.user_id
- ORDER BY u.user_id LIMIT 100`)
-	if internalError(w, err) {
-		return
-	}
-	defer rows.Close()
-	list := []map[string]any{}
-	for rows.Next() {
+	list, ok := queryRows(h, w, r.Context(), func(rows dbstore.Rows) (map[string]any, error) {
 		var id int64
 		var name *string
 		var duty string
-		if rows.Scan(&id, &name, &duty) != nil {
-			response.Error500(w, ref())
-			return
+		if err := rows.Scan(&id, &name, &duty); err != nil {
+			return nil, err
 		}
-		list = append(list, map[string]any{"id": id, "name": name, "duty": duty})
-	}
-	if rows.Err() != nil {
-		response.Error500(w, ref())
+		return map[string]any{"id": id, "name": name, "duty": duty}, nil
+	}, `SELECT u.user_id,u.user_name,
+ COALESCE(p.duty,'supervisor') FROM users u
+ LEFT JOIN care_staff_permission p ON p.admin_id=u.user_id
+ ORDER BY u.user_id LIMIT 100`)
+	if !ok {
 		return
 	}
 	w.Header().Set("Cache-Control", "no-store")
@@ -132,25 +125,17 @@ func (h *Handler) careAccessAudit(w http.ResponseWriter, r *http.Request) {
 		response.Error500(w, ref())
 		return
 	}
-	rows, err := h.DB.Query(r.Context(), `SELECT actor_id,actor_role,resource,method,created_at
- FROM care_sensitive_access_audit ORDER BY id DESC LIMIT 100`)
-	if internalError(w, err) {
-		return
-	}
-	defer rows.Close()
-	items := []map[string]any{}
-	for rows.Next() {
+	items, ok := queryRows(h, w, r.Context(), func(rows dbstore.Rows) (map[string]any, error) {
 		var id int64
 		var role, resource, method string
 		var created interface{}
-		if rows.Scan(&id, &role, &resource, &method, &created) != nil {
-			response.Error500(w, ref())
-			return
+		if err := rows.Scan(&id, &role, &resource, &method, &created); err != nil {
+			return nil, err
 		}
-		items = append(items, map[string]any{"actorId": id, "role": role, "resource": resource, "method": method, "at": created})
-	}
-	if rows.Err() != nil {
-		response.Error500(w, ref())
+		return map[string]any{"actorId": id, "role": role, "resource": resource, "method": method, "at": created}, nil
+	}, `SELECT actor_id,actor_role,resource,method,created_at
+ FROM care_sensitive_access_audit ORDER BY id DESC LIMIT 100`)
+	if !ok {
 		return
 	}
 	w.Header().Set("Cache-Control", "no-store")

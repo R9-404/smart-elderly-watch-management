@@ -52,7 +52,7 @@ func (h *Handler) listActivityHistory(w http.ResponseWriter, r *http.Request) {
 	if !ok {
 		return
 	}
-	items, ok := queryMeasurements(h, w, r, scanActivityRecord, `SELECT o.name AS name, o.old_id AS oldId, o.sex AS sex,`+
+	items, ok := queryRows(h, w, r.Context(), scanActivityRecord, `SELECT o.name AS name, o.old_id AS oldId, o.sex AS sex,`+
 		` w.step AS step, w.sleep AS sleep, w.sleep_sate AS sleepAlertState, TO_CHAR(w.create_time,'YYYY-MM-DD') AS createTime`+
 		` FROM oldperson o INNER JOIN `+ownedDailyRecords+` w ON w.device_id=o.device_id AND w.old_id=o.old_id`+
 		` WHERE o.old_id=$1 ORDER BY w.create_time DESC, w.id DESC LIMIT 1`, oldID)
@@ -72,28 +72,14 @@ func (h *Handler) getActivityChart(w http.ResponseWriter, r *http.Request) {
 	if !ok {
 		return
 	}
-	rows, err := h.DB.Query(r.Context(), `SELECT r.name, r.oldId, r.sex, r.step, r.sleep, r.sleepAlertState,`+
+	items, ok := queryRows(h, w, r.Context(), scanActivityRecord, `SELECT r.name, r.oldId, r.sex, r.step, r.sleep, r.sleepAlertState,`+
 		` TO_CHAR(r.create_time,'YYYY-MM-DD') AS createTime FROM (`+
 		` SELECT o.name AS name, o.old_id AS oldId, o.sex AS sex, w.step AS step, w.sleep AS sleep,`+
 		` w.sleep_sate AS sleepAlertState, w.create_time, w.id`+
 		` FROM oldperson o INNER JOIN `+ownedDailyRecords+` w ON w.device_id=o.device_id AND w.old_id=o.old_id`+
 		` WHERE o.old_id=$1 ORDER BY w.create_time DESC, w.id DESC LIMIT 7) r`+
 		` ORDER BY r.create_time ASC, r.id ASC`, oldID)
-	if internalError(w, err) {
-		return
-	}
-	defer rows.Close()
-	items := []activityRecord{}
-	for rows.Next() {
-		d, err := scanActivityRecord(rows)
-		if err != nil {
-			rows.Close()
-			response.Error500(w, ref())
-			return
-		}
-		items = append(items, d)
-	}
-	if !rowsOK(w, rows) {
+	if !ok {
 		return
 	}
 	sleep := []*int64{}

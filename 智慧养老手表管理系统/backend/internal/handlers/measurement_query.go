@@ -1,6 +1,7 @@
 package handlers
 
 import (
+	"context"
 	"net/http"
 	"strconv"
 	"strings"
@@ -37,7 +38,7 @@ func listLatestMeasurements[T any](h *Handler, w http.ResponseWriter, r *http.Re
 		return
 	}
 	limitSQL, fullArgs := pageArgs(args, page, pageSize)
-	items, ok := queryMeasurements(h, w, r, scan, sql+limitSQL, fullArgs...)
+	items, ok := queryRows(h, w, r.Context(), scan, sql+limitSQL, fullArgs...)
 	if !ok {
 		return
 	}
@@ -46,8 +47,8 @@ func listLatestMeasurements[T any](h *Handler, w http.ResponseWriter, r *http.Re
 	})
 }
 
-func queryMeasurements[T any](h *Handler, w http.ResponseWriter, r *http.Request, scan func(dbstore.Rows) (T, error), sql string, args ...any) ([]T, bool) {
-	rows, err := h.DB.Query(r.Context(), sql, args...)
+func queryRows[T any](h *Handler, w http.ResponseWriter, ctx context.Context, scan func(dbstore.Rows) (T, error), sql string, args ...any) ([]T, bool) {
+	rows, err := h.DB.Query(ctx, sql, args...)
 	if internalError(w, err) {
 		return nil, false
 	}

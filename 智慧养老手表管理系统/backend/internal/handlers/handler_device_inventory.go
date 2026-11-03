@@ -160,48 +160,15 @@ func (h *Handler) deviceResetSecret(w http.ResponseWriter, r *http.Request) {
 
 // POST /api/v1/device/unbind —— 解除设备绑定（ADMIN，事务）。
 func (h *Handler) deviceUnbind(w http.ResponseWriter, r *http.Request) {
-	m, ok := bodyMap(w, r)
-	if !ok {
-		return
-	}
-	idStr, present := vstr(m, "deviceId")
-	if !present || !validID(idStr) {
-		writeValidation400(w)
-		return
-	}
-	deviceID, _ := strconv.ParseInt(idStr, 10, 64)
-	ctx := r.Context()
-	tx, err := h.DB.Begin(ctx)
-	if internalError(w, err) {
-		return
-	}
-	rollback := func() { _ = tx.Rollback(ctx) }
-	if _, err := tx.Exec(ctx, `UPDATE oldperson SET device_id=(SELECT min(d.device_id) FROM device d WHERE d.old_id=oldperson.old_id AND d.device_id<>$1) WHERE device_id=$1`, deviceID); err != nil {
-		rollback()
-		response.Error500(w, ref())
-		return
-	}
-	ct, err := tx.Exec(ctx,
-		`UPDATE device SET old_id=NULL, family_id=NULL, bind_time=NULL, last_lng=NULL, last_lat=NULL
-		 WHERE device_id=$1`, deviceID)
-	if err != nil {
-		rollback()
-		response.Error500(w, ref())
-		return
-	}
-	if ct.RowsAffected() < 1 {
-		rollback()
-		response.Fail(w, "解绑失败")
-		return
-	}
-	if internalError(w, tx.Commit(ctx)) {
-		return
-	}
-	response.OK(w, nil)
+	h.detachDevice(w, r, false)
 }
 
 // POST /api/v1/device/delete —— 删除设备（ADMIN，事务）。
 func (h *Handler) deviceDelete(w http.ResponseWriter, r *http.Request) {
+	h.detachDevice(w, r, true)
+}
+
+func (h *Handler) detachDevice(w http.ResponseWriter, r *http.Request, remove bool) {
 	m, ok := bodyMap(w, r)
 	if !ok {
 		return
@@ -223,20 +190,27 @@ func (h *Handler) deviceDelete(w http.ResponseWriter, r *http.Request) {
 		response.Error500(w, ref())
 		return
 	}
-	if _, err := tx.Exec(ctx, `DELETE FROM watch_info WHERE device_id=$1`, deviceID); err != nil {
-		rollback()
-		response.Error500(w, ref())
-		return
+	query := `UPDATE device SET old_id=NULL, family_id=NULL, bind_time=NULL, last_lng=NULL, last_lat=NULL
+		WHERE device_id=$1`
+	failureMessage := "解绑失败"
+	if remove {
+		if _, err := tx.Exec(ctx, `DELETE FROM watch_info WHERE device_id=$1`, deviceID); err != nil {
+			rollback()
+			response.Error500(w, ref())
+			return
+		}
+		query = `DELETE FROM device WHERE device_id=$1`
+		failureMessage = "删除失败"
 	}
-	ct, err := tx.Exec(ctx, `DELETE FROM device WHERE device_id=$1`, deviceID)
+	result, err := tx.Exec(ctx, query, deviceID)
 	if err != nil {
 		rollback()
 		response.Error500(w, ref())
 		return
 	}
-	if ct.RowsAffected() != 1 {
+	if affected := result.RowsAffected(); affected < 1 || (remove && affected != 1) {
 		rollback()
-		response.Fail(w, "删除失败")
+		response.Fail(w, failureMessage)
 		return
 	}
 	if internalError(w, tx.Commit(ctx)) {

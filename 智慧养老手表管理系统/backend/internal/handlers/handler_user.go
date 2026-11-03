@@ -28,25 +28,18 @@ func (h *Handler) userSelect(w http.ResponseWriter, r *http.Request) {
 		response.Fail(w, "参数不完整")
 		return
 	}
-	rows, err := h.DB.Query(r.Context(),
-		`SELECT user_id,user_name,user_phone,role FROM users WHERE user_phone=$1`, phone)
-	if internalError(w, err) {
-		return
-	}
-	defer rows.Close()
-	list := []map[string]any{}
-	for rows.Next() {
+	list, ok := queryRows(h, w, r.Context(), func(rows dbstore.Rows) (map[string]any, error) {
 		var id int64
 		var name, uphone, role *string
-		if internalError(w, rows.Scan(&id, &name, &uphone, &role)) {
-			return
+		if err := rows.Scan(&id, &name, &uphone, &role); err != nil {
+			return nil, err
 		}
-		list = append(list, map[string]any{
+		return map[string]any{
 			"userId": id, "userName": name, "userPhone": uphone,
 			"role": role, "password": nil,
-		})
-	}
-	if internalError(w, rows.Err()) {
+		}, nil
+	}, `SELECT user_id,user_name,user_phone,role FROM users WHERE user_phone=$1`, phone)
+	if !ok {
 		return
 	}
 	response.JSON(w, http.StatusOK, map[string]any{"usersByPhone2": list})

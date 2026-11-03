@@ -97,21 +97,11 @@ func (h *Handler) deviceList(w http.ResponseWriter, r *http.Request) {
 		response.Error500(w, ref())
 		return
 	}
-	rows, err := h.DB.Query(ctx, base+` LIMIT $4 OFFSET $5`, pattern, pattern, state, ps, (p-1)*ps)
-	if internalError(w, err) {
-		return
-	}
-	defer rows.Close()
 	now := time.Now()
-	list := []map[string]any{}
-	for rows.Next() {
-		item, err := h.scanAdminDevice(rows, now)
-		if internalError(w, err) {
-			return
-		}
-		list = append(list, item)
-	}
-	if internalError(w, rows.Err()) {
+	list, ok := queryRows(h, w, ctx, func(rows db.Rows) (map[string]any, error) {
+		return h.scanAdminDevice(rows, now)
+	}, base+` LIMIT $4 OFFSET $5`, pattern, pattern, state, ps, (p-1)*ps)
+	if !ok {
 		return
 	}
 	response.OK(w, map[string]any{

@@ -3,6 +3,7 @@ package handlers
 import (
 	"net/http"
 	"strconv"
+	dbstore "suining-care/internal/db"
 	"suining-care/internal/response"
 	"time"
 )
@@ -77,27 +78,21 @@ func (h *Handler) listMonitoringProfiles(w http.ResponseWriter, r *http.Request)
 	if internalError(w, h.DB.QueryRow(ctx, `SELECT COUNT(*) FROM (`+base+`) AS t`, oldName).Scan(&total)) {
 		return
 	}
-	rows, err := h.DB.Query(ctx, base+` LIMIT $2 OFFSET $3`, oldName, ps, (p-1)*ps)
-	if internalError(w, err) {
-		return
-	}
-	defer rows.Close()
-	list := []map[string]any{}
-	for rows.Next() {
+	list, ok := queryRows(h, w, ctx, func(rows dbstore.Rows) (map[string]any, error) {
 		var deviceID int64
 		var opTime *time.Time
 		var hrf, bpf, hrl, bpl *int
 		var name *string
-		if internalError(w, rows.Scan(&deviceID, &opTime, &hrf, &bpf, &hrl, &bpl, &name)) {
-			return
+		if err := rows.Scan(&deviceID, &opTime, &hrf, &bpf, &hrl, &bpl, &name); err != nil {
+			return nil, err
 		}
-		list = append(list, map[string]any{
+		return map[string]any{
 			"deviceId": deviceID, "opTime": dateOrNil(opTime),
 			"device_id": deviceID, "op_time": dateOrNil(opTime),
 			"hrf": hrf, "bpf": bpf, "hrl": hrl, "bpl": bpl, "name": name,
-		})
-	}
-	if internalError(w, rows.Err()) {
+		}, nil
+	}, base+` LIMIT $2 OFFSET $3`, oldName, ps, (p-1)*ps)
+	if !ok {
 		return
 	}
 	response.OK(w, map[string]any{

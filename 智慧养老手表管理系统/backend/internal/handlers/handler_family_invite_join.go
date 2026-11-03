@@ -11,21 +11,15 @@ import (
 )
 
 func (h *Handler) inviteOldPersonList(w http.ResponseWriter, r *http.Request) {
-	rows, err := h.DB.Query(r.Context(), `SELECT old_id,name,phone,room FROM oldperson`)
-	if internalError(w, err) {
-		return
-	}
-	defer rows.Close()
-	list := []map[string]any{}
-	for rows.Next() {
+	list, ok := queryRows(h, w, r.Context(), func(rows db.Rows) (map[string]any, error) {
 		var id int64
 		var name, phone, room *string
-		if internalError(w, rows.Scan(&id, &name, &phone, &room)) {
-			return
+		if err := rows.Scan(&id, &name, &phone, &room); err != nil {
+			return nil, err
 		}
-		list = append(list, map[string]any{"oldId": id, "name": name, "phone": phone, "room": room})
-	}
-	if internalError(w, rows.Err()) {
+		return map[string]any{"oldId": id, "name": name, "phone": phone, "room": room}, nil
+	}, `SELECT old_id,name,phone,room FROM oldperson`)
+	if !ok {
 		return
 	}
 	response.OK(w, map[string]any{"oldPeople": list})

@@ -27,7 +27,7 @@ func (h *Handler) listVitalHistory(w http.ResponseWriter, r *http.Request) {
 		` FROM oldperson o` +
 		` INNER JOIN (SELECT * FROM ratepre WHERE old_id=$1 ORDER BY create_time DESC, id DESC LIMIT 1) r ON r.old_id=o.old_id` +
 		` ORDER BY createTime DESC`
-	items, ok := queryMeasurements(h, w, r, scanVitalRecord, sql, oldID)
+	items, ok := queryRows(h, w, r.Context(), scanVitalRecord, sql, oldID)
 	if !ok {
 		return
 	}
@@ -51,33 +51,20 @@ func (h *Handler) getVitalChart(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	defer rows.Close()
-	type detail struct {
-		Hr         *int64
-		Bp         *int64
-		CreateTime *string
-	}
-	var list []detail
+	// The query returns at most 30 points, already in display order.
+	hrs := make([]*int64, 0, 30)
+	bps := make([]*int64, 0, 30)
+	createTimes := make([]string, 0, 30)
+	var timeStr, lastDay string
 	for rows.Next() {
-		var d detail
-		if err := rows.Scan(&d.Hr, &d.Bp, &d.CreateTime); err != nil {
-			rows.Close()
-			response.Error500(w, ref())
+		var hr, bp *int64
+		var createTime *string
+		if internalError(w, rows.Scan(&hr, &bp, &createTime)) {
 			return
 		}
-		list = append(list, d)
-	}
-	if !rowsOK(w, rows) {
-		return
-	}
-	timeStr := ""
-	lastDay := ""
-	hrs := []*int64{}
-	bps := []*int64{}
-	createTimes := []string{}
-	for _, d := range list {
 		ct := ""
-		if d.CreateTime != nil {
-			ct = *d.CreateTime
+		if createTime != nil {
+			ct = *createTime
 		}
 		if timeStr == "" {
 			timeStr = safeSub(ct, 0, 10)
@@ -85,9 +72,12 @@ func (h *Handler) getVitalChart(w http.ResponseWriter, r *http.Request) {
 		if ct != "" {
 			lastDay = safeSub(ct, 0, 10)
 		}
-		hrs = append(hrs, d.Hr)
-		bps = append(bps, d.Bp)
+		hrs = append(hrs, hr)
+		bps = append(bps, bp)
 		createTimes = append(createTimes, ct)
+	}
+	if !rowsOK(w, rows) {
+		return
 	}
 	if lastDay != "" && lastDay != timeStr {
 		timeStr += " 至 " + lastDay

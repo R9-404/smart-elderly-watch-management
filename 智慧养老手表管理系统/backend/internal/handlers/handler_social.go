@@ -4,6 +4,7 @@ package handlers
 import (
 	"fmt"
 	"net/http"
+	dbstore "suining-care/internal/db"
 	"suining-care/internal/response"
 	"time"
 	"unicode/utf8"
@@ -92,24 +93,16 @@ func (h *Handler) listNoticeComments(w http.ResponseWriter, r *http.Request) {
 		sql += " WHERE s.text_id=$2"
 		args = append(args, textID)
 	}
-	rows, err := h.DB.Query(r.Context(), sql, args...)
-	if internalError(w, err) {
-		return
-	}
-	defer rows.Close()
-	items := []noticeComment{}
-	for rows.Next() {
+	items, ok := queryRows(h, w, r.Context(), func(rows dbstore.Rows) (noticeComment, error) {
 		var d noticeComment
 		if err := rows.Scan(&d.SaidID, &d.Said, &d.TextID, &d.Back, &d.SaidTime, &d.BackTime,
 			&d.PersonName, &d.NiceCount, &d.SaidPhone, &d.TouPic, &d.Good); err != nil {
-			rows.Close()
-			response.Error500(w, ref())
-			return
+			return d, err
 		}
 		d.SaidPhone = maskPhone(d.SaidPhone)
-		items = append(items, d)
-	}
-	if !rowsOK(w, rows) {
+		return d, nil
+	}, sql, args...)
+	if !ok {
 		return
 	}
 	response.JSON(w, http.StatusOK, map[string]any{"comments": items})
@@ -135,22 +128,14 @@ func (h *Handler) searchNoticeComments(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	limitSQL, fullArgs := pageArgs(nil, page, pageSize)
-	rows, err := h.DB.Query(r.Context(), sql+limitSQL, fullArgs...)
-	if internalError(w, err) {
-		return
-	}
-	defer rows.Close()
-	items := []moderatedNoticeComment{}
-	for rows.Next() {
+	items, ok := queryRows(h, w, r.Context(), func(rows dbstore.Rows) (moderatedNoticeComment, error) {
 		var d moderatedNoticeComment
 		if err := rows.Scan(&d.SaidID, &d.Said, &d.Back, &d.SaidTime, &d.BackTime, &d.PersonName, &d.TouPic, &d.Title); err != nil {
-			rows.Close()
-			response.Error500(w, ref())
-			return
+			return d, err
 		}
-		items = append(items, d)
-	}
-	if !rowsOK(w, rows) {
+		return d, nil
+	}, sql+limitSQL, fullArgs...)
+	if !ok {
 		return
 	}
 	response.JSON(w, http.StatusOK, map[string]any{
