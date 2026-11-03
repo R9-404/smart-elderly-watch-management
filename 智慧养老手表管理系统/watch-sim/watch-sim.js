@@ -5,7 +5,7 @@
  * 作用：在没有真机的情况下，按真实手表的方式调用设备侧接口，
  *      让网页上的心率血压、睡眠步数、位置、摔倒告警数据真正“动起来”。
  *
- * 只依赖 Node 内置模块，Node 10 及以上都能跑：
+ * 依赖 Node.js 20+ 内置 fetch：
  *   node watch-sim.js
  *   node watch-sim.js --deviceNo WATCH0002 --secret <设备管理中新生成的密钥>
  *   node watch-sim.js --scenario demo        # 循环演示：正常 -> 心率异常 -> 摔倒 -> SOS
@@ -16,12 +16,9 @@
 
 'use strict';
 
-const http = require('http');
-const https = require('https');
 const crypto = require('crypto');
 const fs = require('fs');
 const path = require('path');
-const url = require('url');
 
 const CONFIG_FILE = path.join(__dirname, 'watch-sim.config.json');
 
@@ -82,54 +79,37 @@ function loadConfig() {
   return merged;
 }
 
-function postJson(baseUrl, apiPath, body) {
-  return new Promise(function (resolve, reject) {
-    const target = url.resolve(baseUrl.replace(/\/+$/, '') + '/', apiPath.replace(/^\/+/, ''));
-    const payload = Buffer.from(JSON.stringify(body), 'utf8');
-    const parsed = url.parse(target);
-    const lib = parsed.protocol === 'https:' ? https : http;
-    const headers = {
-      'Content-Type': 'application/json;charset=UTF-8',
-      'Content-Length': payload.length
-    };
-    // Report and SOS use the backend's HMAC-SHA256 wire contract.
-    // Generate a fresh nonce for every attempt, including retries.
-    if (/^api\/v1\/device\/(report|sos)$/.test(apiPath)) {
-      const timestamp = String(Math.floor(Date.now() / 1000));
-      const nonce = crypto.randomBytes(16).toString('hex');
-      const digest = crypto.createHash('sha256').update(payload).digest('hex');
-      const deviceNo = String(body.deviceNo || '').trim().toUpperCase();
-      headers['X-Device-Timestamp'] = timestamp;
-      headers['X-Device-Nonce'] = nonce;
-      headers['X-Device-Signature'] = crypto.createHmac('sha256', String(body.secret || ''))
-        .update(deviceNo + ':' + timestamp + ':' + nonce + ':' + digest).digest('hex');
-    }
-    const req = lib.request({
-      hostname: parsed.hostname,
-      port: parsed.port || (parsed.protocol === 'https:' ? 443 : 80),
-      path: parsed.path,
-      method: 'POST',
-      headers,
-      timeout: 10000
-    }, function (res) {
-      let raw = '';
-      res.setEncoding('utf8');
-      res.on('data', function (chunk) { raw += chunk; });
-      res.on('end', function () {
-        let json = null;
-        try {
-          json = JSON.parse(raw);
-        } catch (e) {
-          json = { returnCode: 'HTTP_' + res.statusCode, raw: raw.slice(0, 200) };
-        }
-        resolve(json);
-      });
-    });
-    req.on('timeout', function () { req.destroy(new Error('请求超时')); });
-    req.on('error', reject);
-    req.write(payload);
-    req.end();
+async function postJson(baseUrl, apiPath, body) {
+  const target = new URL(apiPath.replace(/^\/+/, ''), baseUrl.replace(/\/+$/, '') + '/');
+  const payload = Buffer.from(JSON.stringify(body), 'utf8');
+  const headers = {
+    'Content-Type': 'application/json;charset=UTF-8',
+    'Content-Length': String(payload.length)
+  };
+  if (/^api\/v1\/device\/(report|sos)$/.test(apiPath)) {
+    const timestamp = String(Math.floor(Date.now() / 1000));
+    const nonce = crypto.randomBytes(16).toString('hex');
+    const digest = crypto.createHash('sha256').update(payload).digest('hex');
+    const deviceNo = String(body.deviceNo || '').trim().toUpperCase();
+    headers['X-Device-Timestamp'] = timestamp;
+    headers['X-Device-Nonce'] = nonce;
+    headers['X-Device-Signature'] = crypto.createHmac('sha256', String(body.secret || ''))
+      .update(deviceNo + ':' + timestamp + ':' + nonce + ':' + digest).digest('hex');
+  }
+  // Manual redirects keep authenticated device requests on their configured origin.
+  const response = await fetch(target, {
+    method: 'POST',
+    headers,
+    body: payload,
+    signal: AbortSignal.timeout(10000),
+    redirect: 'manual'
   });
+  const raw = await response.text();
+  try {
+    return JSON.parse(raw);
+  } catch {
+    return { returnCode: 'HTTP_' + response.status, raw: raw.slice(0, 200) };
+  }
 }
 
 // ---------------- 数据模拟 ----------------
