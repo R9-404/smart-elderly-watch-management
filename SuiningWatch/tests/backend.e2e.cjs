@@ -54,10 +54,10 @@ async function main() {
   await request('/api/v1/setup', { name: '模拟测试', phone: '13900000001', password }, { 'X-Suining-Desktop': bootstrap });
   await request('/api/v1/auth/login', { phone: '13900000001', password });
   csrf = (await request('/api/v1/auth/session')).csrfToken;
-  await request('/api/v1/customer/add', { customerName: '模拟监护', customerAge: '40', customerSex: '男', customerPhone: '13900000002', customerAddress: '模拟器测试' });
-  const customer = (await request('/api/v1/customer/select', { customerName: '模拟监护', page: 1, pageSize: 20 })).customers[0];
-  await request('/api/v1/oldPerson/add', { name: '模拟长者', bothdate: '1950-01-01', sex: '男', phone: '13900000003', room: 'T01', illness: '', warn: '', foodLike: '', foodHate: '', drag: '', customerId: String(customer.customerId) });
-  const elder = (await request('/api/v1/oldPerson/select', { name: '模拟长者', page: 1, pageSize: 20 })).oldPeople[0];
+  await request('/api/v1/guardians/create', { customerName: '模拟监护', customerAge: '40', customerSex: '男', customerPhone: '13900000002', customerAddress: '模拟器测试' });
+  const customer = (await request('/api/v1/guardians/list', { customerName: '模拟监护', page: 1, pageSize: 20 })).customers[0];
+  await request('/api/v1/residents/create', { name: '模拟长者', bothdate: '1950-01-01', sex: '男', phone: '13900000003', room: 'T01', illness: '', warn: '', foodLike: '', foodHate: '', drag: '', customerId: String(customer.customerId) });
+  const elder = (await request('/api/v1/residents/list', { name: '模拟长者', page: 1, pageSize: 20 })).oldPeople[0];
   const device = await request('/api/v1/device/create', { alias: 'WATCH5 模拟协议测试', model: 'WATCH5-SIM' });
   const credentials = { deviceNo: device.deviceNo, secret: device.secret };
   const before = await request('/api/v1/device/login', credentials);

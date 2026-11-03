@@ -136,12 +136,12 @@ func TestIntegrationMigrationsAndBindingConstraint(t *testing.T) {
 	}
 	mustExec(t, pool, "INSERT INTO oldperson(old_id,name) VALUES(1,'长者')")
 	mustExec(t, pool, "INSERT INTO device(device_no,secret,old_id) VALUES('bound','unused',1)")
-	out := callAPI(testHandler(t, pool).oldPersonDelete, map[string]any{"oldId": 1})
+	out := callAPI(testHandler(t, pool).deleteResident, map[string]any{"oldId": 1})
 	if out.Code != 409 {
 		t.Fatalf("bound elder deletion: HTTP %d %s", out.Code, out.Body.String())
 	}
 	mustExec(t, pool, "UPDATE device SET old_id=NULL WHERE device_no='bound'")
-	result := api(t, testHandler(t, pool).oldPersonDelete, map[string]any{"oldId": 1})
+	result := api(t, testHandler(t, pool).deleteResident, map[string]any{"oldId": 1})
 	if result["returnCode"] != "1111" {
 		t.Fatal(result)
 	}
@@ -158,7 +158,7 @@ func TestIntegrationListContractsAndNumericAge(t *testing.T) {
 		handler http.HandlerFunc
 		key     string
 	}{
-		{"customers", h.customerSelect, "customers"}, {"family", h.familySelect, "familyDtos"},
+		{"customers", h.listGuardians, "customers"}, {"family", h.familySelect, "familyDtos"},
 	} {
 		t.Run(test.name, func(t *testing.T) {
 			out := api(t, test.handler, map[string]any{"page": 1, "pageSize": 20})
@@ -171,7 +171,7 @@ func TestIntegrationListContractsAndNumericAge(t *testing.T) {
 			}
 		})
 	}
-	result := api(t, h.customerUpdate, map[string]any{"customerId": 1, "customerName": "监护人", "customerAge": 40, "customerSex": "女", "customerPhone": "13800000001", "customerAddress": "本地"})
+	result := api(t, h.updateGuardian, map[string]any{"customerId": 1, "customerName": "监护人", "customerAge": 40, "customerSex": "女", "customerPhone": "13800000001", "customerAddress": "本地"})
 	if result["returnCode"] != "1111" {
 		t.Fatal(result)
 	}
@@ -182,7 +182,7 @@ func TestIntegrationEditPreservesFamily(t *testing.T) {
 	h := testHandler(t, pool)
 	mustExec(t, pool, "INSERT INTO customer(customer_id,customer_name) VALUES(1,'监护人')")
 	mustExec(t, pool, "INSERT INTO oldperson(old_id,name,family_id) VALUES(1,'长者',7)")
-	out := api(t, h.oldPersonUpdate, map[string]any{"oldId": 1, "name": "新姓名", "bothdate": "1950-01-01", "sex": "女", "phone": "13800000000", "room": "101", "illness": "", "warn": "", "foodLike": "", "foodHate": "", "drag": "", "customerName": "1"})
+	out := api(t, h.updateResident, map[string]any{"oldId": 1, "name": "新姓名", "bothdate": "1950-01-01", "sex": "女", "phone": "13800000000", "room": "101", "illness": "", "warn": "", "foodLike": "", "foodHate": "", "drag": "", "customerName": "1"})
 	if out["returnCode"] != "1111" {
 		t.Fatal(out)
 	}
@@ -344,7 +344,7 @@ func TestIntegrationBindDeleteRace(t *testing.T) {
 		t.Fatal(err)
 	}
 	result := make(chan *httptest.ResponseRecorder, 1)
-	go func() { result <- callAPI(h.oldPersonDelete, map[string]any{"oldId": 1}) }()
+	go func() { result <- callAPI(h.deleteResident, map[string]any{"oldId": 1}) }()
 	deadline := time.Now().Add(10 * time.Second)
 	for {
 		var waiting int

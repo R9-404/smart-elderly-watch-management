@@ -53,8 +53,8 @@ func watchProfileParams(w http.ResponseWriter, m map[string]any) (deviceID int64
 	return deviceID, hrf, hrl, bpf, bpl, true
 }
 
-// POST /api/v1/watchInfo/select —— 手表阈值档案分页查询（ADMIN）。
-func (h *Handler) watchInfoSelect(w http.ResponseWriter, r *http.Request) {
+// POST /api/v1/monitoring-profiles/list —— 手表阈值档案分页查询（ADMIN）。
+func (h *Handler) listMonitoringProfiles(w http.ResponseWriter, r *http.Request) {
 	m, ok := bodyMap(w, r)
 	if !ok {
 		return
@@ -109,8 +109,8 @@ func (h *Handler) watchInfoSelect(w http.ResponseWriter, r *http.Request) {
 	})
 }
 
-// POST /api/v1/watchInfo/add —— 新增手表阈值档案（ADMIN）。
-func (h *Handler) watchInfoAdd(w http.ResponseWriter, r *http.Request) {
+// POST /api/v1/monitoring-profiles/create —— 新增手表阈值档案（ADMIN）。
+func (h *Handler) createMonitoringProfile(w http.ResponseWriter, r *http.Request) {
 	m, ok := bodyMap(w, r)
 	if !ok {
 		return
@@ -146,8 +146,8 @@ func (h *Handler) watchInfoAdd(w http.ResponseWriter, r *http.Request) {
 	response.Fail(w, "设备不存在，请先登记设备")
 }
 
-// POST /api/v1/watchInfo/update —— 更新手表阈值档案（ADMIN）。
-func (h *Handler) watchInfoUpdate(w http.ResponseWriter, r *http.Request) {
+// POST /api/v1/monitoring-profiles/update —— 更新手表阈值档案（ADMIN）。
+func (h *Handler) updateMonitoringProfile(w http.ResponseWriter, r *http.Request) {
 	m, ok := bodyMap(w, r)
 	if !ok {
 		return
@@ -170,8 +170,8 @@ func (h *Handler) watchInfoUpdate(w http.ResponseWriter, r *http.Request) {
 	recordNotFound(w)
 }
 
-// POST /api/v1/watchInfo/delete —— 删除手表阈值档案（ADMIN）。
-func (h *Handler) watchInfoDelete(w http.ResponseWriter, r *http.Request) {
+// POST /api/v1/monitoring-profiles/delete —— 删除手表阈值档案（ADMIN）。
+func (h *Handler) deleteMonitoringProfile(w http.ResponseWriter, r *http.Request) {
 	m, ok := bodyMap(w, r)
 	if !ok {
 		return

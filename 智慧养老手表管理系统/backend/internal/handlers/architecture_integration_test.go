@@ -35,7 +35,7 @@ func careRequest(t *testing.T, h *Handler, handler http.HandlerFunc, actor int64
 func TestArchitectureWatchProfileContract(t *testing.T) {
 	pool := testDatabase(t)
 	mustExec(t, pool, "INSERT INTO watch_info(device_id,op_time,hrf,hrl,bpf,bpl) VALUES(42,'2026-10-01',110,55,140,90)")
-	out := api(t, testHandler(t, pool).watchInfoSelect, map[string]any{"oldName": ""})
+	out := api(t, testHandler(t, pool).listMonitoringProfiles, map[string]any{"oldName": ""})
 	row := out["watchDtos"].([]any)[0].(map[string]any)
 	if row["deviceId"] != float64(42) || row["opTime"] != "2026-10-01" {
 		t.Fatalf("threshold page cannot identify/edit its row: %+v", row)
@@ -70,7 +70,7 @@ func TestArchitectureFormattedRecordsAcrossDatabases(t *testing.T) {
 func TestArchitectureLifestyleFieldsKeepTheirMeaning(t *testing.T) {
 	pool := testDatabase(t)
 	mustExec(t, pool, "INSERT INTO oldperson(name,food_like,food_hate,drag) VALUES('长者','米饭','花生','常用药')")
-	out := api(t, testHandler(t, pool).oldPersonSelect, map[string]any{"name": ""})
+	out := api(t, testHandler(t, pool).listResidents, map[string]any{"name": ""})
 	row := out["oldPeople"].([]any)[0].(map[string]any)
 	if row["foodLike"] != "米饭" || row["foodHate"] != "花生" || row["drag"] != "常用药" {
 		t.Fatalf("diet and medication fields were interchanged: %+v", row)
@@ -80,7 +80,7 @@ func TestArchitectureLifestyleFieldsKeepTheirMeaning(t *testing.T) {
 func TestArchitectureUnboundElderCreation(t *testing.T) {
 	pool := testDatabase(t)
 	mustExec(t, pool, "INSERT INTO customer(customer_id,customer_name) VALUES(1,'监护人')")
-	out := callAPI(testHandler(t, pool).oldPersonAdd, elderPayload())
+	out := callAPI(testHandler(t, pool).createResident, elderPayload())
 	if out.Code != 200 || architectureBody(t, out)["returnCode"] != "1111" {
 		t.Fatalf("elder creation must precede device binding: %d %s", out.Code, out.Body.String())
 	}
@@ -108,7 +108,7 @@ func TestArchitectureElderEditCannotRewriteBinding(t *testing.T) {
 	mustExec(t, pool, "UPDATE oldperson SET device_id=1 WHERE old_id=1")
 	body := elderPayload()
 	body["oldId"], body["deviceId"] = 1, 2
-	out := callAPI(testHandler(t, pool).oldPersonUpdate, body)
+	out := callAPI(testHandler(t, pool).updateResident, body)
 	if out.Code != http.StatusConflict {
 		t.Fatalf("record editing rewrote another device association: %d %s", out.Code, out.Body.String())
 	}

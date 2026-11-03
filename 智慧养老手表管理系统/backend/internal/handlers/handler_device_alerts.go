@@ -11,8 +11,8 @@ import (
 	"time"
 )
 
-// POST /api/v1/device/handleAlarm —— 处置某老人最近一条告警（ADMIN）。
-func (h *Handler) deviceHandleAlarm(w http.ResponseWriter, r *http.Request) {
+// POST /api/v1/locations/alerts/resolve-latest —— 处置某老人最近一条告警（ADMIN）。
+func (h *Handler) resolveLatestLocationAlert(w http.ResponseWriter, r *http.Request) {
 	m, ok := bodyMap(w, r)
 	if !ok {
 		return
@@ -173,7 +173,7 @@ func describePersonAlert(pr *personRow, now time.Time) map[string]any {
 }
 
 // findRatepreAlert returns the selected pending record, or the latest when recordID is nil.
-func (h *Handler) findRatepreAlert(ctx context.Context, q oldQuerier, deviceID int64, kind string, recordID *int64) (map[string]any, error) {
+func (h *Handler) findRatepreAlert(ctx context.Context, q deviceQueries, deviceID int64, kind string, recordID *int64) (map[string]any, error) {
 	isRate := kind == "rate"
 	stateCol, hatCol := "rate_state", "rate_handled_at"
 	if !isRate {

@@ -574,108 +574,6 @@
         ]
       }
     },
-    "/api/v1/alarmProcess/select": {
-      "post": {
-        "summary": "alarmProcess/select",
-        "deprecated": false,
-        "tags": [
-          "v1"
-        ],
-        "responses": {
-          "200": {
-            "description": "Go JSON response; payload varies by operation.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "additionalProperties": true,
-                  "properties": {
-                    "alarmProcesses": {},
-                    "returnCode": {
-                      "type": "string",
-                      "const": "1111"
-                    }
-                  },
-                  "required": [
-                    "returnCode"
-                  ]
-                }
-              }
-            }
-          },
-          "400": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "401": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "403": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "409": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "503": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "404": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "405": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "413": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "415": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "429": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "500": {
-            "$ref": "#/components/responses/ApiError"
-          }
-        },
-        "security": [
-          {
-            "sessionCookie": []
-          }
-        ],
-        "parameters": [
-          {
-            "name": "X-CSRF-TOKEN",
-            "in": "header",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "type": "object",
-                "additionalProperties": true,
-                "properties": {
-                  "id": {}
-                }
-              }
-            }
-          }
-        },
-        "description": "Implementation: 智慧养老手表管理系统/backend/internal/handlers/handler_old.go. Go API DTOs without explicit schemas remain open objects; consult implementation.",
-        "x-request-fields": [
-          "id"
-        ],
-        "x-success-fields": [
-          "alarmProcesses",
-          "returnCode"
-        ]
-      }
-    },
     "/api/v1/alert-reviews": {
       "post": {
         "summary": "alert-reviews",
@@ -2055,436 +1953,6 @@
         ]
       }
     },
-    "/api/v1/customer/add": {
-      "post": {
-        "summary": "customer/add",
-        "deprecated": false,
-        "tags": [
-          "v1"
-        ],
-        "responses": {
-          "200": {
-            "description": "Go JSON response; payload varies by operation.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "additionalProperties": true,
-                  "properties": {
-                    "returnCode": {
-                      "type": "string",
-                      "const": "1111"
-                    }
-                  },
-                  "required": [
-                    "returnCode"
-                  ]
-                }
-              }
-            }
-          },
-          "400": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "401": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "403": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "409": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "503": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "404": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "405": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "413": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "415": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "429": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "500": {
-            "$ref": "#/components/responses/ApiError"
-          }
-        },
-        "security": [
-          {
-            "sessionCookie": []
-          }
-        ],
-        "parameters": [
-          {
-            "name": "X-CSRF-TOKEN",
-            "in": "header",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "type": "object",
-                "additionalProperties": true,
-                "properties": {
-                  "customerAddress": {},
-                  "customerAge": {},
-                  "customerName": {},
-                  "customerPhone": {},
-                  "customerSex": {}
-                }
-              }
-            }
-          }
-        },
-        "description": "Implementation: 智慧养老手表管理系统/backend/internal/handlers/handler_user.go. Go API DTOs without explicit schemas remain open objects; consult implementation.",
-        "x-request-fields": [
-          "customerAddress",
-          "customerAge",
-          "customerName",
-          "customerPhone",
-          "customerSex"
-        ],
-        "x-success-fields": [
-          "returnCode"
-        ]
-      }
-    },
-    "/api/v1/customer/delete": {
-      "post": {
-        "summary": "customer/delete",
-        "deprecated": false,
-        "tags": [
-          "v1"
-        ],
-        "responses": {
-          "200": {
-            "description": "Go JSON response; payload varies by operation.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "additionalProperties": true,
-                  "properties": {
-                    "returnCode": {
-                      "type": "string",
-                      "const": "1111"
-                    }
-                  },
-                  "required": [
-                    "returnCode"
-                  ]
-                }
-              }
-            }
-          },
-          "400": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "401": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "403": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "409": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "503": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "404": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "405": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "413": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "415": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "429": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "500": {
-            "$ref": "#/components/responses/ApiError"
-          }
-        },
-        "security": [
-          {
-            "sessionCookie": []
-          }
-        ],
-        "parameters": [
-          {
-            "name": "X-CSRF-TOKEN",
-            "in": "header",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "type": "object",
-                "additionalProperties": true,
-                "properties": {
-                  "customerId": {}
-                }
-              }
-            }
-          }
-        },
-        "description": "Implementation: 智慧养老手表管理系统/backend/internal/handlers/handler_user.go. Go API DTOs without explicit schemas remain open objects; consult implementation.",
-        "x-request-fields": [
-          "customerId"
-        ],
-        "x-success-fields": [
-          "returnCode"
-        ]
-      }
-    },
-    "/api/v1/customer/select": {
-      "post": {
-        "summary": "customer/select",
-        "deprecated": false,
-        "tags": [
-          "v1"
-        ],
-        "responses": {
-          "200": {
-            "description": "Go JSON response; payload varies by operation.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "additionalProperties": true,
-                  "properties": {
-                    "customers": {},
-                    "page": {},
-                    "pageSize": {},
-                    "returnCode": {
-                      "type": "string",
-                      "const": "1111"
-                    },
-                    "total": {}
-                  },
-                  "required": [
-                    "returnCode"
-                  ]
-                }
-              }
-            }
-          },
-          "400": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "401": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "403": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "409": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "503": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "404": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "405": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "413": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "415": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "429": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "500": {
-            "$ref": "#/components/responses/ApiError"
-          }
-        },
-        "security": [
-          {
-            "sessionCookie": []
-          }
-        ],
-        "parameters": [
-          {
-            "name": "X-CSRF-TOKEN",
-            "in": "header",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "type": "object",
-                "additionalProperties": true,
-                "properties": {
-                  "customerName": {},
-                  "page": {},
-                  "pageSize": {}
-                }
-              }
-            }
-          }
-        },
-        "description": "Implementation: 智慧养老手表管理系统/backend/internal/handlers/handler_user.go. Go API DTOs without explicit schemas remain open objects; consult implementation.",
-        "x-request-fields": [
-          "customerName",
-          "page",
-          "pageSize"
-        ],
-        "x-success-fields": [
-          "customers",
-          "page",
-          "pageSize",
-          "returnCode",
-          "total"
-        ]
-      }
-    },
-    "/api/v1/customer/update": {
-      "post": {
-        "summary": "customer/update",
-        "deprecated": false,
-        "tags": [
-          "v1"
-        ],
-        "responses": {
-          "200": {
-            "description": "Go JSON response; payload varies by operation.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "additionalProperties": true,
-                  "properties": {
-                    "returnCode": {
-                      "type": "string",
-                      "const": "1111"
-                    }
-                  },
-                  "required": [
-                    "returnCode"
-                  ]
-                }
-              }
-            }
-          },
-          "400": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "401": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "403": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "409": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "503": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "404": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "405": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "413": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "415": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "429": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "500": {
-            "$ref": "#/components/responses/ApiError"
-          }
-        },
-        "security": [
-          {
-            "sessionCookie": []
-          }
-        ],
-        "parameters": [
-          {
-            "name": "X-CSRF-TOKEN",
-            "in": "header",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "type": "object",
-                "additionalProperties": true,
-                "properties": {
-                  "customerAddress": {},
-                  "customerAge": {},
-                  "customerId": {},
-                  "customerName": {},
-                  "customerPhone": {},
-                  "customerSex": {}
-                }
-              }
-            }
-          }
-        },
-        "description": "Implementation: 智慧养老手表管理系统/backend/internal/handlers/handler_user.go. Go API DTOs without explicit schemas remain open objects; consult implementation.",
-        "x-request-fields": [
-          "customerAddress",
-          "customerAge",
-          "customerId",
-          "customerName",
-          "customerPhone",
-          "customerSex"
-        ],
-        "x-success-fields": [
-          "returnCode"
-        ]
-      }
-    },
     "/api/v1/desktop/exit": {
       "post": {
         "summary": "desktop/exit",
@@ -3008,7 +2476,7 @@
             }
           }
         },
-        "description": "Implementation: 智慧养老手表管理系统/backend/internal/handlers/handler_old.go. Go API DTOs without explicit schemas remain open objects; consult implementation.",
+        "description": "Implementation: 智慧养老手表管理系统/backend/internal/handlers/handler_resident_devices.go. Go API DTOs without explicit schemas remain open objects; consult implementation.",
         "x-request-fields": [],
         "x-success-fields": [
           "items",
@@ -3130,7 +2598,7 @@
             }
           }
         },
-        "description": "Implementation: 智慧养老手表管理系统/backend/internal/handlers/handler_old.go. Go API DTOs without explicit schemas remain open objects; consult implementation.",
+        "description": "Implementation: 智慧养老手表管理系统/backend/internal/handlers/handler_resident_devices.go. Go API DTOs without explicit schemas remain open objects; consult implementation.",
         "x-request-fields": [
           "deviceId",
           "kind"
@@ -3240,7 +2708,7 @@
             }
           }
         },
-        "description": "Implementation: 智慧养老手表管理系统/backend/internal/handlers/handler_old.go. Device body authentication or signed gateway receipt; not anonymous access.",
+        "description": "Implementation: 智慧养老手表管理系统/backend/internal/handlers/handler_resident_devices.go. Device body authentication or signed gateway receipt; not anonymous access.",
         "x-request-fields": [
           "code",
           "deviceNo",
@@ -3345,7 +2813,7 @@
             }
           }
         },
-        "description": "Implementation: 智慧养老手表管理系统/backend/internal/handlers/handler_old.go. Go API DTOs without explicit schemas remain open objects; consult implementation.",
+        "description": "Implementation: 智慧养老手表管理系统/backend/internal/handlers/handler_resident_devices.go. Go API DTOs without explicit schemas remain open objects; consult implementation.",
         "x-request-fields": [
           "oldId"
         ],
@@ -3645,7 +3113,7 @@
             }
           }
         },
-        "description": "Implementation: 智慧养老手表管理系统/backend/internal/handlers/handler_old.go. Go API DTOs without explicit schemas remain open objects; consult implementation.",
+        "description": "Implementation: 智慧养老手表管理系统/backend/internal/handlers/handler_resident_devices.go. Go API DTOs without explicit schemas remain open objects; consult implementation.",
         "x-request-fields": [
           "alias",
           "model",
@@ -3756,7 +3224,7 @@
             }
           }
         },
-        "description": "Implementation: 智慧养老手表管理系统/backend/internal/handlers/handler_old.go. Go API DTOs without explicit schemas remain open objects; consult implementation.",
+        "description": "Implementation: 智慧养老手表管理系统/backend/internal/handlers/handler_resident_devices.go. Go API DTOs without explicit schemas remain open objects; consult implementation.",
         "x-request-fields": [
           "createUser",
           "expireDays",
@@ -3862,7 +3330,7 @@
             }
           }
         },
-        "description": "Implementation: 智慧养老手表管理系统/backend/internal/handlers/handler_old.go. Go API DTOs without explicit schemas remain open objects; consult implementation.",
+        "description": "Implementation: 智慧养老手表管理系统/backend/internal/handlers/handler_resident_devices.go. Go API DTOs without explicit schemas remain open objects; consult implementation.",
         "x-request-fields": [
           "deviceId"
         ],
@@ -3962,7 +3430,7 @@
             }
           }
         },
-        "description": "Implementation: 智慧养老手表管理系统/backend/internal/handlers/handler_old.go. Go API DTOs without explicit schemas remain open objects; consult implementation.",
+        "description": "Implementation: 智慧养老手表管理系统/backend/internal/handlers/handler_resident_devices.go. Go API DTOs without explicit schemas remain open objects; consult implementation.",
         "x-request-fields": [
           "id"
         ],
@@ -4068,106 +3536,6 @@
         ],
         "x-success-fields": [
           "events",
-          "returnCode"
-        ]
-      }
-    },
-    "/api/v1/device/handleAlarm": {
-      "post": {
-        "summary": "device/handleAlarm",
-        "deprecated": false,
-        "tags": [
-          "v1"
-        ],
-        "responses": {
-          "200": {
-            "description": "Go JSON response; payload varies by operation.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "additionalProperties": true,
-                  "properties": {
-                    "returnCode": {
-                      "type": "string",
-                      "const": "1111"
-                    }
-                  },
-                  "required": [
-                    "returnCode"
-                  ]
-                }
-              }
-            }
-          },
-          "400": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "401": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "403": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "409": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "503": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "404": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "405": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "413": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "415": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "429": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "500": {
-            "$ref": "#/components/responses/ApiError"
-          }
-        },
-        "security": [
-          {
-            "sessionCookie": []
-          }
-        ],
-        "parameters": [
-          {
-            "name": "X-CSRF-TOKEN",
-            "in": "header",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "type": "object",
-                "additionalProperties": true,
-                "properties": {
-                  "oldId": {}
-                }
-              }
-            }
-          }
-        },
-        "description": "Implementation: 智慧养老手表管理系统/backend/internal/handlers/handler_old.go. Go API DTOs without explicit schemas remain open objects; consult implementation.",
-        "x-request-fields": [
-          "oldId"
-        ],
-        "x-success-fields": [
           "returnCode"
         ]
       }
@@ -4358,7 +3726,7 @@
             }
           }
         },
-        "description": "Implementation: 智慧养老手表管理系统/backend/internal/handlers/handler_old.go. Device body authentication or signed gateway receipt; not anonymous access.",
+        "description": "Implementation: 智慧养老手表管理系统/backend/internal/handlers/handler_resident_devices.go. Device body authentication or signed gateway receipt; not anonymous access.",
         "x-request-fields": [
           "appVersion",
           "battery",
@@ -4475,7 +3843,7 @@
             }
           }
         },
-        "description": "Implementation: 智慧养老手表管理系统/backend/internal/handlers/handler_old.go. Go API DTOs without explicit schemas remain open objects; consult implementation.",
+        "description": "Implementation: 智慧养老手表管理系统/backend/internal/handlers/handler_resident_devices.go. Go API DTOs without explicit schemas remain open objects; consult implementation.",
         "x-request-fields": [
           "query",
           "state",
@@ -4595,7 +3963,7 @@
             }
           }
         },
-        "description": "Implementation: 智慧养老手表管理系统/backend/internal/handlers/handler_old.go. Device body authentication or signed gateway receipt; not anonymous access. HarmonyOS clients send optional platform=harmonyos with protocolVersion=1; both are required together when platform is supplied. Authenticated success returns protocolVersion=1 and maxBatchSize=200 plus the existing bindingVersion/owner. Unsupported platform/version returns 400. Omit platform for the legacy login contract. Invalid credentials return 401 with code=DEVICE_AUTH_FAILED; disabled devices return 403.",
+        "description": "Implementation: 智慧养老手表管理系统/backend/internal/handlers/handler_resident_devices.go. Device body authentication or signed gateway receipt; not anonymous access. HarmonyOS clients send optional platform=harmonyos with protocolVersion=1; both are required together when platform is supplied. Authenticated success returns protocolVersion=1 and maxBatchSize=200 plus the existing bindingVersion/owner. Unsupported platform/version returns 400. Omit platform for the legacy login contract. Invalid credentials return 401 with code=DEVICE_AUTH_FAILED; disabled devices return 403.",
         "x-request-fields": [
           "deviceNo",
           "platform",
@@ -4732,7 +4100,7 @@
             }
           }
         },
-        "description": "Implementation: 智慧养老手表管理系统/backend/internal/handlers/handler_old.go. Device body authentication or signed gateway receipt; not anonymous access.",
+        "description": "Implementation: 智慧养老手表管理系统/backend/internal/handlers/handler_resident_devices.go. Device body authentication or signed gateway receipt; not anonymous access.",
         "x-request-fields": [
           "deviceNo",
           "secret",
@@ -4855,7 +4223,7 @@
             }
           }
         },
-        "description": "Implementation: 智慧养老手表管理系统/backend/internal/handlers/handler_old.go. Go API DTOs without explicit schemas remain open objects; consult implementation.",
+        "description": "Implementation: 智慧养老手表管理系统/backend/internal/handlers/handler_resident_devices.go. Go API DTOs without explicit schemas remain open objects; consult implementation.",
         "x-request-fields": [
           "deviceId"
         ],
@@ -4960,7 +4328,7 @@
             }
           }
         },
-        "description": "Implementation: 智慧养老手表管理系统/backend/internal/handlers/handler_old.go. Go API DTOs without explicit schemas remain open objects; consult implementation.",
+        "description": "Implementation: 智慧养老手表管理系统/backend/internal/handlers/handler_resident_devices.go. Go API DTOs without explicit schemas remain open objects; consult implementation.",
         "x-request-fields": [
           "deviceId",
           "kind",
@@ -5081,7 +4449,7 @@
             }
           }
         },
-        "description": "Implementation: 智慧养老手表管理系统/backend/internal/handlers/handler_old.go. Device body authentication or signed gateway receipt; not anonymous access.",
+        "description": "Implementation: 智慧养老手表管理系统/backend/internal/handlers/handler_resident_devices.go. Device body authentication or signed gateway receipt; not anonymous access.",
         "x-request-fields": [
           "alarm",
           "bindingVersion",
@@ -5195,7 +4563,7 @@
             }
           }
         },
-        "description": "Implementation: 智慧养老手表管理系统/backend/internal/handlers/handler_old.go. Go API DTOs without explicit schemas remain open objects; consult implementation.",
+        "description": "Implementation: 智慧养老手表管理系统/backend/internal/handlers/handler_resident_devices.go. Go API DTOs without explicit schemas remain open objects; consult implementation.",
         "x-request-fields": [
           "deviceId"
         ],
@@ -6599,6 +5967,436 @@
         ]
       }
     },
+    "/api/v1/guardians/create": {
+      "post": {
+        "summary": "guardians/create",
+        "deprecated": false,
+        "tags": [
+          "v1"
+        ],
+        "responses": {
+          "200": {
+            "description": "Go JSON response; payload varies by operation.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": true,
+                  "properties": {
+                    "returnCode": {
+                      "type": "string",
+                      "const": "1111"
+                    }
+                  },
+                  "required": [
+                    "returnCode"
+                  ]
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/ApiError"
+          },
+          "401": {
+            "$ref": "#/components/responses/ApiError"
+          },
+          "403": {
+            "$ref": "#/components/responses/ApiError"
+          },
+          "409": {
+            "$ref": "#/components/responses/ApiError"
+          },
+          "503": {
+            "$ref": "#/components/responses/ApiError"
+          },
+          "404": {
+            "$ref": "#/components/responses/ApiError"
+          },
+          "405": {
+            "$ref": "#/components/responses/ApiError"
+          },
+          "413": {
+            "$ref": "#/components/responses/ApiError"
+          },
+          "415": {
+            "$ref": "#/components/responses/ApiError"
+          },
+          "429": {
+            "$ref": "#/components/responses/ApiError"
+          },
+          "500": {
+            "$ref": "#/components/responses/ApiError"
+          }
+        },
+        "security": [
+          {
+            "sessionCookie": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "X-CSRF-TOKEN",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "additionalProperties": true,
+                "properties": {
+                  "customerAddress": {},
+                  "customerAge": {},
+                  "customerName": {},
+                  "customerPhone": {},
+                  "customerSex": {}
+                }
+              }
+            }
+          }
+        },
+        "description": "Implementation: 智慧养老手表管理系统/backend/internal/handlers/handler_user.go. Go API DTOs without explicit schemas remain open objects; consult implementation.",
+        "x-request-fields": [
+          "customerAddress",
+          "customerAge",
+          "customerName",
+          "customerPhone",
+          "customerSex"
+        ],
+        "x-success-fields": [
+          "returnCode"
+        ]
+      }
+    },
+    "/api/v1/guardians/delete": {
+      "post": {
+        "summary": "guardians/delete",
+        "deprecated": false,
+        "tags": [
+          "v1"
+        ],
+        "responses": {
+          "200": {
+            "description": "Go JSON response; payload varies by operation.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": true,
+                  "properties": {
+                    "returnCode": {
+                      "type": "string",
+                      "const": "1111"
+                    }
+                  },
+                  "required": [
+                    "returnCode"
+                  ]
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/ApiError"
+          },
+          "401": {
+            "$ref": "#/components/responses/ApiError"
+          },
+          "403": {
+            "$ref": "#/components/responses/ApiError"
+          },
+          "409": {
+            "$ref": "#/components/responses/ApiError"
+          },
+          "503": {
+            "$ref": "#/components/responses/ApiError"
+          },
+          "404": {
+            "$ref": "#/components/responses/ApiError"
+          },
+          "405": {
+            "$ref": "#/components/responses/ApiError"
+          },
+          "413": {
+            "$ref": "#/components/responses/ApiError"
+          },
+          "415": {
+            "$ref": "#/components/responses/ApiError"
+          },
+          "429": {
+            "$ref": "#/components/responses/ApiError"
+          },
+          "500": {
+            "$ref": "#/components/responses/ApiError"
+          }
+        },
+        "security": [
+          {
+            "sessionCookie": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "X-CSRF-TOKEN",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "additionalProperties": true,
+                "properties": {
+                  "customerId": {}
+                }
+              }
+            }
+          }
+        },
+        "description": "Implementation: 智慧养老手表管理系统/backend/internal/handlers/handler_user.go. Go API DTOs without explicit schemas remain open objects; consult implementation.",
+        "x-request-fields": [
+          "customerId"
+        ],
+        "x-success-fields": [
+          "returnCode"
+        ]
+      }
+    },
+    "/api/v1/guardians/list": {
+      "post": {
+        "summary": "guardians/list",
+        "deprecated": false,
+        "tags": [
+          "v1"
+        ],
+        "responses": {
+          "200": {
+            "description": "Go JSON response; payload varies by operation.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": true,
+                  "properties": {
+                    "customers": {},
+                    "page": {},
+                    "pageSize": {},
+                    "returnCode": {
+                      "type": "string",
+                      "const": "1111"
+                    },
+                    "total": {}
+                  },
+                  "required": [
+                    "returnCode"
+                  ]
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/ApiError"
+          },
+          "401": {
+            "$ref": "#/components/responses/ApiError"
+          },
+          "403": {
+            "$ref": "#/components/responses/ApiError"
+          },
+          "409": {
+            "$ref": "#/components/responses/ApiError"
+          },
+          "503": {
+            "$ref": "#/components/responses/ApiError"
+          },
+          "404": {
+            "$ref": "#/components/responses/ApiError"
+          },
+          "405": {
+            "$ref": "#/components/responses/ApiError"
+          },
+          "413": {
+            "$ref": "#/components/responses/ApiError"
+          },
+          "415": {
+            "$ref": "#/components/responses/ApiError"
+          },
+          "429": {
+            "$ref": "#/components/responses/ApiError"
+          },
+          "500": {
+            "$ref": "#/components/responses/ApiError"
+          }
+        },
+        "security": [
+          {
+            "sessionCookie": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "X-CSRF-TOKEN",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "additionalProperties": true,
+                "properties": {
+                  "customerName": {},
+                  "page": {},
+                  "pageSize": {}
+                }
+              }
+            }
+          }
+        },
+        "description": "Implementation: 智慧养老手表管理系统/backend/internal/handlers/handler_user.go. Go API DTOs without explicit schemas remain open objects; consult implementation.",
+        "x-request-fields": [
+          "customerName",
+          "page",
+          "pageSize"
+        ],
+        "x-success-fields": [
+          "customers",
+          "page",
+          "pageSize",
+          "returnCode",
+          "total"
+        ]
+      }
+    },
+    "/api/v1/guardians/update": {
+      "post": {
+        "summary": "guardians/update",
+        "deprecated": false,
+        "tags": [
+          "v1"
+        ],
+        "responses": {
+          "200": {
+            "description": "Go JSON response; payload varies by operation.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": true,
+                  "properties": {
+                    "returnCode": {
+                      "type": "string",
+                      "const": "1111"
+                    }
+                  },
+                  "required": [
+                    "returnCode"
+                  ]
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/ApiError"
+          },
+          "401": {
+            "$ref": "#/components/responses/ApiError"
+          },
+          "403": {
+            "$ref": "#/components/responses/ApiError"
+          },
+          "409": {
+            "$ref": "#/components/responses/ApiError"
+          },
+          "503": {
+            "$ref": "#/components/responses/ApiError"
+          },
+          "404": {
+            "$ref": "#/components/responses/ApiError"
+          },
+          "405": {
+            "$ref": "#/components/responses/ApiError"
+          },
+          "413": {
+            "$ref": "#/components/responses/ApiError"
+          },
+          "415": {
+            "$ref": "#/components/responses/ApiError"
+          },
+          "429": {
+            "$ref": "#/components/responses/ApiError"
+          },
+          "500": {
+            "$ref": "#/components/responses/ApiError"
+          }
+        },
+        "security": [
+          {
+            "sessionCookie": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "X-CSRF-TOKEN",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "additionalProperties": true,
+                "properties": {
+                  "customerAddress": {},
+                  "customerAge": {},
+                  "customerId": {},
+                  "customerName": {},
+                  "customerPhone": {},
+                  "customerSex": {}
+                }
+              }
+            }
+          }
+        },
+        "description": "Implementation: 智慧养老手表管理系统/backend/internal/handlers/handler_user.go. Go API DTOs without explicit schemas remain open objects; consult implementation.",
+        "x-request-fields": [
+          "customerAddress",
+          "customerAge",
+          "customerId",
+          "customerName",
+          "customerPhone",
+          "customerSex"
+        ],
+        "x-success-fields": [
+          "returnCode"
+        ]
+      }
+    },
     "/api/v1/health/changes": {
       "post": {
         "summary": "health/changes",
@@ -7993,6 +7791,534 @@
         ]
       }
     },
+    "/api/v1/locations/alerts/resolve-latest": {
+      "post": {
+        "summary": "locations/alerts/resolve-latest",
+        "deprecated": false,
+        "tags": [
+          "v1"
+        ],
+        "responses": {
+          "200": {
+            "description": "Go JSON response; payload varies by operation.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": true,
+                  "properties": {
+                    "returnCode": {
+                      "type": "string",
+                      "const": "1111"
+                    }
+                  },
+                  "required": [
+                    "returnCode"
+                  ]
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/ApiError"
+          },
+          "401": {
+            "$ref": "#/components/responses/ApiError"
+          },
+          "403": {
+            "$ref": "#/components/responses/ApiError"
+          },
+          "409": {
+            "$ref": "#/components/responses/ApiError"
+          },
+          "503": {
+            "$ref": "#/components/responses/ApiError"
+          },
+          "404": {
+            "$ref": "#/components/responses/ApiError"
+          },
+          "405": {
+            "$ref": "#/components/responses/ApiError"
+          },
+          "413": {
+            "$ref": "#/components/responses/ApiError"
+          },
+          "415": {
+            "$ref": "#/components/responses/ApiError"
+          },
+          "429": {
+            "$ref": "#/components/responses/ApiError"
+          },
+          "500": {
+            "$ref": "#/components/responses/ApiError"
+          }
+        },
+        "security": [
+          {
+            "sessionCookie": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "X-CSRF-TOKEN",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "additionalProperties": true,
+                "properties": {
+                  "oldId": {}
+                }
+              }
+            }
+          }
+        },
+        "description": "Implementation: 智慧养老手表管理系统/backend/internal/handlers/handler_resident_devices.go. Go API DTOs without explicit schemas remain open objects; consult implementation.",
+        "x-request-fields": [
+          "oldId"
+        ],
+        "x-success-fields": [
+          "returnCode"
+        ]
+      }
+    },
+    "/api/v1/monitoring-profiles/create": {
+      "post": {
+        "summary": "monitoring-profiles/create",
+        "deprecated": false,
+        "tags": [
+          "v1"
+        ],
+        "responses": {
+          "200": {
+            "description": "Go JSON response; payload varies by operation.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": true,
+                  "properties": {
+                    "returnCode": {
+                      "type": "string",
+                      "const": "1111"
+                    }
+                  },
+                  "required": [
+                    "returnCode"
+                  ]
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/ApiError"
+          },
+          "401": {
+            "$ref": "#/components/responses/ApiError"
+          },
+          "403": {
+            "$ref": "#/components/responses/ApiError"
+          },
+          "409": {
+            "$ref": "#/components/responses/ApiError"
+          },
+          "503": {
+            "$ref": "#/components/responses/ApiError"
+          },
+          "404": {
+            "$ref": "#/components/responses/ApiError"
+          },
+          "405": {
+            "$ref": "#/components/responses/ApiError"
+          },
+          "413": {
+            "$ref": "#/components/responses/ApiError"
+          },
+          "415": {
+            "$ref": "#/components/responses/ApiError"
+          },
+          "429": {
+            "$ref": "#/components/responses/ApiError"
+          },
+          "500": {
+            "$ref": "#/components/responses/ApiError"
+          }
+        },
+        "security": [
+          {
+            "sessionCookie": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "X-CSRF-TOKEN",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "additionalProperties": true,
+                "properties": {
+                  "deviceId": {},
+                  "hrf": {},
+                  "hrl": {},
+                  "bpf": {},
+                  "bpl": {}
+                }
+              }
+            }
+          }
+        },
+        "description": "Implementation: 智慧养老手表管理系统/backend/internal/handlers/handler_resident_devices.go. Go API DTOs without explicit schemas remain open objects; consult implementation.",
+        "x-request-fields": [
+          "deviceId",
+          "hrf",
+          "hrl",
+          "bpf",
+          "bpl"
+        ],
+        "x-success-fields": [
+          "returnCode"
+        ]
+      }
+    },
+    "/api/v1/monitoring-profiles/delete": {
+      "post": {
+        "summary": "monitoring-profiles/delete",
+        "deprecated": false,
+        "tags": [
+          "v1"
+        ],
+        "responses": {
+          "200": {
+            "description": "Go JSON response; payload varies by operation.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": true,
+                  "properties": {
+                    "returnCode": {
+                      "type": "string",
+                      "const": "1111"
+                    }
+                  },
+                  "required": [
+                    "returnCode"
+                  ]
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/ApiError"
+          },
+          "401": {
+            "$ref": "#/components/responses/ApiError"
+          },
+          "403": {
+            "$ref": "#/components/responses/ApiError"
+          },
+          "409": {
+            "$ref": "#/components/responses/ApiError"
+          },
+          "503": {
+            "$ref": "#/components/responses/ApiError"
+          },
+          "404": {
+            "$ref": "#/components/responses/ApiError"
+          },
+          "405": {
+            "$ref": "#/components/responses/ApiError"
+          },
+          "413": {
+            "$ref": "#/components/responses/ApiError"
+          },
+          "415": {
+            "$ref": "#/components/responses/ApiError"
+          },
+          "429": {
+            "$ref": "#/components/responses/ApiError"
+          },
+          "500": {
+            "$ref": "#/components/responses/ApiError"
+          }
+        },
+        "security": [
+          {
+            "sessionCookie": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "X-CSRF-TOKEN",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "additionalProperties": true,
+                "properties": {
+                  "deviceId": {}
+                }
+              }
+            }
+          }
+        },
+        "description": "Implementation: 智慧养老手表管理系统/backend/internal/handlers/handler_resident_devices.go. Go API DTOs without explicit schemas remain open objects; consult implementation.",
+        "x-request-fields": [
+          "deviceId"
+        ],
+        "x-success-fields": [
+          "returnCode"
+        ]
+      }
+    },
+    "/api/v1/monitoring-profiles/list": {
+      "post": {
+        "summary": "monitoring-profiles/list",
+        "deprecated": false,
+        "tags": [
+          "v1"
+        ],
+        "responses": {
+          "200": {
+            "description": "Go JSON response; payload varies by operation.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": true,
+                  "properties": {
+                    "page": {},
+                    "pageSize": {},
+                    "returnCode": {
+                      "type": "string",
+                      "const": "1111"
+                    },
+                    "total": {},
+                    "watchDtos": {}
+                  },
+                  "required": [
+                    "returnCode"
+                  ]
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/ApiError"
+          },
+          "401": {
+            "$ref": "#/components/responses/ApiError"
+          },
+          "403": {
+            "$ref": "#/components/responses/ApiError"
+          },
+          "409": {
+            "$ref": "#/components/responses/ApiError"
+          },
+          "503": {
+            "$ref": "#/components/responses/ApiError"
+          },
+          "404": {
+            "$ref": "#/components/responses/ApiError"
+          },
+          "405": {
+            "$ref": "#/components/responses/ApiError"
+          },
+          "413": {
+            "$ref": "#/components/responses/ApiError"
+          },
+          "415": {
+            "$ref": "#/components/responses/ApiError"
+          },
+          "429": {
+            "$ref": "#/components/responses/ApiError"
+          },
+          "500": {
+            "$ref": "#/components/responses/ApiError"
+          }
+        },
+        "security": [
+          {
+            "sessionCookie": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "X-CSRF-TOKEN",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "additionalProperties": true,
+                "properties": {
+                  "oldName": {},
+                  "page": {},
+                  "pageSize": {}
+                }
+              }
+            }
+          }
+        },
+        "description": "Implementation: 智慧养老手表管理系统/backend/internal/handlers/handler_resident_devices.go. Go API DTOs without explicit schemas remain open objects; consult implementation.",
+        "x-request-fields": [
+          "oldName",
+          "page",
+          "pageSize"
+        ],
+        "x-success-fields": [
+          "page",
+          "pageSize",
+          "returnCode",
+          "total",
+          "watchDtos"
+        ]
+      }
+    },
+    "/api/v1/monitoring-profiles/update": {
+      "post": {
+        "summary": "monitoring-profiles/update",
+        "deprecated": false,
+        "tags": [
+          "v1"
+        ],
+        "responses": {
+          "200": {
+            "description": "Go JSON response; payload varies by operation.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": true,
+                  "properties": {
+                    "returnCode": {
+                      "type": "string",
+                      "const": "1111"
+                    }
+                  },
+                  "required": [
+                    "returnCode"
+                  ]
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/ApiError"
+          },
+          "401": {
+            "$ref": "#/components/responses/ApiError"
+          },
+          "403": {
+            "$ref": "#/components/responses/ApiError"
+          },
+          "409": {
+            "$ref": "#/components/responses/ApiError"
+          },
+          "503": {
+            "$ref": "#/components/responses/ApiError"
+          },
+          "404": {
+            "$ref": "#/components/responses/ApiError"
+          },
+          "405": {
+            "$ref": "#/components/responses/ApiError"
+          },
+          "413": {
+            "$ref": "#/components/responses/ApiError"
+          },
+          "415": {
+            "$ref": "#/components/responses/ApiError"
+          },
+          "429": {
+            "$ref": "#/components/responses/ApiError"
+          },
+          "500": {
+            "$ref": "#/components/responses/ApiError"
+          }
+        },
+        "security": [
+          {
+            "sessionCookie": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "X-CSRF-TOKEN",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "additionalProperties": true,
+                "properties": {
+                  "deviceId": {},
+                  "hrf": {},
+                  "hrl": {},
+                  "bpf": {},
+                  "bpl": {}
+                }
+              }
+            }
+          }
+        },
+        "description": "Implementation: 智慧养老手表管理系统/backend/internal/handlers/handler_resident_devices.go. Go API DTOs without explicit schemas remain open objects; consult implementation.",
+        "x-request-fields": [
+          "deviceId",
+          "hrf",
+          "hrl",
+          "bpf",
+          "bpl"
+        ],
+        "x-success-fields": [
+          "returnCode"
+        ]
+      }
+    },
     "/api/v1/notice-comments/create": {
       "post": {
         "summary": "notice-comments/create",
@@ -9253,578 +9579,6 @@
         ]
       }
     },
-    "/api/v1/oldPerson/add": {
-      "post": {
-        "summary": "oldPerson/add",
-        "deprecated": false,
-        "tags": [
-          "v1"
-        ],
-        "responses": {
-          "200": {
-            "description": "Go JSON response; payload varies by operation.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "additionalProperties": true,
-                  "properties": {
-                    "returnCode": {
-                      "type": "string",
-                      "const": "1111"
-                    }
-                  },
-                  "required": [
-                    "returnCode"
-                  ]
-                }
-              }
-            }
-          },
-          "400": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "401": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "403": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "409": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "503": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "404": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "405": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "413": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "415": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "429": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "500": {
-            "$ref": "#/components/responses/ApiError"
-          }
-        },
-        "security": [
-          {
-            "sessionCookie": []
-          }
-        ],
-        "parameters": [
-          {
-            "name": "X-CSRF-TOKEN",
-            "in": "header",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "type": "object",
-                "additionalProperties": true,
-                "properties": {
-                  "name": {},
-                  "bothdate": {},
-                  "sex": {},
-                  "phone": {},
-                  "room": {},
-                  "illness": {},
-                  "warn": {},
-                  "foodLike": {},
-                  "foodHate": {},
-                  "drag": {},
-                  "customerId": {},
-                  "deviceId": {}
-                }
-              }
-            }
-          }
-        },
-        "description": "Implementation: 智慧养老手表管理系统/backend/internal/handlers/handler_old.go. Go API DTOs without explicit schemas remain open objects; consult implementation.",
-        "x-request-fields": [
-          "name",
-          "bothdate",
-          "sex",
-          "phone",
-          "room",
-          "illness",
-          "warn",
-          "foodLike",
-          "foodHate",
-          "drag",
-          "customerId",
-          "deviceId"
-        ],
-        "x-success-fields": [
-          "returnCode"
-        ]
-      }
-    },
-    "/api/v1/oldPerson/delete": {
-      "post": {
-        "summary": "oldPerson/delete",
-        "deprecated": false,
-        "tags": [
-          "v1"
-        ],
-        "responses": {
-          "200": {
-            "description": "Go JSON response; payload varies by operation.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "additionalProperties": true,
-                  "properties": {
-                    "returnCode": {
-                      "type": "string",
-                      "const": "1111"
-                    }
-                  },
-                  "required": [
-                    "returnCode"
-                  ]
-                }
-              }
-            }
-          },
-          "400": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "401": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "403": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "409": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "503": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "404": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "405": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "413": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "415": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "429": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "500": {
-            "$ref": "#/components/responses/ApiError"
-          }
-        },
-        "security": [
-          {
-            "sessionCookie": []
-          }
-        ],
-        "parameters": [
-          {
-            "name": "X-CSRF-TOKEN",
-            "in": "header",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "type": "object",
-                "additionalProperties": true,
-                "properties": {
-                  "oldId": {}
-                }
-              }
-            }
-          }
-        },
-        "description": "Implementation: 智慧养老手表管理系统/backend/internal/handlers/handler_old.go. Go API DTOs without explicit schemas remain open objects; consult implementation.",
-        "x-request-fields": [
-          "oldId"
-        ],
-        "x-success-fields": [
-          "returnCode"
-        ]
-      }
-    },
-    "/api/v1/oldPerson/select": {
-      "post": {
-        "summary": "oldPerson/select",
-        "deprecated": false,
-        "tags": [
-          "v1"
-        ],
-        "responses": {
-          "200": {
-            "description": "Go JSON response; payload varies by operation.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "additionalProperties": true,
-                  "properties": {
-                    "oldPeople": {},
-                    "page": {},
-                    "pageSize": {},
-                    "returnCode": {
-                      "type": "string",
-                      "const": "1111"
-                    },
-                    "total": {}
-                  },
-                  "required": [
-                    "returnCode"
-                  ]
-                }
-              }
-            }
-          },
-          "400": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "401": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "403": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "409": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "503": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "404": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "405": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "413": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "415": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "429": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "500": {
-            "$ref": "#/components/responses/ApiError"
-          }
-        },
-        "security": [
-          {
-            "sessionCookie": []
-          }
-        ],
-        "parameters": [
-          {
-            "name": "X-CSRF-TOKEN",
-            "in": "header",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "type": "object",
-                "additionalProperties": true,
-                "properties": {
-                  "name": {},
-                  "page": {},
-                  "pageSize": {}
-                }
-              }
-            }
-          }
-        },
-        "description": "Implementation: 智慧养老手表管理系统/backend/internal/handlers/handler_old.go. Go API DTOs without explicit schemas remain open objects; consult implementation.",
-        "x-request-fields": [
-          "name",
-          "page",
-          "pageSize"
-        ],
-        "x-success-fields": [
-          "oldPeople",
-          "page",
-          "pageSize",
-          "returnCode",
-          "total"
-        ]
-      }
-    },
-    "/api/v1/oldPerson/selectDetail": {
-      "post": {
-        "summary": "oldPerson/selectDetail",
-        "deprecated": false,
-        "tags": [
-          "v1"
-        ],
-        "responses": {
-          "200": {
-            "description": "Go JSON response; payload varies by operation.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "additionalProperties": true,
-                  "properties": {
-                    "oldPersonDetails": {},
-                    "page": {},
-                    "pageSize": {},
-                    "returnCode": {
-                      "type": "string",
-                      "const": "1111"
-                    },
-                    "total": {}
-                  },
-                  "required": [
-                    "returnCode"
-                  ]
-                }
-              }
-            }
-          },
-          "400": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "401": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "403": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "409": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "503": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "404": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "405": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "413": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "415": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "429": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "500": {
-            "$ref": "#/components/responses/ApiError"
-          }
-        },
-        "security": [
-          {
-            "sessionCookie": []
-          }
-        ],
-        "parameters": [
-          {
-            "name": "X-CSRF-TOKEN",
-            "in": "header",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "type": "object",
-                "additionalProperties": true,
-                "properties": {
-                  "name": {},
-                  "page": {},
-                  "pageSize": {}
-                }
-              }
-            }
-          }
-        },
-        "description": "Implementation: 智慧养老手表管理系统/backend/internal/handlers/handler_old.go. Go API DTOs without explicit schemas remain open objects; consult implementation.",
-        "x-request-fields": [
-          "name",
-          "page",
-          "pageSize"
-        ],
-        "x-success-fields": [
-          "oldPersonDetails",
-          "page",
-          "pageSize",
-          "returnCode",
-          "total"
-        ]
-      }
-    },
-    "/api/v1/oldPerson/update": {
-      "post": {
-        "summary": "oldPerson/update",
-        "deprecated": false,
-        "tags": [
-          "v1"
-        ],
-        "responses": {
-          "200": {
-            "description": "Go JSON response; payload varies by operation.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "additionalProperties": true,
-                  "properties": {
-                    "returnCode": {
-                      "type": "string",
-                      "const": "1111"
-                    }
-                  },
-                  "required": [
-                    "returnCode"
-                  ]
-                }
-              }
-            }
-          },
-          "400": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "401": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "403": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "409": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "503": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "404": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "405": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "413": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "415": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "429": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "500": {
-            "$ref": "#/components/responses/ApiError"
-          }
-        },
-        "security": [
-          {
-            "sessionCookie": []
-          }
-        ],
-        "parameters": [
-          {
-            "name": "X-CSRF-TOKEN",
-            "in": "header",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "type": "object",
-                "additionalProperties": true,
-                "properties": {
-                  "oldId": {},
-                  "name": {},
-                  "bothdate": {},
-                  "sex": {},
-                  "phone": {},
-                  "room": {},
-                  "illness": {},
-                  "warn": {},
-                  "foodLike": {},
-                  "foodHate": {},
-                  "drag": {},
-                  "customerId": {},
-                  "customerName": {},
-                  "deviceId": {}
-                }
-              }
-            }
-          }
-        },
-        "description": "Implementation: 智慧养老手表管理系统/backend/internal/handlers/handler_old.go. Go API DTOs without explicit schemas remain open objects; consult implementation.",
-        "x-request-fields": [
-          "oldId",
-          "name",
-          "bothdate",
-          "sex",
-          "phone",
-          "room",
-          "illness",
-          "warn",
-          "foodLike",
-          "foodHate",
-          "drag",
-          "customerId",
-          "customerName",
-          "deviceId"
-        ],
-        "x-success-fields": [
-          "returnCode"
-        ]
-      }
-    },
     "/api/v1/position/select": {
       "post": {
         "summary": "position/select",
@@ -9922,7 +9676,7 @@
             }
           }
         },
-        "description": "Implementation: 智慧养老手表管理系统/backend/internal/handlers/handler_old.go. Go API DTOs without explicit schemas remain open objects; consult implementation.",
+        "description": "Implementation: 智慧养老手表管理系统/backend/internal/handlers/handler_resident_devices.go. Go API DTOs without explicit schemas remain open objects; consult implementation.",
         "x-request-fields": [
           "name",
           "page",
@@ -10029,12 +9783,584 @@
             }
           }
         },
-        "description": "Implementation: 智慧养老手表管理系统/backend/internal/handlers/handler_old.go. Go API DTOs without explicit schemas remain open objects; consult implementation.",
+        "description": "Implementation: 智慧养老手表管理系统/backend/internal/handlers/handler_resident_devices.go. Go API DTOs without explicit schemas remain open objects; consult implementation.",
         "x-request-fields": [
           "oldId"
         ],
         "x-success-fields": [
           "positionDtos",
+          "returnCode"
+        ]
+      }
+    },
+    "/api/v1/residents/create": {
+      "post": {
+        "summary": "residents/create",
+        "deprecated": false,
+        "tags": [
+          "v1"
+        ],
+        "responses": {
+          "200": {
+            "description": "Go JSON response; payload varies by operation.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": true,
+                  "properties": {
+                    "returnCode": {
+                      "type": "string",
+                      "const": "1111"
+                    }
+                  },
+                  "required": [
+                    "returnCode"
+                  ]
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/ApiError"
+          },
+          "401": {
+            "$ref": "#/components/responses/ApiError"
+          },
+          "403": {
+            "$ref": "#/components/responses/ApiError"
+          },
+          "409": {
+            "$ref": "#/components/responses/ApiError"
+          },
+          "503": {
+            "$ref": "#/components/responses/ApiError"
+          },
+          "404": {
+            "$ref": "#/components/responses/ApiError"
+          },
+          "405": {
+            "$ref": "#/components/responses/ApiError"
+          },
+          "413": {
+            "$ref": "#/components/responses/ApiError"
+          },
+          "415": {
+            "$ref": "#/components/responses/ApiError"
+          },
+          "429": {
+            "$ref": "#/components/responses/ApiError"
+          },
+          "500": {
+            "$ref": "#/components/responses/ApiError"
+          }
+        },
+        "security": [
+          {
+            "sessionCookie": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "X-CSRF-TOKEN",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "additionalProperties": true,
+                "properties": {
+                  "name": {},
+                  "bothdate": {},
+                  "sex": {},
+                  "phone": {},
+                  "room": {},
+                  "illness": {},
+                  "warn": {},
+                  "foodLike": {},
+                  "foodHate": {},
+                  "drag": {},
+                  "customerId": {},
+                  "deviceId": {}
+                }
+              }
+            }
+          }
+        },
+        "description": "Implementation: 智慧养老手表管理系统/backend/internal/handlers/handler_resident_devices.go. Go API DTOs without explicit schemas remain open objects; consult implementation.",
+        "x-request-fields": [
+          "name",
+          "bothdate",
+          "sex",
+          "phone",
+          "room",
+          "illness",
+          "warn",
+          "foodLike",
+          "foodHate",
+          "drag",
+          "customerId",
+          "deviceId"
+        ],
+        "x-success-fields": [
+          "returnCode"
+        ]
+      }
+    },
+    "/api/v1/residents/delete": {
+      "post": {
+        "summary": "residents/delete",
+        "deprecated": false,
+        "tags": [
+          "v1"
+        ],
+        "responses": {
+          "200": {
+            "description": "Go JSON response; payload varies by operation.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": true,
+                  "properties": {
+                    "returnCode": {
+                      "type": "string",
+                      "const": "1111"
+                    }
+                  },
+                  "required": [
+                    "returnCode"
+                  ]
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/ApiError"
+          },
+          "401": {
+            "$ref": "#/components/responses/ApiError"
+          },
+          "403": {
+            "$ref": "#/components/responses/ApiError"
+          },
+          "409": {
+            "$ref": "#/components/responses/ApiError"
+          },
+          "503": {
+            "$ref": "#/components/responses/ApiError"
+          },
+          "404": {
+            "$ref": "#/components/responses/ApiError"
+          },
+          "405": {
+            "$ref": "#/components/responses/ApiError"
+          },
+          "413": {
+            "$ref": "#/components/responses/ApiError"
+          },
+          "415": {
+            "$ref": "#/components/responses/ApiError"
+          },
+          "429": {
+            "$ref": "#/components/responses/ApiError"
+          },
+          "500": {
+            "$ref": "#/components/responses/ApiError"
+          }
+        },
+        "security": [
+          {
+            "sessionCookie": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "X-CSRF-TOKEN",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "additionalProperties": true,
+                "properties": {
+                  "oldId": {}
+                }
+              }
+            }
+          }
+        },
+        "description": "Implementation: 智慧养老手表管理系统/backend/internal/handlers/handler_resident_devices.go. Go API DTOs without explicit schemas remain open objects; consult implementation.",
+        "x-request-fields": [
+          "oldId"
+        ],
+        "x-success-fields": [
+          "returnCode"
+        ]
+      }
+    },
+    "/api/v1/residents/details": {
+      "post": {
+        "summary": "residents/details",
+        "deprecated": false,
+        "tags": [
+          "v1"
+        ],
+        "responses": {
+          "200": {
+            "description": "Go JSON response; payload varies by operation.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": true,
+                  "properties": {
+                    "oldPersonDetails": {},
+                    "page": {},
+                    "pageSize": {},
+                    "returnCode": {
+                      "type": "string",
+                      "const": "1111"
+                    },
+                    "total": {}
+                  },
+                  "required": [
+                    "returnCode"
+                  ]
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/ApiError"
+          },
+          "401": {
+            "$ref": "#/components/responses/ApiError"
+          },
+          "403": {
+            "$ref": "#/components/responses/ApiError"
+          },
+          "409": {
+            "$ref": "#/components/responses/ApiError"
+          },
+          "503": {
+            "$ref": "#/components/responses/ApiError"
+          },
+          "404": {
+            "$ref": "#/components/responses/ApiError"
+          },
+          "405": {
+            "$ref": "#/components/responses/ApiError"
+          },
+          "413": {
+            "$ref": "#/components/responses/ApiError"
+          },
+          "415": {
+            "$ref": "#/components/responses/ApiError"
+          },
+          "429": {
+            "$ref": "#/components/responses/ApiError"
+          },
+          "500": {
+            "$ref": "#/components/responses/ApiError"
+          }
+        },
+        "security": [
+          {
+            "sessionCookie": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "X-CSRF-TOKEN",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "additionalProperties": true,
+                "properties": {
+                  "name": {},
+                  "page": {},
+                  "pageSize": {}
+                }
+              }
+            }
+          }
+        },
+        "description": "Implementation: 智慧养老手表管理系统/backend/internal/handlers/handler_resident_devices.go. Go API DTOs without explicit schemas remain open objects; consult implementation.",
+        "x-request-fields": [
+          "name",
+          "page",
+          "pageSize"
+        ],
+        "x-success-fields": [
+          "oldPersonDetails",
+          "page",
+          "pageSize",
+          "returnCode",
+          "total"
+        ]
+      }
+    },
+    "/api/v1/residents/list": {
+      "post": {
+        "summary": "residents/list",
+        "deprecated": false,
+        "tags": [
+          "v1"
+        ],
+        "responses": {
+          "200": {
+            "description": "Go JSON response; payload varies by operation.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": true,
+                  "properties": {
+                    "oldPeople": {},
+                    "page": {},
+                    "pageSize": {},
+                    "returnCode": {
+                      "type": "string",
+                      "const": "1111"
+                    },
+                    "total": {}
+                  },
+                  "required": [
+                    "returnCode"
+                  ]
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/ApiError"
+          },
+          "401": {
+            "$ref": "#/components/responses/ApiError"
+          },
+          "403": {
+            "$ref": "#/components/responses/ApiError"
+          },
+          "409": {
+            "$ref": "#/components/responses/ApiError"
+          },
+          "503": {
+            "$ref": "#/components/responses/ApiError"
+          },
+          "404": {
+            "$ref": "#/components/responses/ApiError"
+          },
+          "405": {
+            "$ref": "#/components/responses/ApiError"
+          },
+          "413": {
+            "$ref": "#/components/responses/ApiError"
+          },
+          "415": {
+            "$ref": "#/components/responses/ApiError"
+          },
+          "429": {
+            "$ref": "#/components/responses/ApiError"
+          },
+          "500": {
+            "$ref": "#/components/responses/ApiError"
+          }
+        },
+        "security": [
+          {
+            "sessionCookie": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "X-CSRF-TOKEN",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "additionalProperties": true,
+                "properties": {
+                  "name": {},
+                  "page": {},
+                  "pageSize": {}
+                }
+              }
+            }
+          }
+        },
+        "description": "Implementation: 智慧养老手表管理系统/backend/internal/handlers/handler_resident_devices.go. Go API DTOs without explicit schemas remain open objects; consult implementation.",
+        "x-request-fields": [
+          "name",
+          "page",
+          "pageSize"
+        ],
+        "x-success-fields": [
+          "oldPeople",
+          "page",
+          "pageSize",
+          "returnCode",
+          "total"
+        ]
+      }
+    },
+    "/api/v1/residents/update": {
+      "post": {
+        "summary": "residents/update",
+        "deprecated": false,
+        "tags": [
+          "v1"
+        ],
+        "responses": {
+          "200": {
+            "description": "Go JSON response; payload varies by operation.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": true,
+                  "properties": {
+                    "returnCode": {
+                      "type": "string",
+                      "const": "1111"
+                    }
+                  },
+                  "required": [
+                    "returnCode"
+                  ]
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/ApiError"
+          },
+          "401": {
+            "$ref": "#/components/responses/ApiError"
+          },
+          "403": {
+            "$ref": "#/components/responses/ApiError"
+          },
+          "409": {
+            "$ref": "#/components/responses/ApiError"
+          },
+          "503": {
+            "$ref": "#/components/responses/ApiError"
+          },
+          "404": {
+            "$ref": "#/components/responses/ApiError"
+          },
+          "405": {
+            "$ref": "#/components/responses/ApiError"
+          },
+          "413": {
+            "$ref": "#/components/responses/ApiError"
+          },
+          "415": {
+            "$ref": "#/components/responses/ApiError"
+          },
+          "429": {
+            "$ref": "#/components/responses/ApiError"
+          },
+          "500": {
+            "$ref": "#/components/responses/ApiError"
+          }
+        },
+        "security": [
+          {
+            "sessionCookie": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "X-CSRF-TOKEN",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "additionalProperties": true,
+                "properties": {
+                  "oldId": {},
+                  "name": {},
+                  "bothdate": {},
+                  "sex": {},
+                  "phone": {},
+                  "room": {},
+                  "illness": {},
+                  "warn": {},
+                  "foodLike": {},
+                  "foodHate": {},
+                  "drag": {},
+                  "customerId": {},
+                  "customerName": {},
+                  "deviceId": {}
+                }
+              }
+            }
+          }
+        },
+        "description": "Implementation: 智慧养老手表管理系统/backend/internal/handlers/handler_resident_devices.go. Go API DTOs without explicit schemas remain open objects; consult implementation.",
+        "x-request-fields": [
+          "oldId",
+          "name",
+          "bothdate",
+          "sex",
+          "phone",
+          "room",
+          "illness",
+          "warn",
+          "foodLike",
+          "foodHate",
+          "drag",
+          "customerId",
+          "customerName",
+          "deviceId"
+        ],
+        "x-success-fields": [
           "returnCode"
         ]
       }
@@ -11403,434 +11729,6 @@
           "vitalRecords",
           "returnCode",
           "total"
-        ]
-      }
-    },
-    "/api/v1/watchInfo/add": {
-      "post": {
-        "summary": "watchInfo/add",
-        "deprecated": false,
-        "tags": [
-          "v1"
-        ],
-        "responses": {
-          "200": {
-            "description": "Go JSON response; payload varies by operation.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "additionalProperties": true,
-                  "properties": {
-                    "returnCode": {
-                      "type": "string",
-                      "const": "1111"
-                    }
-                  },
-                  "required": [
-                    "returnCode"
-                  ]
-                }
-              }
-            }
-          },
-          "400": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "401": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "403": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "409": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "503": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "404": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "405": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "413": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "415": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "429": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "500": {
-            "$ref": "#/components/responses/ApiError"
-          }
-        },
-        "security": [
-          {
-            "sessionCookie": []
-          }
-        ],
-        "parameters": [
-          {
-            "name": "X-CSRF-TOKEN",
-            "in": "header",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "type": "object",
-                "additionalProperties": true,
-                "properties": {
-                  "deviceId": {},
-                  "hrf": {},
-                  "hrl": {},
-                  "bpf": {},
-                  "bpl": {}
-                }
-              }
-            }
-          }
-        },
-        "description": "Implementation: 智慧养老手表管理系统/backend/internal/handlers/handler_old.go. Go API DTOs without explicit schemas remain open objects; consult implementation.",
-        "x-request-fields": [
-          "deviceId",
-          "hrf",
-          "hrl",
-          "bpf",
-          "bpl"
-        ],
-        "x-success-fields": [
-          "returnCode"
-        ]
-      }
-    },
-    "/api/v1/watchInfo/delete": {
-      "post": {
-        "summary": "watchInfo/delete",
-        "deprecated": false,
-        "tags": [
-          "v1"
-        ],
-        "responses": {
-          "200": {
-            "description": "Go JSON response; payload varies by operation.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "additionalProperties": true,
-                  "properties": {
-                    "returnCode": {
-                      "type": "string",
-                      "const": "1111"
-                    }
-                  },
-                  "required": [
-                    "returnCode"
-                  ]
-                }
-              }
-            }
-          },
-          "400": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "401": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "403": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "409": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "503": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "404": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "405": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "413": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "415": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "429": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "500": {
-            "$ref": "#/components/responses/ApiError"
-          }
-        },
-        "security": [
-          {
-            "sessionCookie": []
-          }
-        ],
-        "parameters": [
-          {
-            "name": "X-CSRF-TOKEN",
-            "in": "header",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "type": "object",
-                "additionalProperties": true,
-                "properties": {
-                  "deviceId": {}
-                }
-              }
-            }
-          }
-        },
-        "description": "Implementation: 智慧养老手表管理系统/backend/internal/handlers/handler_old.go. Go API DTOs without explicit schemas remain open objects; consult implementation.",
-        "x-request-fields": [
-          "deviceId"
-        ],
-        "x-success-fields": [
-          "returnCode"
-        ]
-      }
-    },
-    "/api/v1/watchInfo/select": {
-      "post": {
-        "summary": "watchInfo/select",
-        "deprecated": false,
-        "tags": [
-          "v1"
-        ],
-        "responses": {
-          "200": {
-            "description": "Go JSON response; payload varies by operation.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "additionalProperties": true,
-                  "properties": {
-                    "page": {},
-                    "pageSize": {},
-                    "returnCode": {
-                      "type": "string",
-                      "const": "1111"
-                    },
-                    "total": {},
-                    "watchDtos": {}
-                  },
-                  "required": [
-                    "returnCode"
-                  ]
-                }
-              }
-            }
-          },
-          "400": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "401": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "403": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "409": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "503": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "404": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "405": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "413": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "415": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "429": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "500": {
-            "$ref": "#/components/responses/ApiError"
-          }
-        },
-        "security": [
-          {
-            "sessionCookie": []
-          }
-        ],
-        "parameters": [
-          {
-            "name": "X-CSRF-TOKEN",
-            "in": "header",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "type": "object",
-                "additionalProperties": true,
-                "properties": {
-                  "oldName": {},
-                  "page": {},
-                  "pageSize": {}
-                }
-              }
-            }
-          }
-        },
-        "description": "Implementation: 智慧养老手表管理系统/backend/internal/handlers/handler_old.go. Go API DTOs without explicit schemas remain open objects; consult implementation.",
-        "x-request-fields": [
-          "oldName",
-          "page",
-          "pageSize"
-        ],
-        "x-success-fields": [
-          "page",
-          "pageSize",
-          "returnCode",
-          "total",
-          "watchDtos"
-        ]
-      }
-    },
-    "/api/v1/watchInfo/update": {
-      "post": {
-        "summary": "watchInfo/update",
-        "deprecated": false,
-        "tags": [
-          "v1"
-        ],
-        "responses": {
-          "200": {
-            "description": "Go JSON response; payload varies by operation.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "additionalProperties": true,
-                  "properties": {
-                    "returnCode": {
-                      "type": "string",
-                      "const": "1111"
-                    }
-                  },
-                  "required": [
-                    "returnCode"
-                  ]
-                }
-              }
-            }
-          },
-          "400": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "401": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "403": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "409": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "503": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "404": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "405": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "413": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "415": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "429": {
-            "$ref": "#/components/responses/ApiError"
-          },
-          "500": {
-            "$ref": "#/components/responses/ApiError"
-          }
-        },
-        "security": [
-          {
-            "sessionCookie": []
-          }
-        ],
-        "parameters": [
-          {
-            "name": "X-CSRF-TOKEN",
-            "in": "header",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "type": "object",
-                "additionalProperties": true,
-                "properties": {
-                  "deviceId": {},
-                  "hrf": {},
-                  "hrl": {},
-                  "bpf": {},
-                  "bpl": {}
-                }
-              }
-            }
-          }
-        },
-        "description": "Implementation: 智慧养老手表管理系统/backend/internal/handlers/handler_old.go. Go API DTOs without explicit schemas remain open objects; consult implementation.",
-        "x-request-fields": [
-          "deviceId",
-          "hrf",
-          "hrl",
-          "bpf",
-          "bpl"
-        ],
-        "x-success-fields": [
-          "returnCode"
         ]
       }
     }

@@ -11,10 +11,10 @@ import (
 // routeUser registers account and guardian routes.
 func (h *Handler) routeUser(mux *http.ServeMux) {
 	mux.HandleFunc("POST /api/v1/user/select", h.userSelect)
-	mux.HandleFunc("POST /api/v1/customer/select", h.customerSelect)
-	mux.HandleFunc("POST /api/v1/customer/add", h.customerAdd)
-	mux.HandleFunc("POST /api/v1/customer/update", h.customerUpdate)
-	mux.HandleFunc("POST /api/v1/customer/delete", h.customerDelete)
+	mux.HandleFunc("POST /api/v1/guardians/list", h.listGuardians)
+	mux.HandleFunc("POST /api/v1/guardians/create", h.createGuardian)
+	mux.HandleFunc("POST /api/v1/guardians/update", h.updateGuardian)
+	mux.HandleFunc("POST /api/v1/guardians/delete", h.deleteGuardian)
 }
 
 // POST /api/v1/user/select —— 按手机号查管理员账号（ADMIN）。
@@ -55,8 +55,8 @@ func (h *Handler) userSelect(w http.ResponseWriter, r *http.Request) {
 	response.JSON(w, http.StatusOK, map[string]any{"usersByPhone2": list})
 }
 
-// POST /api/v1/customer/select —— 分页模糊查询客户（ADMIN）。
-func (h *Handler) customerSelect(w http.ResponseWriter, r *http.Request) {
+// POST /api/v1/guardians/list —— 分页模糊查询客户（ADMIN）。
+func (h *Handler) listGuardians(w http.ResponseWriter, r *http.Request) {
 	m, ok := bodyMap(w, r)
 	if !ok {
 		return
@@ -105,8 +105,8 @@ func (h *Handler) customerSelect(w http.ResponseWriter, r *http.Request) {
 	})
 }
 
-// POST /api/v1/customer/add —— 新增客户（ADMIN）。
-func (h *Handler) customerAdd(w http.ResponseWriter, r *http.Request) {
+// POST /api/v1/guardians/create —— 新增客户（ADMIN）。
+func (h *Handler) createGuardian(w http.ResponseWriter, r *http.Request) {
 	m, ok := bodyMap(w, r)
 	if !ok {
 		return
@@ -139,8 +139,8 @@ func (h *Handler) customerAdd(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-// POST /api/v1/customer/update —— 更新客户（ADMIN）。
-func (h *Handler) customerUpdate(w http.ResponseWriter, r *http.Request) {
+// POST /api/v1/guardians/update —— 更新客户（ADMIN）。
+func (h *Handler) updateGuardian(w http.ResponseWriter, r *http.Request) {
 	m, ok := bodyMap(w, r)
 	if !ok {
 		return
@@ -179,8 +179,8 @@ func (h *Handler) customerUpdate(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-// POST /api/v1/customer/delete —— 删除客户（ADMIN）。
-func (h *Handler) customerDelete(w http.ResponseWriter, r *http.Request) {
+// POST /api/v1/guardians/delete —— 删除客户（ADMIN）。
+func (h *Handler) deleteGuardian(w http.ResponseWriter, r *http.Request) {
 	m, ok := bodyMap(w, r)
 	if !ok {
 		return

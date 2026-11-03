@@ -4,7 +4,7 @@ run(async({page,base,report,setRole,setSignedIn})=>{
  const visit=async(route,role)=>{setRole(role);setSignedIn(true);await page.goto(base+'/?lifecycle='+Date.now()+'#'+route);await page.locator('.care-app').waitFor();};
  // Exercise real Axios/XHR cancellation against held mock responses.
  let customerMode='normal';const customerRequests=[];
- await page.route('**/api/v1/customer/select',route=>{
+ await page.route('**/api/v1/guardians/list',route=>{
   customerRequests.push(route.request());
   if(customerMode==='hold')return;
   if(customerMode==='error')return route.fulfill({status:503,json:{returnCode:'0000',code:'SERVICE_UNAVAILABLE',message:'请求未完成',}});
@@ -14,7 +14,7 @@ run(async({page,base,report,setRole,setSignedIn})=>{
  await page.getByText('F02当前监护人',{exact:true}).first().waitFor();
  const searchCustomer=async(name)=>{
   await page.getByLabel('监护人姓名',{exact:true}).fill(name);
-  const requested=page.waitForRequest(r=>r.url().endsWith('/api/v1/customer/select')&&r.postDataJSON().customerName===name);
+  const requested=page.waitForRequest(r=>r.url().endsWith('/api/v1/guardians/list')&&r.postDataJSON().customerName===name);
   await page.getByRole('button',{name:'查询监护人姓名',exact:true}).click();
   return requested;
  };
@@ -40,7 +40,7 @@ run(async({page,base,report,setRole,setSignedIn})=>{
  await page.getByRole('heading',{name:'运营总览',exact:true}).waitFor();
  const countAfterLeaving=customerRequests.length;await page.waitForTimeout(100);
  check('Navigation aborts the guardian read without starting a replacement',customerRequests.length===countAfterLeaving);
- await page.unroute('**/api/v1/customer/select');
+ await page.unroute('**/api/v1/guardians/list');
 
  await page.route('**/api/v1/care/incidents',route=>route.fulfill({json:{returnCode:'1111',items:[{id:1,oldPersonName:'F02照护任务',state:'received'}],total:1,duty:'supervisor',actorId:1}}));
  const historyRequests=[];

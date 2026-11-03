@@ -205,7 +205,7 @@ export default {
       var _this = this
       var name = _this.searchText
 
-      return axios.post('api/v1/oldPerson/selectDetail',
+      return axios.post('api/v1/residents/details',
         { page: this.currentPage, pageSize: this.pageSize,
           'name': name === '' ? '' : _this.searchText
         },
@@ -234,7 +234,7 @@ export default {
       try {
         var options = [], page = 1, total = 0
         do {
-          var response = await axios.post('api/v1/customer/select', { customerName: '', page, pageSize: 100 }, { withCredentials: true })
+          var response = await axios.post('api/v1/guardians/list', { customerName: '', page, pageSize: 100 }, { withCredentials: true })
           var items = response.data.customers
           if (!Array.isArray(items)) throw new Error('invalid guardians')
           total = response.data.total ?? items.length

@@ -43,7 +43,7 @@ func durableTelemetryEligible(parsed parsedDeviceTelemetry, requestID string, bo
 
 // QueueDurableReport is invoked in the authenticated device transaction.
 // A successful response is only emitted *after* that transaction commits.
-func (repo telemetryRepository) QueueDurableReport(ctx context.Context, tx *dbstore.Transaction, d *oldDevice, parsed parsedDeviceTelemetry, requestID string) error {
+func (repo telemetryRepository) QueueDurableReport(ctx context.Context, tx *dbstore.Transaction, d *deviceRecord, parsed parsedDeviceTelemetry, requestID string) error {
 	if repo.box == nil {
 		return errors.New("durable telemetry requires a valid encryption key")
 	}
@@ -217,7 +217,7 @@ func processDurableQueueItem(ctx context.Context, tx *dbstore.Transaction, repo 
 	if err != nil {
 		return err
 	}
-	d, err := scanOldDevice(tx.QueryRow(ctx, `SELECT `+oldDeviceCols+` FROM device WHERE device_id=$1 FOR UPDATE`, item.deviceID))
+	d, err := scanDeviceRecord(tx.QueryRow(ctx, `SELECT `+deviceRecordColumns+` FROM device WHERE device_id=$1 FOR UPDATE`, item.deviceID))
 	if errors.Is(err, pgx.ErrNoRows) {
 		_, err = tx.Exec(ctx, `UPDATE telemetry_inbox SET status='stale',last_error='device removed' WHERE id=$1`, item.id)
 		return err

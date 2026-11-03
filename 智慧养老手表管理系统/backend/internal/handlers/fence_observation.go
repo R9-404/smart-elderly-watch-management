@@ -67,7 +67,7 @@ func advanceFenceObservation(f *fenceConfig, state *fence.State, req *fencePoint
 	return direction, true, nil
 }
 
-func (h *Handler) persistFenceEvent(ctx context.Context, tx *dbstore.Transaction, d *oldDevice, f *fenceConfig, req *fencePointRequest, direction string, at time.Time) (map[string]any, error) {
+func (h *Handler) persistFenceEvent(ctx context.Context, tx *dbstore.Transaction, d *deviceRecord, f *fenceConfig, req *fencePointRequest, direction string, at time.Time) (map[string]any, error) {
 	var eventID int64
 	err := tx.QueryRow(ctx, `INSERT INTO fence_event(fence_id,fence_revision,old_id,device_id,epoch,direction,lng,lat,accuracy,occurred_at) VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9,$10) RETURNING id`, f.ID, f.Revision, *d.OldID, d.ID, d.HealthEpoch, direction, req.Point[0], req.Point[1], req.Accuracy, at).Scan(&eventID)
 	if err != nil {

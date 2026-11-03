@@ -166,7 +166,7 @@ func (h *Handler) queueSOSNotification(ctx context.Context, tx *dbstore.Transact
 
 // lockSOSDevice authenticates and revalidates the owner under elder-then-device
 // locks. Code 409 denotes a binding conflict; other codes use the device envelope.
-func (h *Handler) lockSOSDevice(ctx context.Context, tx *dbstore.Transaction, deviceNo, secret string, bindingVersion int64) (*oldDevice, string, string, error) {
+func (h *Handler) lockSOSDevice(ctx context.Context, tx *dbstore.Transaction, deviceNo, secret string, bindingVersion int64) (*deviceRecord, string, string, error) {
 	d, code, msg, err := h.hwAuth(ctx, tx, deviceNo, secret, "设备已停用")
 	if err != nil || d == nil {
 		return nil, code, msg, err
@@ -180,7 +180,7 @@ func (h *Handler) lockSOSDevice(ctx context.Context, tx *dbstore.Transaction, de
 	if _, err := tx.Exec(ctx, `SELECT old_id FROM oldperson WHERE old_id=$1 FOR UPDATE`, expectedOwner); err != nil {
 		return nil, "", "", err
 	}
-	locked, err := scanOldDevice(tx.QueryRow(ctx, `SELECT `+oldDeviceCols+` FROM device WHERE device_id=$1 FOR UPDATE`, d.ID))
+	locked, err := scanDeviceRecord(tx.QueryRow(ctx, `SELECT `+deviceRecordColumns+` FROM device WHERE device_id=$1 FOR UPDATE`, d.ID))
 	if err != nil {
 		return nil, "", "", err
 	}

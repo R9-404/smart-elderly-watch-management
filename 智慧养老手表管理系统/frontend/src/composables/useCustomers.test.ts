@@ -46,7 +46,7 @@ describe('guardian data flow', () => {
   it('preserves an unconfirmed write and never aborts or replays it when reads time out or scope stops', async () => {
     vi.useFakeTimers()
     let rejectWrite!: (error: Error) => void
-    const post = vi.fn((path: string) => path.endsWith('/select')
+    const post = vi.fn((path: string) => path.endsWith('/list')
       ? new Promise(() => {})
       : new Promise((_resolve, reject) => { rejectWrite = reject }))
     const scope = effectScope()
@@ -59,7 +59,7 @@ describe('guardian data flow', () => {
     await vi.advanceTimersByTimeAsync(10000)
     await pendingRead
     expect(state.saving.value).toBe(true)
-    const write = post.mock.calls.find(([path]) => path.endsWith('/add'))!
+    const write = post.mock.calls.find(([path]) => path.endsWith('/create'))!
     expect(write).toHaveLength(2)
     scope.stop()
     rejectWrite(new Error('response lost; verify result before retry'))
@@ -68,7 +68,7 @@ describe('guardian data flow', () => {
     expect(state.customerForm).toMatchObject(form)
     expect(state.customerDialogVisible.value).toBe(true)
     expect(state.mutationError.value).toContain('未收到保存确认')
-    expect(post.mock.calls.filter(([path]) => path.endsWith('/add'))).toHaveLength(1)
+    expect(post.mock.calls.filter(([path]) => path.endsWith('/create'))).toHaveLength(1)
   })
 
   it('loads the latest page and search after changes during an active read', async () => {
@@ -128,7 +128,7 @@ describe('guardian data flow', () => {
     expect(await saved).toBe(true)
     first({ data: { customers: [{ customerName: '过期数据' }], total: 1 } })
     await flushPromises()
-    expect(post.mock.calls.map(([path]) => path)).toEqual(['api/v1/customer/select', 'api/v1/customer/add', 'api/v1/customer/select'])
+    expect(post.mock.calls.map(([path]) => path)).toEqual(['api/v1/guardians/list', 'api/v1/guardians/create', 'api/v1/guardians/list'])
     expect(state.customerList.value).toEqual([])
     expect(state.saving.value).toBe(false)
   })

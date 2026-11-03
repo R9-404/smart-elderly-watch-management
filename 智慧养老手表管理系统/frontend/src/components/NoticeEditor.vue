@@ -29,6 +29,8 @@ export default {
     uploadsPending () { return this.attachments.some(file => file.status !== 'success') }
   },
   created () { if (this.editing) this.loadNotice() },
+  beforeRouteLeave (to, from, next) { this.confirmLeave(next) },
+  beforeRouteUpdate (to, from, next) { this.confirmLeave(next) },
   watch: { '$route.query.textId' () { if (this.editing) this.loadNotice() } },
   methods: {
     confirmLeave (next) {

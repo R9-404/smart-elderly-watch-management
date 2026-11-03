@@ -115,7 +115,7 @@ run(async ({ page, context, base, report, setRole }) => {
     check('queue fits 390px large=' + large, await page.locator('.workspace-main').evaluate(el => el.scrollWidth <= el.clientWidth + 1))
   }
   let failGuardianPage = true
-  await context.route('**/api/v1/customer/select', route => {
+  await context.route('**/api/v1/guardians/list', route => {
     const { page: number = 1, pageSize = 20 } = route.request().postDataJSON()
     if (failGuardianPage && number === 2) return route.fulfill({ status: 503, json: {returnCode:'0000',code:'SERVICE_UNAVAILABLE',message: 'temporarily unavailable' } })
     const start = (number - 1) * pageSize

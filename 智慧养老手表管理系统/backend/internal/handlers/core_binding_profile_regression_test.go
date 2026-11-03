@@ -31,26 +31,26 @@ func TestContinuousElderBirthdateAndAge(t *testing.T) {
 	now := time.Now()
 	body := elderPayload()
 	body["bothdate"] = now.AddDate(-80, 0, 1).Format("2006-01-02")
-	if out := api(t, h.oldPersonAdd, body); out["returnCode"] != "1111" {
+	if out := api(t, h.createResident, body); out["returnCode"] != "1111" {
 		t.Fatal(out)
 	}
-	item := api(t, h.oldPersonSelect, map[string]any{"name": ""})["oldPeople"].([]any)[0].(map[string]any)
+	item := api(t, h.listResidents, map[string]any{"name": ""})["oldPeople"].([]any)[0].(map[string]any)
 	if item["age"] != float64(79) {
 		t.Errorf("age before birthday=%v want=79", item["age"])
 	}
 	// A historical cache must not prevent the displayed age advancing.
 	mustExec(t, pool, "UPDATE oldperson SET age=1 WHERE old_id=1")
-	item = api(t, h.oldPersonSelectDetail, map[string]any{"name": ""})["oldPersonDetails"].([]any)[0].(map[string]any)
+	item = api(t, h.getResidentDetails, map[string]any{"name": ""})["oldPersonDetails"].([]any)[0].(map[string]any)
 	if item["age"] != float64(79) {
 		t.Errorf("detail returned stale stored age=%v", item["age"])
 	}
 	for _, birth := range []string{"2026-02-31", "not-a-date", now.AddDate(0, 0, 1).Format("2006-01-02")} {
 		body["bothdate"] = birth
-		if w := callAPI(h.oldPersonAdd, body); w.Code != http.StatusBadRequest {
+		if w := callAPI(h.createResident, body); w.Code != http.StatusBadRequest {
 			t.Errorf("invalid birthdate=%q add HTTP=%d", birth, w.Code)
 		}
 		body["oldId"] = 1
-		if w := callAPI(h.oldPersonUpdate, body); w.Code != http.StatusBadRequest {
+		if w := callAPI(h.updateResident, body); w.Code != http.StatusBadRequest {
 			t.Errorf("invalid birthdate=%q update HTTP=%d", birth, w.Code)
 		}
 	}

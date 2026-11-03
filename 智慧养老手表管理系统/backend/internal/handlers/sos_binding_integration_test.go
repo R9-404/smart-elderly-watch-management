@@ -194,7 +194,7 @@ func TestSOSPersistenceRollbackLeavesNoPartialRows(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	d, err := scanOldDevice(tx.QueryRow(ctx, `SELECT `+oldDeviceCols+` FROM device WHERE device_id=1 FOR UPDATE`))
+	d, err := scanDeviceRecord(tx.QueryRow(ctx, `SELECT `+deviceRecordColumns+` FROM device WHERE device_id=1 FOR UPDATE`))
 	if err != nil {
 		_ = tx.Rollback(ctx)
 		t.Fatal(err)

@@ -164,8 +164,8 @@ func TestReadLatencyAudit(t *testing.T) {
 	endpoints := []endpoint{
 		{"authenticated_probe", "/api/v1/audit/probe", map[string]any{}, "", 0, false},
 		{"text/select", "/api/v1/notices/list", page, "texts", 20, false},
-		{"customer/select", "/api/v1/customer/select", page, "customers", 20, false},
-		{"oldPerson/select", "/api/v1/oldPerson/select", page, "oldPeople", 20, false},
+		{"customer/select", "/api/v1/guardians/list", page, "customers", 20, false},
+		{"oldPerson/select", "/api/v1/residents/list", page, "oldPeople", 20, false},
 		{"family/select", "/api/v1/family/select", page, "familyDtos", 20, false},
 		{"device/list", "/api/v1/device/list", page, "devices", 20, false},
 		{"notification/list", "/api/v1/notifications/search", map[string]any{"familyId": 1}, "items", 100, false},

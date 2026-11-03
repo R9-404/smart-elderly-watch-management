@@ -14,7 +14,7 @@ type capabilityCredentials struct {
 
 // Device lock precedes command/fence locks, preventing old binding receipts and
 // deliveries. Authentication is repeated AFTER the lock to exclude key rotation.
-func (h *Handler) capabilityDevice(w http.ResponseWriter, r *http.Request, tx *db.Transaction, c capabilityCredentials) *oldDevice {
+func (h *Handler) capabilityDevice(w http.ResponseWriter, r *http.Request, tx *db.Transaction, c capabilityCredentials) *deviceRecord {
 	d, code, msg, err := h.hwAuth(r.Context(), tx, c.DeviceNo, c.Secret, "设备已停用")
 	if err != nil {
 		response.Error500(w, ref())
@@ -24,7 +24,7 @@ func (h *Handler) capabilityDevice(w http.ResponseWriter, r *http.Request, tx *d
 		hwFail(w, code, msg)
 		return nil
 	}
-	d, err = scanOldDevice(tx.QueryRow(r.Context(), `SELECT `+oldDeviceCols+` FROM device WHERE device_id=$1 FOR UPDATE`, d.ID))
+	d, err = scanDeviceRecord(tx.QueryRow(r.Context(), `SELECT `+deviceRecordColumns+` FROM device WHERE device_id=$1 FOR UPDATE`, d.ID))
 	if err != nil {
 		response.Error500(w, ref())
 		return nil

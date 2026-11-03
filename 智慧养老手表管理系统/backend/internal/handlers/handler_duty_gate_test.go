@@ -39,7 +39,7 @@ func TestAdminDutyGateRestrictsLegacyRoutes(t *testing.T) {
 	}
 	for _, duty := range []string{"caregiver", "auditor"} {
 		mustExec(t, pool, "UPDATE care_staff_permission SET duty=$1 WHERE admin_id=$2", duty, adminID)
-		check("/api/v1/customer/delete", http.StatusForbidden)
+		check("/api/v1/guardians/delete", http.StatusForbidden)
 		check("/api/v1/device/list", http.StatusForbidden)
 		check("/api/v1/health/statistics", http.StatusForbidden)
 		check("/api/v1/care/transition", http.StatusNoContent)
@@ -54,7 +54,7 @@ func TestAdminDutyGateRestrictsLegacyRoutes(t *testing.T) {
 		t.Fatalf("expected one privacy-safe access audit for each denied request, got %d: %v", deniedAuditCount, err)
 	}
 	mustExec(t, pool, "UPDATE care_staff_permission SET duty='supervisor' WHERE admin_id=$1", adminID)
-	check("/api/v1/customer/delete", http.StatusNoContent)
+	check("/api/v1/guardians/delete", http.StatusNoContent)
 
 	// Migration compatibility is intentional until each legacy ADMIN has a duty.
 	mustExec(t, pool, "DELETE FROM care_staff_permission WHERE admin_id=$1", adminID)
@@ -65,7 +65,7 @@ func TestRestrictedAdminRouteAllowlist(t *testing.T) {
 	for _, path := range []string{
 		"/api/v1/care/receipt",
 		"/api/v1/care/newPrivilegedAction",
-		"/api/v1/customer/delete",
+		"/api/v1/guardians/delete",
 		"/api/v1/notifications/search",
 	} {
 		req := httptest.NewRequest(http.MethodPost, path, nil)
@@ -95,7 +95,7 @@ func TestRestrictedAdminGateFailsClosedWithoutAuditStore(t *testing.T) {
 			w.WriteHeader(http.StatusNoContent)
 		},
 	)))
-	req := httptest.NewRequest(http.MethodPost, "/api/v1/customer/delete", nil)
+	req := httptest.NewRequest(http.MethodPost, "/api/v1/guardians/delete", nil)
 	req.AddCookie(&http.Cookie{Name: session.CookieName, Value: sess.ID})
 	rec := httptest.NewRecorder()
 	gate.ServeHTTP(rec, req)

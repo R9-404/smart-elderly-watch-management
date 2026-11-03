@@ -4,7 +4,7 @@ const run = require('./browser-harness.cjs');
 const root = path.resolve(__dirname, '../..');
 const images = path.resolve(__dirname, 'artifacts/screenshots');
 const familyRoutes = ['/family-portal/overview', '/family-portal/vitals', '/family-portal/activity', '/family-portal/location', '/family-portal/profile', '/family-portal/notice?textId=1'];
-const adminRoutes = ['/operations/overview', '/operations/vitals', '/operations/activity', '/operations/locations', '/operations/life', '/operations/monitoring-profiles', '/operations/residents', '/operations/guardians', '/operations/notices/edit?textId=1', '/operations/notices/new', '/operations/notices/detail?textId=1', '/operations/notices', '/operations/attachments', '/operations/families', '/operations/comments', '/operations/invitations', '/operations/devices'];
+const adminRoutes = ['/operations/overview', '/operations/vitals', '/operations/activity', '/operations/locations', '/operations/life', '/operations/monitoring-profiles', '/operations/residents', '/operations/guardians', '/operations/notices/edit?textId=1', '/operations/notices/new', '/operations/notices/detail?textId=1', '/operations/notices', '/operations/families', '/operations/comments', '/operations/invitations', '/operations/devices'];
 const check = (report, name, pass, details) => report.checks.push({ name, pass: Boolean(pass), details });
 run(async ({ page, context, base, report, setRole, setSignedIn, setMode }) => {
   let navigation=0;

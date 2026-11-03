@@ -29,16 +29,6 @@
       "analytics"
     ]
   },
-  "POST /api/v1/alarmProcess/select": {
-    "file": "智慧养老手表管理系统/backend/internal/handlers/handler_alarm_process.go",
-    "request": [
-      "id"
-    ],
-    "response": [
-      "alarmProcesses",
-      "returnCode"
-    ]
-  },
   "POST /api/v1/alert-reviews": {
     "file": "智慧养老手表管理系统/backend/internal/handlers/handler_alert_review.go",
     "request": [
@@ -194,7 +184,7 @@
       "state"
     ]
   },
-  "POST /api/v1/customer/add": {
+  "POST /api/v1/guardians/create": {
     "file": "智慧养老手表管理系统/backend/internal/handlers/handler_user.go",
     "request": [
       "customerAddress",
@@ -207,7 +197,7 @@
       "returnCode"
     ]
   },
-  "POST /api/v1/customer/delete": {
+  "POST /api/v1/guardians/delete": {
     "file": "智慧养老手表管理系统/backend/internal/handlers/handler_user.go",
     "request": [
       "customerId"
@@ -216,7 +206,7 @@
       "returnCode"
     ]
   },
-  "POST /api/v1/customer/select": {
+  "POST /api/v1/guardians/list": {
     "file": "智慧养老手表管理系统/backend/internal/handlers/handler_user.go",
     "request": [
       "customerName",
@@ -231,7 +221,7 @@
       "total"
     ]
   },
-  "POST /api/v1/customer/update": {
+  "POST /api/v1/guardians/update": {
     "file": "智慧养老手表管理系统/backend/internal/handlers/handler_user.go",
     "request": [
       "customerAddress",
@@ -447,7 +437,7 @@
       "returnCode"
     ]
   },
-  "POST /api/v1/device/handleAlarm": {
+  "POST /api/v1/locations/alerts/resolve-latest": {
     "file": "智慧养老手表管理系统/backend/internal/handlers/handler_device_alerts.go",
     "request": [
       "oldId"
@@ -923,7 +913,7 @@
       "returnCode"
     ]
   },
-  "POST /api/v1/oldPerson/add": {
+  "POST /api/v1/residents/create": {
     "file": "智慧养老手表管理系统/backend/internal/handlers/handler_old_person.go",
     "request": [
       "name",
@@ -943,7 +933,7 @@
       "returnCode"
     ]
   },
-  "POST /api/v1/oldPerson/delete": {
+  "POST /api/v1/residents/delete": {
     "file": "智慧养老手表管理系统/backend/internal/handlers/handler_old_person.go",
     "request": [
       "oldId"
@@ -952,7 +942,7 @@
       "returnCode"
     ]
   },
-  "POST /api/v1/oldPerson/select": {
+  "POST /api/v1/residents/list": {
     "file": "智慧养老手表管理系统/backend/internal/handlers/old_person_query.go",
     "request": [
       "name",
@@ -967,7 +957,7 @@
       "total"
     ]
   },
-  "POST /api/v1/oldPerson/selectDetail": {
+  "POST /api/v1/residents/details": {
     "file": "智慧养老手表管理系统/backend/internal/handlers/old_person_query.go",
     "request": [
       "name",
@@ -982,7 +972,7 @@
       "total"
     ]
   },
-  "POST /api/v1/oldPerson/update": {
+  "POST /api/v1/residents/update": {
     "file": "智慧养老手表管理系统/backend/internal/handlers/handler_old_person.go",
     "request": [
       "oldId",
@@ -1378,7 +1368,7 @@
       "usersByPhone2"
     ]
   },
-  "POST /api/v1/watchInfo/add": {
+  "POST /api/v1/monitoring-profiles/create": {
     "file": "智慧养老手表管理系统/backend/internal/handlers/handler_watch_info.go",
     "request": [
       "deviceId",
@@ -1391,7 +1381,7 @@
       "returnCode"
     ]
   },
-  "POST /api/v1/watchInfo/delete": {
+  "POST /api/v1/monitoring-profiles/delete": {
     "file": "智慧养老手表管理系统/backend/internal/handlers/handler_watch_info.go",
     "request": [
       "deviceId"
@@ -1400,7 +1390,7 @@
       "returnCode"
     ]
   },
-  "POST /api/v1/watchInfo/select": {
+  "POST /api/v1/monitoring-profiles/list": {
     "file": "智慧养老手表管理系统/backend/internal/handlers/handler_watch_info.go",
     "request": [
       "oldName",
@@ -1415,7 +1405,7 @@
       "watchDtos"
     ]
   },
-  "POST /api/v1/watchInfo/update": {
+  "POST /api/v1/monitoring-profiles/update": {
     "file": "智慧养老手表管理系统/backend/internal/handlers/handler_watch_info.go",
     "request": [
       "deviceId",

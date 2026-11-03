@@ -10,9 +10,9 @@ run(async ({ page, context, base, report, setRole }) => {
   let body = { returnCode: '0000', code: 'CONFLICT', message: '请先解除该长者名下设备绑定' };
   let refreshes = 0;
   page.on('request', request => {
-    if (request.url().includes('/api/v1/oldPerson/selectDetail')) refreshes++;
+    if (request.url().includes('/api/v1/residents/details')) refreshes++;
   });
-  await context.route('**/api/v1/oldPerson/delete', async route => {
+  await context.route('**/api/v1/residents/delete', async route => {
     requests++;
     assert.equal(route.request().headers()['x-csrf-token'], 'mock-csrf-token');
     assert.equal(route.request().postDataJSON().oldId, 1);
@@ -57,7 +57,7 @@ run(async ({ page, context, base, report, setRole }) => {
 
   status = 200;
   body = { returnCode: '1111' };
-  const refreshed = page.waitForRequest(request => request.url().includes('/api/v1/oldPerson/selectDetail'));
+  const refreshed = page.waitForRequest(request => request.url().includes('/api/v1/residents/details'));
   await confirm();
   await message('删除信息成功');
   await refreshed;

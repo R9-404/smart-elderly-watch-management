@@ -133,7 +133,7 @@ func toIntRanged(s string, min, max int) int {
 }
 
 // genBindCode 生成唯一 6 位绑定码（最多重试 30 次）。
-func (h *Handler) genBindCode(ctx context.Context, q oldQuerier) (string, error) {
+func (h *Handler) genBindCode(ctx context.Context, q deviceQueries) (string, error) {
 	for i := 0; i < 30; i++ {
 		c, err := randAlpha(6)
 		if err != nil {

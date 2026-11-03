@@ -28,7 +28,7 @@ func scanHealthDevice(row db.Row) (*healthDevice, error) {
 	}
 	return &d, nil
 }
-func (h *Handler) healthDeviceAuth(ctx context.Context, q oldQuerier, deviceNo, secret, disabledMsg string) (*healthDevice, string, string, error) {
+func (h *Handler) healthDeviceAuth(ctx context.Context, q deviceQueries, deviceNo, secret, disabledMsg string) (*healthDevice, string, string, error) {
 	d, err := scanHealthDevice(q.QueryRow(ctx, `SELECT `+healthDeviceCols+` FROM device WHERE device_no=$1`, deviceNo))
 	if err == pgx.ErrNoRows {
 		d = nil
@@ -50,7 +50,7 @@ func (h *Handler) healthDeviceAuth(ctx context.Context, q oldQuerier, deviceNo, 
 // Health requests never supply battery/appVersion. Avoid transmitting nil
 // parameters and evaluating COALESCE for columns whose values stay untouched.
 // Two equal timestamp arguments keep positional binding ordered on both engines.
-func touchHealthDevice(ctx context.Context, q oldQuerier, deviceID int64, now time.Time) error {
+func touchHealthDevice(ctx context.Context, q deviceQueries, deviceID int64, now time.Time) error {
 	_, err := q.Exec(ctx, `UPDATE device SET last_time=$1,last_online_at=$2 WHERE device_id=$3`, now, now, deviceID)
 	return err
 }

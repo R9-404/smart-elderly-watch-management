@@ -11,7 +11,7 @@ func TestContinuousElderGuardianMustExist(t *testing.T) {
 	mustExec(t, h.DB, "INSERT INTO customer(customer_id,customer_name) VALUES(1,'甲'),(2,'乙')")
 	body := elderPayload()
 	body["customerId"] = 999
-	if out := apiFailure(t, 400, h.oldPersonAdd, body); out["returnCode"] == "1111" {
+	if out := apiFailure(t, 400, h.createResident, body); out["returnCode"] == "1111" {
 		t.Error("elder creation accepted a nonexistent guardian")
 	}
 	var count int
@@ -19,7 +19,7 @@ func TestContinuousElderGuardianMustExist(t *testing.T) {
 		t.Fatalf("invalid guardian wrote an elder: count=%d err=%v", count, err)
 	}
 	body["customerId"] = 1
-	if out := api(t, h.oldPersonAdd, body); out["returnCode"] != "1111" {
+	if out := api(t, h.createResident, body); out["returnCode"] != "1111" {
 		t.Fatal(out)
 	}
 	var oldID int64
@@ -27,7 +27,7 @@ func TestContinuousElderGuardianMustExist(t *testing.T) {
 		t.Fatal(err)
 	}
 	body["oldId"], body["customerId"], body["name"] = oldID, 999, "不应写入"
-	if out := apiFailure(t, 400, h.oldPersonUpdate, body); out["returnCode"] == "1111" {
+	if out := apiFailure(t, 400, h.updateResident, body); out["returnCode"] == "1111" {
 		t.Error("elder edit accepted a nonexistent guardian")
 	}
 	var guardian int64
@@ -36,10 +36,10 @@ func TestContinuousElderGuardianMustExist(t *testing.T) {
 		t.Fatalf("rejected edit changed the profile: guardian=%d name=%s err=%v", guardian, name, err)
 	}
 	body["customerId"], body["name"] = 2, "长者"
-	if out := api(t, h.oldPersonUpdate, body); out["returnCode"] != "1111" {
+	if out := api(t, h.updateResident, body); out["returnCode"] != "1111" {
 		t.Fatal(out)
 	}
-	detail := api(t, h.oldPersonSelectDetail, map[string]any{"name": ""})["oldPersonDetails"].([]any)[0].(map[string]any)
+	detail := api(t, h.getResidentDetails, map[string]any{"name": ""})["oldPersonDetails"].([]any)[0].(map[string]any)
 	if detail["customerId"] != float64(2) || detail["customerName"] != "乙" {
 		t.Fatalf("valid guardian reassignment lost: %v", detail)
 	}
@@ -49,20 +49,20 @@ func TestContinuousGuardianDeleteKeepsAssignedProfiles(t *testing.T) {
 	h := extraAuditHandler(t)
 	mustExec(t, h.DB, "INSERT INTO customer(customer_id,customer_name) VALUES(1,'甲'),(2,'乙')")
 	mustExec(t, h.DB, "INSERT INTO oldperson(old_id,name,customer_id) VALUES(1,'长者',1)")
-	if out := apiFailure(t, 400, h.customerDelete, map[string]any{"customerId": 1}); out["returnCode"] == "1111" {
+	if out := apiFailure(t, 400, h.deleteGuardian, map[string]any{"customerId": 1}); out["returnCode"] == "1111" {
 		t.Error("deleted a guardian still assigned to an elder")
 	}
 	var count int
 	if err := h.DB.QueryRow(context.Background(), "SELECT count(*) FROM oldperson o JOIN customer c ON c.customer_id=o.customer_id WHERE o.old_id=1").Scan(&count); err != nil || count != 1 {
 		t.Fatalf("guardian reference became dangling: count=%d err=%v", count, err)
 	}
-	if out := api(t, h.customerDelete, map[string]any{"customerId": 2}); out["returnCode"] != "1111" {
+	if out := api(t, h.deleteGuardian, map[string]any{"customerId": 2}); out["returnCode"] != "1111" {
 		t.Fatalf("unassigned guardian could not be deleted: %v", out)
 	}
-	if out := api(t, h.oldPersonDelete, map[string]any{"oldId": 1}); out["returnCode"] != "1111" {
+	if out := api(t, h.deleteResident, map[string]any{"oldId": 1}); out["returnCode"] != "1111" {
 		t.Fatal(out)
 	}
-	if out := api(t, h.customerDelete, map[string]any{"customerId": 1}); out["returnCode"] != "1111" {
+	if out := api(t, h.deleteGuardian, map[string]any{"customerId": 1}); out["returnCode"] != "1111" {
 		t.Fatalf("guardian could not be deleted after elder removal: %v", out)
 	}
 }
@@ -76,7 +76,7 @@ func TestContinuousGuardianAgeBoundsDoNotWriteInvalidProfiles(t *testing.T) {
 		for _, handler := range []struct {
 			name string
 			call func() int
-		}{{"add", func() int { return callAPI(h.customerAdd, body).Code }}, {"edit", func() int { return callAPI(h.customerUpdate, body).Code }}} {
+		}{{"add", func() int { return callAPI(h.createGuardian, body).Code }}, {"edit", func() int { return callAPI(h.updateGuardian, body).Code }}} {
 			if code := handler.call(); code != 400 {
 				t.Errorf("%s age=%v: HTTP %d, want 400", handler.name, age, code)
 			}
@@ -92,7 +92,7 @@ func TestContinuousGuardianAgeBoundsDoNotWriteInvalidProfiles(t *testing.T) {
 	}
 	for _, valid := range []any{0, "150"} {
 		body["customerAge"] = valid
-		if out := api(t, h.customerUpdate, body); out["returnCode"] != "1111" {
+		if out := api(t, h.updateGuardian, body); out["returnCode"] != "1111" {
 			t.Fatalf("valid age %v rejected: %v", valid, out)
 		}
 	}
@@ -106,11 +106,11 @@ func TestContinuousGuardianCreateAndDeleteKeepReferencesValid(t *testing.T) {
 	deleted := make(chan *httptest.ResponseRecorder, 1)
 	go func() {
 		<-start
-		created <- callAPI(h.oldPersonAdd, elderPayload())
+		created <- callAPI(h.createResident, elderPayload())
 	}()
 	go func() {
 		<-start
-		deleted <- callAPI(h.customerDelete, map[string]any{"customerId": 1})
+		deleted <- callAPI(h.deleteGuardian, map[string]any{"customerId": 1})
 	}()
 	close(start)
 	createResponse, deleteResponse := <-created, <-deleted

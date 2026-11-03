@@ -10,7 +10,7 @@ export const residentCommandMethods = {
       this.$refs.addoldFormRef.validate(function (valid) {
         if (!valid) return
         var param = Object.fromEntries(residentFields.map(key => [key, _this.oldForm[key]]))
-        axios.post('api/v1/oldPerson/add',
+        axios.post('api/v1/residents/create',
           param,
           {
             headers: {
@@ -46,7 +46,7 @@ export const residentCommandMethods = {
       var _this = this
       this.$refs.editoldFormRef.validate(function (valid) {
         if (!valid) return
-        axios.post('api/v1/oldPerson/update', { ...Object.fromEntries(residentFields.map(key => [key, _this.oldEditForm[key]])), oldId: _this.oldEditForm.oldId },
+        axios.post('api/v1/residents/update', { ...Object.fromEntries(residentFields.map(key => [key, _this.oldEditForm[key]])), oldId: _this.oldEditForm.oldId },
           {
             headers: {
               'content-type': 'application/json'
@@ -86,7 +86,7 @@ export const residentCommandMethods = {
       }
 
       try {
-        const response = await axios.post('api/v1/oldPerson/delete', { oldId }, {
+        const response = await axios.post('api/v1/residents/delete', { oldId }, {
           headers: { 'content-type': 'application/json' },
           withCredentials: true
         })

@@ -121,7 +121,7 @@ func scanBindCode(row dbstore.Row) (*bindCodeRow, error) {
 
 const bindCodeCols = `id, code, old_id, family_id, create_user, expire_time, used, used_time, used_device_id`
 
-func (h *Handler) findBindCode(ctx context.Context, q oldQuerier, code string) (*bindCodeRow, error) {
+func (h *Handler) findBindCode(ctx context.Context, q deviceQueries, code string) (*bindCodeRow, error) {
 	b, err := scanBindCode(q.QueryRow(ctx,
 		`SELECT `+bindCodeCols+` FROM bind_code WHERE code=$1`, code))
 	if err != nil {

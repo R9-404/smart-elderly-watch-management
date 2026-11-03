@@ -29,8 +29,8 @@ func scanOldPersonRow(row dbstore.Row) (map[string]any, error) {
 	}, nil
 }
 
-// POST /api/v1/oldPerson/select —— 按姓名分页查询老人档案（ADMIN）。
-func (h *Handler) oldPersonSelect(w http.ResponseWriter, r *http.Request) {
+// POST /api/v1/residents/list —— 按姓名分页查询老人档案（ADMIN）。
+func (h *Handler) listResidents(w http.ResponseWriter, r *http.Request) {
 	m, ok := bodyMap(w, r)
 	if !ok {
 		return
@@ -75,8 +75,8 @@ func (h *Handler) oldPersonSelect(w http.ResponseWriter, r *http.Request) {
 	})
 }
 
-// POST /api/v1/oldPerson/selectDetail —— 老人详情（含家属/客户）分页查询（ADMIN）。
-func (h *Handler) oldPersonSelectDetail(w http.ResponseWriter, r *http.Request) {
+// POST /api/v1/residents/details —— 老人详情（含家属/客户）分页查询（ADMIN）。
+func (h *Handler) getResidentDetails(w http.ResponseWriter, r *http.Request) {
 	m, ok := bodyMap(w, r)
 	if !ok {
 		return

@@ -9,8 +9,8 @@ import (
 	"time"
 )
 
-// POST /api/v1/oldPerson/add —— 新增老人档案（ADMIN）。
-func (h *Handler) oldPersonAdd(w http.ResponseWriter, r *http.Request) {
+// POST /api/v1/residents/create —— 新增老人档案（ADMIN）。
+func (h *Handler) createResident(w http.ResponseWriter, r *http.Request) {
 	m, ok := bodyMap(w, r)
 	if !ok {
 		return
@@ -74,8 +74,8 @@ func (h *Handler) oldPersonAdd(w http.ResponseWriter, r *http.Request) {
 	recordNotFound(w)
 }
 
-// POST /api/v1/oldPerson/update —— 更新老人档案（ADMIN；不更新 be_time）。
-func (h *Handler) oldPersonUpdate(w http.ResponseWriter, r *http.Request) {
+// POST /api/v1/residents/update —— 更新老人档案（ADMIN；不更新 be_time）。
+func (h *Handler) updateResident(w http.ResponseWriter, r *http.Request) {
 	m, ok := bodyMap(w, r)
 	if !ok {
 		return
@@ -160,8 +160,8 @@ func (h *Handler) oldPersonUpdate(w http.ResponseWriter, r *http.Request) {
 	recordNotFound(w)
 }
 
-// POST /api/v1/oldPerson/delete —— 删除老人（ADMIN，事务）。
-func (h *Handler) oldPersonDelete(w http.ResponseWriter, r *http.Request) {
+// POST /api/v1/residents/delete —— 删除老人（ADMIN，事务）。
+func (h *Handler) deleteResident(w http.ResponseWriter, r *http.Request) {
 	m, ok := bodyMap(w, r)
 	if !ok {
 		return

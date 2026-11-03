@@ -48,7 +48,7 @@ func BenchmarkListPagination(b *testing.B) {
 				name, key, filterKey string
 				handler              http.HandlerFunc
 			}{
-				{"customer", "customers", "customerName", h.customerSelect},
+				{"customer", "customers", "customerName", h.listGuardians},
 				{"family", "familyDtos", "familyName", h.familySelect},
 				{"text", "texts", "title", h.listNotices},
 			} {

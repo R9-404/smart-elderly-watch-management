@@ -42,7 +42,7 @@ export default {
       var groups = {
         health: ['/operations/vitals', '/operations/activity', '/operations/locations', '/operations/life'],
         records: ['/operations/residents', '/operations/guardians', '/operations/monitoring-profiles', '/operations/families', '/operations/invitations'],
-        service: ['/operations/notices/new', '/operations/notices', '/operations/comments', '/operations/notices/edit', '/operations/notices/detail', '/operations/attachments']
+        service: ['/operations/notices/new', '/operations/notices', '/operations/comments', '/operations/notices/edit', '/operations/notices/detail']
       }
       return Object.keys(groups).filter(group => groups[group].includes(this.$route.path))
     }

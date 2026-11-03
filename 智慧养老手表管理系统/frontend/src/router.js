@@ -8,9 +8,7 @@ const OperationsOverview = () => import('./views/OperationsOverview.vue')
 const FamilyOverview = () => import('./views/FamilyOverview.vue')
 const VitalsOverview = () => import('./views/VitalsOverview.vue')
 const FamilyVitals = () => import('./views/FamilyVitals.vue')
-const AttachmentManagement = () => import('./views/AttachmentManagement.vue')
-const EditNotice = () => import('./views/EditNotice.vue')
-const CreateNotice = () => import('./views/CreateNotice.vue')
+const NoticeEditor = () => import('./components/NoticeEditor.vue')
 const FamilyNotice = () => import('./views/FamilyNotice.vue')
 const NoticeDetail = () => import('./views/NoticeDetail.vue')
 const ActivityOverview = () => import('./views/ActivityOverview.vue')
@@ -124,12 +122,12 @@ const router = createRouter({
 				{
 					path: '/operations/notices/edit',
 					meta: { title: '编辑公告' }, name: 'operations-notices-edit',
-					component: EditNotice
+					component: NoticeEditor, props: { editing: true }
 				},
 				{
 					path: '/operations/notices/new',
 					meta: { title: '发布公告' }, name: 'operations-notices-new',
-					component: CreateNotice
+					component: NoticeEditor, props: { editing: false }
 				},
 				{
 					path: '/operations/notices/detail',
@@ -141,11 +139,7 @@ const router = createRouter({
 					meta: { title: '公告管理' }, name: 'operations-notices',
 					component: NoticeManagement
 				},
-				{
-				  path: '/operations/attachments',
-				  meta: { title: '附件管理' }, name: 'operations-attachments',
-				  component: AttachmentManagement
-				},
+
 				{
 				  path: '/operations/families',
 				  meta: { title: '家属账号' }, name: 'operations-families',

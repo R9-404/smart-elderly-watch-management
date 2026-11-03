@@ -1,6 +1,6 @@
 # 前后端接口合同与差异处理
 
-接口路径以 Go 路由为准，当前共 109 个路径。`scripts/generate-openapi.py --check` 校验路由、OpenAPI 和网页状态码字典；字段清单保存在 `backend/internal/apidoc/contracts.json`。
+接口路径以 Go 路由为准，当前共 108 个路径。`scripts/generate-openapi.py --check` 校验路由、OpenAPI 和网页状态码字典；字段清单保存在 `backend/internal/apidoc/contracts.json`。
 
 ## Preview 命名
 
@@ -73,7 +73,6 @@ JSON 成功使用 HTTP 200，根字段 `returnCode` 固定为字符串 `1111`。
 | `GET /api/v1/auth/session` | 无 | `account`, `authenticated`, `csrfHeader`, `csrfToken`, `setupRequired` |
 | `GET /api/v1/image/download` | `name` | 图片字节 |
 | `GET /api/v1/service/status` | 无 | `databaseReady`, `primaryEngine`, `configError`, `analytics` |
-| `POST /api/v1/alarmProcess/select` | `id` | `alarmProcesses` |
 | `POST /api/v1/alert-reviews` | `expectedReviewId`, `kind`, `reason`, `recordId`, `verdict` | `alarmStateChanged`, `reviewId`, `verdict` |
 | `POST /api/v1/alert-reviews/search` | `after`, `entity`, `kind`, `recordId` | `items` |
 | `POST /api/v1/auth/login` | `otp`, `password`, `phone`, `recoveryCode` | `authenticated` |
@@ -86,10 +85,10 @@ JSON 成功使用 HTTP 200，根字段 `returnCode` 固定为字符串 `1111`。
 | `POST /api/v1/care/receipt` | `notificationId`, `status` | `notificationId`, `status` |
 | `POST /api/v1/care/staff` | 无 | `staff` |
 | `POST /api/v1/care/transition` | `action`, `id`, `note`, `verdict` | `id`, `state` |
-| `POST /api/v1/customer/add` | `customerAddress`, `customerAge`, `customerName`, `customerPhone`, `customerSex` | 结果包 |
-| `POST /api/v1/customer/delete` | `customerId` | 结果包 |
-| `POST /api/v1/customer/select` | `customerName`, `page`, `pageSize` | `customers`, `page`, `pageSize`, `total` |
-| `POST /api/v1/customer/update` | `customerAddress`, `customerAge`, `customerId`, `customerName`, `customerPhone`, `customerSex` | 结果包 |
+| `POST /api/v1/guardians/create` | `customerAddress`, `customerAge`, `customerName`, `customerPhone`, `customerSex` | 结果包 |
+| `POST /api/v1/guardians/delete` | `customerId` | 结果包 |
+| `POST /api/v1/guardians/list` | `customerName`, `page`, `pageSize` | `customers`, `page`, `pageSize`, `total` |
+| `POST /api/v1/guardians/update` | `customerAddress`, `customerAge`, `customerId`, `customerName`, `customerPhone`, `customerSex` | 结果包 |
 | `POST /api/v1/desktop/exit` | 无 | `closing` |
 | `POST /api/v1/device-command-profiles` | `deviceId`, `enabled`, `protocol`, `wireType` | `deviceId`, `enabled` |
 | `POST /api/v1/device-commands` | `action`, `deviceId`, `requestKey`, `ttlSeconds` | `commandId`, `duplicate`, `status` |
@@ -105,7 +104,7 @@ JSON 成功使用 HTTP 200，根字段 `returnCode` 固定为字符串 `1111`。
 | `POST /api/v1/device/delete` | `deviceId` | 结果包 |
 | `POST /api/v1/device/deleteBindCode` | `id` | 结果包 |
 | `POST /api/v1/device/fencePoint` | `deviceNo`, `secret`, `bindingVersion`, `coordinateSystem`, `point`, `accuracy`, `occurredAt` | `events` |
-| `POST /api/v1/device/handleAlarm` | `oldId` | 结果包 |
+| `POST /api/v1/locations/alerts/resolve-latest` | `oldId` | 结果包 |
 | `POST /api/v1/device/healthBatch` | `bindingVersion`, `deviceNo`, `samples`, `secret` | `accepted`, `duplicates`, `writeRevision` |
 | `POST /api/v1/device/heartbeat` | `appVersion`, `battery`, `deviceNo`, `secret` | `bindingVersion`, `bound`, `oldId`, `pendingAlarm`, `reportInterval`, `serverTime` |
 | `POST /api/v1/device/list` | `query`, `state`, `page`, `pageSize` | `devices`, `onlineCount`, `page`, `pageSize`, `total` |
@@ -138,11 +137,11 @@ JSON 成功使用 HTTP 200，根字段 `returnCode` 固定为字符串 `1111`。
 | `POST /api/v1/inviteCode/list` | `page`, `pageSize`, `state` | `inviteCodes`, `page`, `pageSize`, `total` |
 | `POST /api/v1/inviteCode/oldPersonList` | 无 | `oldPeople` |
 | `POST /api/v1/notifications/search` | `after`, `familyId` | `items` |
-| `POST /api/v1/oldPerson/add` | `name`, `bothdate`, `sex`, `phone`, `room`, `illness`, `warn`, `foodLike`, `foodHate`, `drag`, `customerId`, `deviceId` | 结果包 |
-| `POST /api/v1/oldPerson/delete` | `oldId` | 结果包 |
-| `POST /api/v1/oldPerson/select` | `name`, `page`, `pageSize` | `oldPeople`, `page`, `pageSize`, `total` |
-| `POST /api/v1/oldPerson/selectDetail` | `name`, `page`, `pageSize` | `oldPersonDetails`, `page`, `pageSize`, `total` |
-| `POST /api/v1/oldPerson/update` | `oldId`, `name`, `bothdate`, `sex`, `phone`, `room`, `illness`, `warn`, `foodLike`, `foodHate`, `drag`, `customerId`, `customerName`, `deviceId` | 结果包 |
+| `POST /api/v1/residents/create` | `name`, `bothdate`, `sex`, `phone`, `room`, `illness`, `warn`, `foodLike`, `foodHate`, `drag`, `customerId`, `deviceId` | 结果包 |
+| `POST /api/v1/residents/delete` | `oldId` | 结果包 |
+| `POST /api/v1/residents/list` | `name`, `page`, `pageSize` | `oldPeople`, `page`, `pageSize`, `total` |
+| `POST /api/v1/residents/details` | `name`, `page`, `pageSize` | `oldPersonDetails`, `page`, `pageSize`, `total` |
+| `POST /api/v1/residents/update` | `oldId`, `name`, `bothdate`, `sex`, `phone`, `room`, `illness`, `warn`, `foodLike`, `foodHate`, `drag`, `customerId`, `customerName`, `deviceId` | 结果包 |
 | `POST /api/v1/gallery/replace` | `fileListName` | 结果包 |
 | `POST /api/v1/gallery/list` | `id`, `picName` | `galleryImages` |
 | `POST /api/v1/position/select` | `name`, `page`, `pageSize` | `page`, `pageSize`, `positionDtos`, `total` |
@@ -175,7 +174,7 @@ JSON 成功使用 HTTP 200，根字段 `returnCode` 固定为字符串 `1111`。
 | `POST /api/v1/notices/detail` | `textId` | `pics`, `text` |
 | `POST /api/v1/notices/update` | `textId`, `title`, `textMain`, `fileListName` | 结果包 |
 | `POST /api/v1/user/select` | `userPhone` | `usersByPhone2` |
-| `POST /api/v1/watchInfo/add` | `deviceId`, `hrf`, `hrl`, `bpf`, `bpl` | 结果包 |
-| `POST /api/v1/watchInfo/delete` | `deviceId` | 结果包 |
-| `POST /api/v1/watchInfo/select` | `oldName`, `page`, `pageSize` | `page`, `pageSize`, `total`, `watchDtos` |
-| `POST /api/v1/watchInfo/update` | `deviceId`, `hrf`, `hrl`, `bpf`, `bpl` | 结果包 |
+| `POST /api/v1/monitoring-profiles/create` | `deviceId`, `hrf`, `hrl`, `bpf`, `bpl` | 结果包 |
+| `POST /api/v1/monitoring-profiles/delete` | `deviceId` | 结果包 |
+| `POST /api/v1/monitoring-profiles/list` | `oldName`, `page`, `pageSize` | `page`, `pageSize`, `total`, `watchDtos` |
+| `POST /api/v1/monitoring-profiles/update` | `deviceId`, `hrf`, `hrl`, `bpf`, `bpl` | 结果包 |

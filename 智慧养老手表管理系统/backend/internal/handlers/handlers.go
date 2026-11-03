@@ -43,7 +43,7 @@ func (h *Handler) Routes(mux *http.ServeMux) {
 	h.routeAuth(mux)   // 登录/session/setup/desktop
 	h.routeUser(mux)   // 用户/客户
 	h.routeFamily(mux) // 家属/邀请码
-	h.routeOld(mux)    // 老人/设备/位置/告警处置
+	h.routeResidentDevices(mux)    // 老人/设备/位置/告警处置
 	h.routeVitals(mux) // 心率血压/步数睡眠
 	h.routeSocial(mux) // 说说/文章/图片展示/图片接口
 	h.routeHealth(mux)

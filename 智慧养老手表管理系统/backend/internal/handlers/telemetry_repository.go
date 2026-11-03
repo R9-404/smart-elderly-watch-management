@@ -44,7 +44,7 @@ func watchDayUpsertSQL(mysql bool) string {
 		sleep_state_observed_at = GREATEST(watch_day_info.sleep_state_observed_at,EXCLUDED.sleep_state_observed_at)`
 }
 
-func (repo telemetryRepository) PersistDeviceReport(ctx context.Context, tx *dbstore.Transaction, d *oldDevice, parsed parsedDeviceTelemetry) (telemetryPersisted, error) {
+func (repo telemetryRepository) PersistDeviceReport(ctx context.Context, tx *dbstore.Transaction, d *deviceRecord, parsed parsedDeviceTelemetry) (telemetryPersisted, error) {
 	oldID := *d.OldID
 	var position string
 	if parsed.lng != "" || parsed.alarm == "1" || strings.EqualFold(parsed.alarm, "fall") {
@@ -70,7 +70,7 @@ func (repo telemetryRepository) PersistDeviceReport(ctx context.Context, tx *dbs
 	return result, nil
 }
 
-func (repo telemetryRepository) persistReportVitals(ctx context.Context, tx *dbstore.Transaction, d *oldDevice, oldID int64, parsed *parsedDeviceTelemetry) (telemetryPersisted, error) {
+func (repo telemetryRepository) persistReportVitals(ctx context.Context, tx *dbstore.Transaction, d *deviceRecord, oldID int64, parsed *parsedDeviceTelemetry) (telemetryPersisted, error) {
 	hr, bp, beTime := parsed.hr, parsed.bp, parsed.beTime
 	// Zero vital signs are legacy "not measured" sentinels. Keep raw parsing
 	// compatible, but never persist or classify them as actual measurements.
@@ -129,7 +129,7 @@ func (repo telemetryRepository) persistReportVitals(ctx context.Context, tx *dbs
 	return telemetryPersisted{rateState: rateState, preState: preState}, nil
 }
 
-func (repo telemetryRepository) persistReportDay(ctx context.Context, tx *dbstore.Transaction, d *oldDevice, oldID int64, parsed *parsedDeviceTelemetry) error {
+func (repo telemetryRepository) persistReportDay(ctx context.Context, tx *dbstore.Transaction, d *deviceRecord, oldID int64, parsed *parsedDeviceTelemetry) error {
 	step, sleep, sleepState := parsed.step, parsed.sleep, parsed.sleepState
 	beTime, day := parsed.beTime, parsed.day
 	if step != nil || sleep != nil || sleepState != nil {
@@ -174,7 +174,7 @@ func (repo telemetryRepository) persistReportDay(ctx context.Context, tx *dbstor
 	return nil
 }
 
-func (repo telemetryRepository) persistReportPositionAndAlarm(ctx context.Context, tx *dbstore.Transaction, d *oldDevice, oldID int64, parsed *parsedDeviceTelemetry, position string) error {
+func (repo telemetryRepository) persistReportPositionAndAlarm(ctx context.Context, tx *dbstore.Transaction, d *deviceRecord, oldID int64, parsed *parsedDeviceTelemetry, position string) error {
 	lng, lat, sourceStr, alarm, beTime := parsed.lng, parsed.lat, parsed.sourceStr, parsed.alarm, parsed.beTime
 	if lng != "" && lat != "" {
 		if _, err := tx.Exec(ctx,
@@ -208,7 +208,7 @@ func (repo telemetryRepository) persistReportPositionAndAlarm(ctx context.Contex
 
 // PersistSOSIncident only persists the incident; callers must insert SMS/outbox
 // records and commit *the same transaction* before acknowledging the device.
-func (repo telemetryRepository) PersistSOSIncident(ctx context.Context, tx *dbstore.Transaction, d *oldDevice, lng, lat, requestID string, meta positionMetadata, now time.Time) (int64, error) {
+func (repo telemetryRepository) PersistSOSIncident(ctx context.Context, tx *dbstore.Transaction, d *deviceRecord, lng, lat, requestID string, meta positionMetadata, now time.Time) (int64, error) {
 	position, err := sealPositionMetadata(repo.box, meta)
 	if err != nil {
 		return 0, err

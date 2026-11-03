@@ -180,7 +180,7 @@ export default {
         cancelButtonText: '取消',
         type: 'warning'
       }).then(function () {
-        axios.post('api/v1/device/handleAlarm', {'oldId': row.oldId},
+        axios.post('api/v1/locations/alerts/resolve-latest', {'oldId': row.oldId},
           {
             headers: {'content-type': 'application/json'},
             withCredentials: true

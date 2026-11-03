@@ -151,7 +151,7 @@ export default {
       var _this = this
         var oldName = _this.searchText
         
-        return axios.post('api/v1/watchInfo/select',
+        return axios.post('api/v1/monitoring-profiles/list',
           { page: this.currentPage, pageSize: this.pageSize,
             'oldName': oldName === '' ? '' : _this.searchText
           },
@@ -177,7 +177,7 @@ export default {
       var _this = this
       this.$refs.addwatchFormRef.validate(function (valid) {
         if (!valid) return
-        axios.post('api/v1/watchInfo/add',
+        axios.post('api/v1/monitoring-profiles/create',
           _this.watchForm,
           {
             headers: {
@@ -212,7 +212,7 @@ export default {
       var _this = this
       this.$refs.editwatchFormRef.validate(function (valid) {
         if (!valid) return
-        axios.post('api/v1/watchInfo/update', _this.watchEditForm,
+        axios.post('api/v1/monitoring-profiles/update', _this.watchEditForm,
           {
             headers: {
               'content-type': 'application/json'
@@ -249,7 +249,7 @@ export default {
           type: 'warning'
         })
 
-        axios.post('api/v1/watchInfo/delete', {'deviceId': deviceId},
+        axios.post('api/v1/monitoring-profiles/delete', {'deviceId': deviceId},
           {
             headers: {
               'content-type': 'application/json'

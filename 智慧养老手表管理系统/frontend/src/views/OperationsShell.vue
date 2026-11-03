@@ -34,7 +34,7 @@ export default {
   computed: {
     openTab () { return this.$store.state.openTab },
     showPageIntro () {
-      return ['/operations/overview', '/operations/devices', '/operations/invitations', '/operations/attachments'].indexOf(this.$route.path) === -1
+      return ['/operations/overview', '/operations/devices', '/operations/invitations'].indexOf(this.$route.path) === -1
     },
     pageDescription () {
       var descriptions = {

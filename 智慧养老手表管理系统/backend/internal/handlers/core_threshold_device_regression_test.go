@@ -32,12 +32,12 @@ func TestContinuousThresholdSearchIncludesSecondaryDevice(t *testing.T) {
 	mustExec(t, pool, "UPDATE oldperson SET device_id=1 WHERE old_id=1")
 	mustExec(t, pool, "INSERT INTO device(device_id,device_no,secret,old_id) SELECT 2,'WATCH002',secret,old_id FROM device WHERE device_id=1")
 	for _, id := range []int{1, 2} {
-		out := api(t, h.watchInfoAdd, map[string]any{"deviceId": id, "hrf": 100, "hrl": 60, "bpf": 150, "bpl": 90})
+		out := api(t, h.createMonitoringProfile, map[string]any{"deviceId": id, "hrf": 100, "hrl": 60, "bpf": 150, "bpl": 90})
 		if out["returnCode"] != "1111" {
 			t.Fatal(out)
 		}
 	}
-	out := api(t, h.watchInfoSelect, map[string]any{"oldName": "长者"})
+	out := api(t, h.listMonitoringProfiles, map[string]any{"oldName": "长者"})
 	rows := out["watchDtos"].([]any)
 	if out["total"] != float64(2) || len(rows) != 2 {
 		t.Fatalf("secondary device omitted from elder's threshold search: %v", out)
@@ -47,7 +47,7 @@ func TestContinuousThresholdSearchIncludesSecondaryDevice(t *testing.T) {
 			t.Fatalf("threshold profile has wrong owner: %v", item)
 		}
 	}
-	updated := api(t, h.watchInfoUpdate, map[string]any{"deviceId": 2, "hrf": 140, "hrl": 60, "bpf": 150, "bpl": 90})
+	updated := api(t, h.updateMonitoringProfile, map[string]any{"deviceId": 2, "hrf": 140, "hrl": 60, "bpf": 150, "bpl": 90})
 	if updated["returnCode"] != "1111" {
 		t.Fatal(updated)
 	}
@@ -65,7 +65,7 @@ func TestContinuousThresholdCreationRequiresRegisteredDevice(t *testing.T) {
 	pool := testDatabase(t)
 	h := testHandler(t, pool)
 	request := map[string]any{"deviceId": 999, "hrf": 100, "hrl": 60, "bpf": 150, "bpl": 90}
-	out := apiFailure(t, 400, h.watchInfoAdd, request)
+	out := apiFailure(t, 400, h.createMonitoringProfile, request)
 	if out["returnCode"] == "1111" {
 		t.Error("threshold profile created for an unregistered device")
 	}
@@ -75,10 +75,10 @@ func TestContinuousThresholdCreationRequiresRegisteredDevice(t *testing.T) {
 	}
 	seedDevice(t, pool)
 	request["deviceId"] = 1
-	if created := api(t, h.watchInfoAdd, request); created["returnCode"] != "1111" {
+	if created := api(t, h.createMonitoringProfile, request); created["returnCode"] != "1111" {
 		t.Fatal(created)
 	}
-	if duplicate := apiFailure(t, 409, h.watchInfoAdd, request); duplicate["returnCode"] == "1111" {
+	if duplicate := apiFailure(t, 409, h.createMonitoringProfile, request); duplicate["returnCode"] == "1111" {
 		t.Fatal("duplicate profile accepted")
 	}
 }

@@ -10,8 +10,16 @@ import (
 	"time"
 
 	"github.com/jackc/pgx/v5"
+	"github.com/jackc/pgx/v5/pgconn"
 	dbstore "suining-care/internal/db"
 )
+
+// deviceQueries is implemented by the database and its transaction wrapper.
+type deviceQueries interface {
+	Exec(ctx context.Context, sql string, args ...any) (pgconn.CommandTag, error)
+	Query(ctx context.Context, sql string, args ...any) (dbstore.Rows, error)
+	QueryRow(ctx context.Context, sql string, args ...any) dbstore.Row
+}
 
 func secretHash(clear string) (string, error) {
 	if len(clear) < 24 || len(clear) > 64 {
@@ -57,7 +65,7 @@ func randAlpha(n int) (string, error) {
 // 设备行与鉴权
 // ---------------------------------------------------------------------------
 
-type oldDevice struct {
+type deviceRecord struct {
 	ID            int64
 	No            string
 	Secret        string
@@ -81,12 +89,12 @@ type oldDevice struct {
 	HandledSeq    int
 }
 
-const oldDeviceCols = `device_id, device_no, secret, alias, model, app_version, battery,
+const deviceRecordColumns = `device_id, device_no, secret, alias, model, app_version, battery,
 	old_id, family_id, status, bind_time, last_time, last_lng, last_lat, create_time,
 	person_handled, rate_handled, pre_handled, boot_seq, handled_seq, health_epoch`
 
-func scanOldDevice(row dbstore.Row) (*oldDevice, error) {
-	var d oldDevice
+func scanDeviceRecord(row dbstore.Row) (*deviceRecord, error) {
+	var d deviceRecord
 	if err := row.Scan(&d.ID, &d.No, &d.Secret, &d.Alias, &d.Model, &d.AppVersion,
 		&d.Battery, &d.OldID, &d.FamilyID, &d.Status, &d.BindTime, &d.LastTime,
 		&d.LastLng, &d.LastLat, &d.CreateTime, &d.PersonHandled, &d.RateHandled,
@@ -96,9 +104,9 @@ func scanOldDevice(row dbstore.Row) (*oldDevice, error) {
 	return &d, nil
 }
 
-func (h *Handler) findDeviceByNo(ctx context.Context, q oldQuerier, deviceNo string) (*oldDevice, error) {
-	d, err := scanOldDevice(q.QueryRow(ctx,
-		`SELECT `+oldDeviceCols+` FROM device WHERE device_no=$1`, deviceNo))
+func (h *Handler) findDeviceByNo(ctx context.Context, q deviceQueries, deviceNo string) (*deviceRecord, error) {
+	d, err := scanDeviceRecord(q.QueryRow(ctx,
+		`SELECT `+deviceRecordColumns+` FROM device WHERE device_no=$1`, deviceNo))
 	if err != nil {
 		if err == pgx.ErrNoRows {
 			return nil, nil
@@ -112,9 +120,9 @@ func (h *Handler) findDeviceByNo(ctx context.Context, q oldQuerier, deviceNo str
 	return d, nil
 }
 
-func (h *Handler) findDeviceByID(ctx context.Context, q oldQuerier, deviceID int64) (*oldDevice, error) {
-	d, err := scanOldDevice(q.QueryRow(ctx,
-		`SELECT `+oldDeviceCols+` FROM device WHERE device_id=$1`, deviceID))
+func (h *Handler) findDeviceByID(ctx context.Context, q deviceQueries, deviceID int64) (*deviceRecord, error) {
+	d, err := scanDeviceRecord(q.QueryRow(ctx,
+		`SELECT `+deviceRecordColumns+` FROM device WHERE device_id=$1`, deviceID))
 	if err != nil {
 		if err == pgx.ErrNoRows {
 			return nil, nil
@@ -129,7 +137,7 @@ func (h *Handler) findDeviceByID(ctx context.Context, q oldQuerier, deviceID int
 }
 
 // hwAuth checks the device number, secret and enabled status.
-func (h *Handler) hwAuth(ctx context.Context, q oldQuerier, deviceNo, secret, disabledMsg string) (*oldDevice, string, string, error) {
+func (h *Handler) hwAuth(ctx context.Context, q deviceQueries, deviceNo, secret, disabledMsg string) (*deviceRecord, string, string, error) {
 	d, err := h.findDeviceByNo(ctx, q, deviceNo)
 	if err != nil {
 		return nil, "", "", err
@@ -138,7 +146,7 @@ func (h *Handler) hwAuth(ctx context.Context, q oldQuerier, deviceNo, secret, di
 }
 
 // Both full and health-only projections use the same credential policy.
-func checkDeviceAuth(d *oldDevice, secret, disabledMsg string) (*oldDevice, string, string, error) {
+func checkDeviceAuth(d *deviceRecord, secret, disabledMsg string) (*deviceRecord, string, string, error) {
 	if d == nil {
 		return nil, "DEVICE_AUTH_FAILED", "设备号或密钥不正确", nil
 	}
@@ -159,7 +167,7 @@ func deviceCredentialFailure(supplied, stored string, status *int, disabledMsg s
 }
 
 // touchDevice 更新心跳：last_time/last_online_at=now，battery/appVersion 仅在提供时更新。
-func touchDevice(ctx context.Context, q oldQuerier, deviceID int64, battery *int, appVersion *string, now time.Time) error {
+func touchDevice(ctx context.Context, q deviceQueries, deviceID int64, battery *int, appVersion *string, now time.Time) error {
 	var bAny, aAny any
 	if battery != nil {
 		bAny = *battery
@@ -186,7 +194,7 @@ func watchProfileInsertSQL(mysql bool) string {
 
 // saveWatchProfileUpsert fills a missing default profile without replacing a
 // caregiver's customized thresholds during device registration or binding.
-func saveWatchProfileUpsert(ctx context.Context, q oldQuerier, mysql bool, deviceID int64, hrf, hrl, bpf, bpl int, opTime time.Time) (int64, error) {
+func saveWatchProfileUpsert(ctx context.Context, q deviceQueries, mysql bool, deviceID int64, hrf, hrl, bpf, bpl int, opTime time.Time) (int64, error) {
 	ct, err := q.Exec(ctx, watchProfileInsertSQL(mysql),
 		deviceID, opTime, bpf, bpl, hrf, hrl)
 	if err != nil {

@@ -28,7 +28,7 @@ func TestIntegrationListPageTotals(t *testing.T) {
 		nullKeys                    []string
 		emptySQL                    string
 	}{
-		{"customers", "customers", "customerId", "customerName", h.customerSelect,
+		{"customers", "customers", "customerId", "customerName", h.listGuardians,
 			[]int{4, 7, 9, 12}, []int{4, 7, 12}, []string{"customerAge", "customerAddress"}, "DELETE FROM customer"},
 		{"family", "familyDtos", "oldId", "familyName", h.familySelect,
 			[]int{4, 7, 9, 12}, []int{4, 7, 12}, []string{"familyAddress", "familyTouPic"}, "DELETE FROM oldperson"},
