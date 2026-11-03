@@ -99,8 +99,7 @@ func (h *Handler) factorLogin(w http.ResponseWriter, r *http.Request, m map[stri
 		counter, valid := securestore.VerifyTOTP(secret, str(m, "otp"), time.Now(), last)
 		if !valid && str(m, "recoveryCode") != "" {
 			var codes []string
-			if json.Unmarshal(hashes, &codes) != nil {
-				response.Error500(w, ref())
+			if internalError(w, json.Unmarshal(hashes, &codes)) {
 				return false
 			}
 			candidate := health.Digest([]byte(str(m, "recoveryCode")))
@@ -115,29 +114,24 @@ func (h *Handler) factorLogin(w http.ResponseWriter, r *http.Request, m map[stri
 			}
 		}
 		if !valid {
-			if h.loginAuditTx(r, phone, role, id, "factor_required", tx) != nil {
-				response.Error500(w, ref())
+			if internalError(w, h.loginAuditTx(r, phone, role, id, "factor_required", tx)) {
 				return false
 			}
-			if tx.Commit(ctx) != nil {
-				response.Error500(w, ref())
+			if internalError(w, tx.Commit(ctx)) {
 				return false
 			}
 			response.JSON(w, 401, map[string]any{"code": "MFA_REQUIRED", "message": "请输入有效的动态验证码或未使用的恢复码"})
 			return false
 		}
-		if _, err = tx.Exec(ctx, "UPDATE auth_factor SET last_counter=$3,recovery_hashes=$4 WHERE role=$1 AND actor_id=$2", role, id, counter, json.RawMessage(hashes)); err != nil {
-			response.Error500(w, ref())
+		if _, err = tx.Exec(ctx, "UPDATE auth_factor SET last_counter=$3,recovery_hashes=$4 WHERE role=$1 AND actor_id=$2", role, id, counter, json.RawMessage(hashes)); internalError(w, err) {
 			return false
 		}
 		*r = *r.WithContext(context.WithValue(r.Context(), factorGenerationKey{}, generation))
 	}
-	if h.loginAuditTx(r, phone, role, id, "credentials_verified", tx) != nil {
-		response.Error500(w, ref())
+	if internalError(w, h.loginAuditTx(r, phone, role, id, "credentials_verified", tx)) {
 		return false
 	}
-	if err = tx.Commit(ctx); err != nil {
-		response.Error500(w, ref())
+	if err = tx.Commit(ctx); internalError(w, err) {
 		return false
 	}
 	return true
@@ -198,8 +192,7 @@ func (h *Handler) securityFactor(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 		secret, e := h.Box.Open(sealed, scope)
-		if e != nil {
-			response.Error500(w, ref())
+		if internalError(w, e) {
 			return
 		}
 		counter, valid := securestore.VerifyTOTP(secret, req.OTP, time.Now(), last)
@@ -211,8 +204,7 @@ func (h *Handler) securityFactor(w http.ResponseWriter, r *http.Request) {
 			_, err = tx.Exec(ctx, "DELETE FROM auth_factor WHERE role=$1 AND actor_id=$2", p.Role, p.ID)
 		} else {
 			codes, hashes, codeErr := newRecoveryCodes()
-			if codeErr != nil {
-				response.Error500(w, ref())
+			if internalError(w, codeErr) {
 				return
 			}
 			b, _ := json.Marshal(hashes)

@@ -1,17 +1,12 @@
 package notify
 
 import (
-	"bytes"
 	"context"
 	"encoding/json"
 	"fmt"
 	"io"
-	"net/http"
 	"os"
-	"strings"
 	"time"
-
-	"suining-care/internal/securestore"
 )
 
 // Bulk is explicitly configured and never silently replaces Tencent's adapter.
@@ -36,7 +31,7 @@ func (d *Worker) deliverBulk(ctx context.Context, jobs []messageJob) []error {
 	for i := range results {
 		results[i] = notAccepted
 	}
-	if d.Token == "" || (!strings.HasPrefix(d.BulkURL, "https://") && os.Getenv("NOTIFY_ALLOW_HTTP_TEST") != "1") {
+	if d.Token == "" || !validGatewayURL(d.BulkURL) {
 		return results
 	}
 	request := struct {
@@ -44,13 +39,9 @@ func (d *Worker) deliverBulk(ctx context.Context, jobs []messageJob) []error {
 	}{Notifications: make([]bulkNotification, 0, len(jobs))}
 	indices := make(map[int64]int, len(jobs))
 	for i, job := range jobs {
-		phone := job.recipient
-		if strings.HasPrefix(phone, securestore.Prefix) {
-			var err error
-			phone, err = d.Box.Open(phone, "notification-recipient")
-			if err != nil {
-				continue
-			}
+		phone, err := d.openRecipient(job.recipient)
+		if err != nil {
+			continue
 		}
 		indices[job.id] = i
 		request.Notifications = append(request.Notifications, bulkNotification{
@@ -67,12 +58,10 @@ func (d *Worker) deliverBulk(ctx context.Context, jobs []messageJob) []error {
 	}
 	call, cancel := context.WithTimeout(ctx, 30*time.Second)
 	defer cancel()
-	r, err := http.NewRequestWithContext(call, http.MethodPost, d.BulkURL, bytes.NewReader(body))
+	r, err := d.gatewayRequest(call, d.BulkURL, body)
 	if err != nil {
 		return results
 	}
-	r.Header.Set("Authorization", "Bearer "+d.Token)
-	r.Header.Set("Content-Type", "application/json")
 	resp, err := d.Client.Do(r)
 	if err != nil {
 		return results

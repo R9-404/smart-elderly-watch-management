@@ -22,9 +22,7 @@ func deliveryConcurrency() int {
 func (d *dispatcher) runDispatchers(ctx context.Context, concurrency int) {
 	var workers sync.WaitGroup
 	for range concurrency {
-		workers.Add(1)
-		go func() {
-			defer workers.Done()
+		workers.Go(func() {
 			for ctx.Err() == nil {
 				attempt, cancel := context.WithTimeout(ctx, 20*time.Second)
 				processed, err := d.dispatchNext(attempt)
@@ -43,7 +41,7 @@ func (d *dispatcher) runDispatchers(ctx context.Context, concurrency int) {
 				case <-timer.C:
 				}
 			}
-		}()
+		})
 	}
 	workers.Wait()
 }

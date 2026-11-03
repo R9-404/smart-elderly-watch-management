@@ -84,8 +84,7 @@ func (h *Handler) healthBatchWithLockOrder(w http.ResponseWriter, r *http.Reques
 	}
 	if lateDeviceLock {
 		locked, lockErr := scanHealthDevice(tx.QueryRow(ctx, `SELECT `+healthDeviceCols+` FROM device WHERE device_id=$1 FOR UPDATE`, d.ID))
-		if lockErr != nil {
-			response.Error500(w, ref())
+		if internalError(w, lockErr) {
 			return
 		}
 		d = locked
@@ -102,12 +101,10 @@ func (h *Handler) healthBatchWithLockOrder(w http.ResponseWriter, r *http.Reques
 			return
 		}
 	}
-	if err = touchHealthDevice(ctx, tx, d.ID, time.Now()); err != nil {
-		response.Error500(w, ref())
+	if err = touchHealthDevice(ctx, tx, d.ID, time.Now()); internalError(w, err) {
 		return
 	}
-	if err = tx.Commit(ctx); err != nil {
-		response.Error500(w, ref())
+	if err = tx.Commit(ctx); internalError(w, err) {
 		return
 	}
 	// This is a write acknowledgement, not the client's read cursor.
@@ -145,8 +142,7 @@ func (h *Handler) healthChanges(w http.ResponseWriter, r *http.Request) {
 	for rows.Next() {
 		var rev int64
 		var b []byte
-		if err = rows.Scan(&rev, &b); err != nil {
-			response.Error500(w, ref())
+		if err = rows.Scan(&rev, &b); internalError(w, err) {
 			return
 		}
 		if rev < 0 || rev > health.MaxRevision {

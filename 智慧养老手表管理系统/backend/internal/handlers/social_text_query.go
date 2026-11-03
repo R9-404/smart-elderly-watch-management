@@ -3,6 +3,7 @@ package handlers
 import (
 	"github.com/jackc/pgx/v5"
 	"net/http"
+	dbstore "suining-care/internal/db"
 	"suining-care/internal/response"
 )
 
@@ -89,21 +90,12 @@ func (h *Handler) getNotice(w http.ResponseWriter, r *http.Request) {
 	}
 	pics := []noticeImage{}
 	if t.PicID != nil {
-		rows, err := h.DB.Query(r.Context(), "SELECT pic_id, pic_name FROM pic WHERE pic_id=$1", *t.PicID)
-		if internalError(w, err) {
-			return
-		}
-		defer rows.Close()
-		for rows.Next() {
-			var p noticeImage
-			if err := rows.Scan(&p.PicID, &p.PicName); err != nil {
-				rows.Close()
-				response.Error500(w, ref())
-				return
-			}
-			pics = append(pics, p)
-		}
-		if !rowsOK(w, rows) {
+		pics, ok = queryRows(h, w, r.Context(), func(rows dbstore.Rows) (noticeImage, error) {
+			var image noticeImage
+			err := rows.Scan(&image.PicID, &image.PicName)
+			return image, err
+		}, "SELECT pic_id, pic_name FROM pic WHERE pic_id=$1", *t.PicID)
+		if !ok {
 			return
 		}
 	}

@@ -1,8 +1,10 @@
 package handlers
 
 import (
+	"context"
 	"net/http"
 	"strconv"
+	"suining-care/internal/db"
 	"suining-care/internal/notify"
 	"suining-care/internal/response"
 	"time"
@@ -32,12 +34,8 @@ func (h *Handler) createNotice(w http.ResponseWriter, r *http.Request) {
 	if internalError(w, err) {
 		return
 	}
-	for _, name := range fileList {
-		ct, err := tx.Exec(r.Context(), "INSERT INTO pic(pic_id,pic_name) VALUES($1,$2)", picID, name)
-		if err != nil || ct.RowsAffected() != 1 {
-			response.Error500(w, ref())
-			return
-		}
+	if !insertNoticePictures(w, r.Context(), tx, picID, fileList) {
+		return
 	}
 	var textID int64
 	err = tx.QueryRow(r.Context(), "INSERT INTO "+socialTextTable(tx.IsMySQL())+"(title,text_main,time,pic_id) VALUES($1,$2,$3,$4) RETURNING text_id",
@@ -45,7 +43,7 @@ func (h *Handler) createNotice(w http.ResponseWriter, r *http.Request) {
 	if internalError(w, err) {
 		return
 	}
-	phones, err := h.notificationPhones(r, tx)
+	phones, err := notificationPhones(r.Context(), tx)
 	if internalError(w, err) {
 		return
 	}
@@ -74,14 +72,8 @@ func (h *Handler) deleteNotice(w http.ResponseWriter, r *http.Request) {
 		response.Fail(w, "参数不正确")
 		return
 	}
-	var existing noticeRecord
-	err := h.DB.QueryRow(r.Context(), "SELECT "+textColumns+" FROM "+socialTextTable(h.DB.IsMySQL())+" WHERE text_id=$1", textID).Scan(
-		&existing.TextID, &existing.Title, &existing.TextMain, &existing.Time, &existing.PicID)
-	if isNotFound(err) {
-		writeCode(w, false)
-		return
-	}
-	if internalError(w, err) {
+	pictures, ok := h.noticePictureGroup(w, r, textID)
+	if !ok {
 		return
 	}
 	tx, err := h.DB.Begin(r.Context())
@@ -93,9 +85,8 @@ func (h *Handler) deleteNotice(w http.ResponseWriter, r *http.Request) {
 	if internalError(w, err) {
 		return
 	}
-	if existing.PicID != nil {
-		if _, err := tx.Exec(r.Context(), "DELETE FROM pic WHERE pic_id=$1", *existing.PicID); err != nil {
-			response.Error500(w, ref())
+	if pictures != nil {
+		if _, err := tx.Exec(r.Context(), "DELETE FROM pic WHERE pic_id=$1", *pictures); internalError(w, err) {
 			return
 		}
 	}
@@ -122,14 +113,8 @@ func (h *Handler) updateNotice(w http.ResponseWriter, r *http.Request) {
 	}
 	title := str(m, "title")
 	textMain := str(m, "textMain")
-	var existing noticeRecord
-	err := h.DB.QueryRow(r.Context(), "SELECT "+textColumns+" FROM "+socialTextTable(h.DB.IsMySQL())+" WHERE text_id=$1", textID).Scan(
-		&existing.TextID, &existing.Title, &existing.TextMain, &existing.Time, &existing.PicID)
-	if isNotFound(err) {
-		writeCode(w, false)
-		return
-	}
-	if internalError(w, err) {
+	pictures, ok := h.noticePictureGroup(w, r, textID)
+	if !ok {
 		return
 	}
 	fileList, ok := picNameList(w, m)
@@ -145,24 +130,19 @@ func (h *Handler) updateNotice(w http.ResponseWriter, r *http.Request) {
 	if !h.lockImages(w, r.Context(), tx, fileList) {
 		return
 	}
-	if existing.PicID == nil {
+	if pictures == nil {
 		picID, err = allocatePictureGroupID(r.Context(), tx)
 		if internalError(w, err) {
 			return
 		}
 	} else {
-		picID = *existing.PicID
-		if _, err := tx.Exec(r.Context(), "DELETE FROM pic WHERE pic_id=$1", picID); err != nil {
-			response.Error500(w, ref())
+		picID = *pictures
+		if _, err := tx.Exec(r.Context(), "DELETE FROM pic WHERE pic_id=$1", picID); internalError(w, err) {
 			return
 		}
 	}
-	for _, name := range fileList {
-		ct, err := tx.Exec(r.Context(), "INSERT INTO pic(pic_id,pic_name) VALUES($1,$2)", picID, name)
-		if err != nil || ct.RowsAffected() != 1 {
-			response.Error500(w, ref())
-			return
-		}
+	if !insertNoticePictures(w, r.Context(), tx, picID, fileList) {
+		return
 	}
 	ct, err := tx.Exec(r.Context(), "UPDATE "+socialTextTable(tx.IsMySQL())+" SET title=$1, text_main=$2, time=$3, pic_id=$4 WHERE text_id=$5",
 		title, textMain, time.Now(), picID, textID)
@@ -177,4 +157,25 @@ func (h *Handler) updateNotice(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	writeCode(w, true)
+}
+
+func (h *Handler) noticePictureGroup(w http.ResponseWriter, r *http.Request, id int64) (*int64, bool) {
+	var pictures *int64
+	err := h.DB.QueryRow(r.Context(), "SELECT pic_id FROM "+socialTextTable(h.DB.IsMySQL())+" WHERE text_id=$1", id).Scan(&pictures)
+	if isNotFound(err) {
+		writeCode(w, false)
+		return nil, false
+	}
+	return pictures, !internalError(w, err)
+}
+
+func insertNoticePictures(w http.ResponseWriter, ctx context.Context, tx *db.Transaction, id int64, names []string) bool {
+	for _, name := range names {
+		result, err := tx.Exec(ctx, "INSERT INTO pic(pic_id,pic_name) VALUES($1,$2)", id, name)
+		if err != nil || result.RowsAffected() != 1 {
+			response.Error500(w, ref())
+			return false
+		}
+	}
+	return true
 }

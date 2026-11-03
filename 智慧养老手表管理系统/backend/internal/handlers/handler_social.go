@@ -214,8 +214,7 @@ func (h *Handler) createNoticeComment(w http.ResponseWriter, r *http.Request) {
 	if internalError(w, err) {
 		return
 	}
-	if err = tx.Commit(r.Context()); err != nil {
-		response.Error500(w, ref())
+	if err = tx.Commit(r.Context()); internalError(w, err) {
 		return
 	}
 	writeCode(w, ct.RowsAffected() == 1)
@@ -285,8 +284,7 @@ func (h *Handler) toggleNoticeCommentLike(w http.ResponseWriter, r *http.Request
 			return
 		}
 		rows = ct.RowsAffected()
-		if _, err := tx.Exec(r.Context(), "UPDATE said SET nice_count=nice_count-1 WHERE said_id=$1", saidID); err != nil {
-			response.Error500(w, ref())
+		if _, err := tx.Exec(r.Context(), "UPDATE said SET nice_count=nice_count-1 WHERE said_id=$1", saidID); internalError(w, err) {
 			return
 		}
 	} else {
@@ -295,8 +293,7 @@ func (h *Handler) toggleNoticeCommentLike(w http.ResponseWriter, r *http.Request
 			return
 		}
 		rows = ct.RowsAffected()
-		if _, err := tx.Exec(r.Context(), "UPDATE said SET nice_count=nice_count+1 WHERE said_id=$1", saidID); err != nil {
-			response.Error500(w, ref())
+		if _, err := tx.Exec(r.Context(), "UPDATE said SET nice_count=nice_count+1 WHERE said_id=$1", saidID); internalError(w, err) {
 			return
 		}
 	}

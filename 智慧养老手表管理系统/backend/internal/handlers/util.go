@@ -12,15 +12,18 @@ import (
 	"suining-care/internal/response"
 )
 
-// decode 解析 JSON body；失败返回 false 并已写 400。
-func decode(w http.ResponseWriter, r *http.Request, v any) bool {
-	return decodeBody(w, r, v, false)
+// bodyMap decodes a JSON object while allowing endpoint-specific fields.
+func bodyMap(w http.ResponseWriter, r *http.Request) (map[string]any, bool) {
+	return decodeBodyMap(w, r, false)
 }
 
-// bodyMap 解析为 map（兼容字段宽松的接口）。
-func bodyMap(w http.ResponseWriter, r *http.Request) (map[string]any, bool) {
+func bodyMapOrEmpty(w http.ResponseWriter, r *http.Request) (map[string]any, bool) {
+	return decodeBodyMap(w, r, true)
+}
+
+func decodeBodyMap(w http.ResponseWriter, r *http.Request, optional bool) (map[string]any, bool) {
 	var m map[string]any
-	if !decode(w, r, &m) {
+	if !decodeBody(w, r, &m, optional) {
 		return nil, false
 	}
 	if m == nil {

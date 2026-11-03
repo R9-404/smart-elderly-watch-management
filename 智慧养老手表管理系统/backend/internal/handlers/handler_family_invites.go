@@ -72,19 +72,9 @@ func (h *Handler) inviteList(w http.ResponseWriter, r *http.Request) {
 		response.Error500(w, ref())
 		return
 	}
-	rows, err := h.DB.Query(ctx,
-		`SELECT ic.id,ic.code,ic.old_id,ic.create_user,ic.create_time,
-		        ic.expire_time,ic.used,ic.used_time,o.name
-		 FROM invite_code ic LEFT JOIN oldperson o ON ic.old_id=o.old_id
-		 WHERE 1=1 `+cond+` ORDER BY ic.id DESC LIMIT $1 OFFSET $2`, ps, (p-1)*ps)
-	if internalError(w, err) {
-		return
-	}
-	defer rows.Close()
 	statusText := map[string]string{"unused": "可使用", "used": "已使用", "expired": "已过期"}
-	list := []map[string]any{}
 	now := time.Now()
-	for rows.Next() {
+	list, ok := queryRows(h, w, ctx, func(rows db.Rows) (map[string]any, error) {
 		var id int64
 		var code string
 		var oldID *int64
@@ -92,8 +82,8 @@ func (h *Handler) inviteList(w http.ResponseWriter, r *http.Request) {
 		var createTime, expire, usedTime *time.Time
 		var used int16
 		var oldName *string
-		if internalError(w, rows.Scan(&id, &code, &oldID, &createUser, &createTime, &expire, &used, &usedTime, &oldName)) {
-			return
+		if err := rows.Scan(&id, &code, &oldID, &createUser, &createTime, &expire, &used, &usedTime, &oldName); err != nil {
+			return nil, err
 		}
 		st := inviteStatus(used, expire, now)
 		remain := -1 // 长期有效
@@ -104,14 +94,18 @@ func (h *Handler) inviteList(w http.ResponseWriter, r *http.Request) {
 		if oldName != nil {
 			nm = *oldName
 		}
-		list = append(list, map[string]any{
+		return map[string]any{
 			"id": id, "code": code, "oldId": oldID, "oldPersonName": nm,
 			"createUser": createUser, "createTime": fmtTS(createTime),
 			"expireTime": fmtTS(expire), "remainDays": remain,
 			"usedTime": fmtTS(usedTime), "status": st, "statusText": statusText[st],
-		})
-	}
-	if internalError(w, rows.Err()) {
+		}, nil
+	},
+		`SELECT ic.id,ic.code,ic.old_id,ic.create_user,ic.create_time,
+		        ic.expire_time,ic.used,ic.used_time,o.name
+		 FROM invite_code ic LEFT JOIN oldperson o ON ic.old_id=o.old_id
+		 WHERE 1=1 `+cond+` ORDER BY ic.id DESC LIMIT $1 OFFSET $2`, ps, (p-1)*ps)
+	if !ok {
 		return
 	}
 	response.OK(w, map[string]any{

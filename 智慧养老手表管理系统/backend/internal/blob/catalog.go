@@ -249,26 +249,13 @@ func (m *Manager) ReleaseBackup(ctx context.Context, owner string) error {
 }
 
 func (m *Manager) VerifyReferences(ctx context.Context) ([]Record, error) {
-	rows, err := m.DB.Query(ctx, `SELECT family_tou_pic AS name FROM family WHERE family_tou_pic IS NOT NULL AND family_tou_pic<>''
+	keys, err := db.QueryList(ctx, m.DB, db.ScanValue[string], `SELECT family_tou_pic AS name FROM family WHERE family_tou_pic IS NOT NULL AND family_tou_pic<>''
  UNION SELECT tou_pic FROM said WHERE tou_pic IS NOT NULL AND tou_pic<>''
  UNION SELECT pic_name FROM pic WHERE pic_name IS NOT NULL AND pic_name<>''
  UNION SELECT pic_name FROM pic_show WHERE pic_name IS NOT NULL AND pic_name<>''`)
 	if err != nil {
 		return nil, err
 	}
-	defer rows.Close()
-	var keys []string
-	for rows.Next() {
-		var key string
-		if err = rows.Scan(&key); err != nil {
-			return nil, err
-		}
-		keys = append(keys, key)
-	}
-	if err = rows.Err(); err != nil {
-		return nil, err
-	}
-	rows.Close()
 	var records []Record
 	for _, key := range keys {
 		data, err := m.Get(ctx, key)

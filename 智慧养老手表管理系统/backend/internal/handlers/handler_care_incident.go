@@ -219,31 +219,25 @@ func (h *Handler) careEvents(w http.ResponseWriter, r *http.Request) {
 	if internalError(w, h.DB.QueryRow(r.Context(), `SELECT count(*) FROM care_incident_event WHERE incident_id=$1`, id).Scan(&total)) {
 		return
 	}
-	rows, err := h.DB.Query(r.Context(),
-		`SELECT actor,action,note,created_at FROM care_incident_event
-      WHERE incident_id=$1 ORDER BY id ASC LIMIT $2 OFFSET $3`, id, ps, (page-1)*ps)
-	if internalError(w, err) {
-		return
-	}
-	defer rows.Close()
-	events := []map[string]any{}
-	for rows.Next() {
+	events, ok := queryRows(h, w, r.Context(), func(rows db.Rows) (map[string]any, error) {
 		var actor, action string
 		var note *string
 		var created time.Time
-		if internalError(w, rows.Scan(&actor, &action, &note, &created)) {
-			return
+		if err := rows.Scan(&actor, &action, &note, &created); err != nil {
+			return nil, err
 		}
 		if note != nil {
 			plain, err := h.openNote(*note)
-			if internalError(w, err) {
-				return
+			if err != nil {
+				return nil, err
 			}
 			note = &plain
 		}
-		events = append(events, map[string]any{"actor": actor, "action": action, "note": note, "createdAt": created})
-	}
-	if internalError(w, rows.Err()) {
+		return map[string]any{"actor": actor, "action": action, "note": note, "createdAt": created}, nil
+	},
+		`SELECT actor,action,note,created_at FROM care_incident_event
+      WHERE incident_id=$1 ORDER BY id ASC LIMIT $2 OFFSET $3`, id, ps, (page-1)*ps)
+	if !ok {
 		return
 	}
 	response.OK(w, map[string]any{"events": events, "total": total, "page": page, "pageSize": ps})

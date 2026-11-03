@@ -18,30 +18,15 @@ type fencePointRequest struct {
 }
 
 func loadActiveFences(ctx context.Context, tx *dbstore.Transaction, deviceID, oldID, epoch int64) ([]fenceConfig, error) {
-	rows, err := tx.Query(ctx, `SELECT id,revision,coordinates,timezone,time_begin,time_end,min_points,dwell_seconds,max_accuracy FROM device_fence WHERE device_id=$1 AND old_id=$2 AND epoch=$3 AND enabled=true ORDER BY id FOR UPDATE`, deviceID, oldID, epoch)
-	if err != nil {
-		return nil, err
-	}
-	configs := []fenceConfig{}
-	for rows.Next() {
+	return dbstore.QueryList(ctx, tx, func(row dbstore.Rows) (fenceConfig, error) {
 		var f fenceConfig
-		var b []byte
-		if err = rows.Scan(&f.ID, &f.Revision, &b, &f.Timezone, &f.TimeBegin, &f.TimeEnd, &f.MinPoints, &f.DwellSeconds, &f.MaxAccuracy); err != nil {
-			break
+		var raw []byte
+		if err := row.Scan(&f.ID, &f.Revision, &raw, &f.Timezone, &f.TimeBegin, &f.TimeEnd, &f.MinPoints, &f.DwellSeconds, &f.MaxAccuracy); err != nil {
+			return f, err
 		}
-		if err = json.Unmarshal(b, &f.Coordinates); err != nil {
-			break
-		}
-		configs = append(configs, f)
-	}
-	if err == nil {
-		err = rows.Err()
-	}
-	rows.Close()
-	if err != nil {
-		return nil, err
-	}
-	return configs, nil
+		err := json.Unmarshal(raw, &f.Coordinates)
+		return f, err
+	}, `SELECT id,revision,coordinates,timezone,time_begin,time_end,min_points,dwell_seconds,max_accuracy FROM device_fence WHERE device_id=$1 AND old_id=$2 AND epoch=$3 AND enabled=true ORDER BY id FOR UPDATE`, deviceID, oldID, epoch)
 }
 
 func advanceFenceObservation(f *fenceConfig, state *fence.State, req *fencePointRequest, at time.Time) (string, bool, error) {

@@ -73,8 +73,7 @@ func (h *Handler) fenceSave(w http.ResponseWriter, r *http.Request) {
 	b, _ := json.Marshal(req.Coordinates)
 	if req.ID == 0 {
 		var count int
-		if err = tx.QueryRow(ctx, "SELECT count(*) FROM device_fence WHERE device_id=$1 AND epoch=$2", d.ID, d.HealthEpoch).Scan(&count); err != nil {
-			response.Error500(w, ref())
+		if err = tx.QueryRow(ctx, "SELECT count(*) FROM device_fence WHERE device_id=$1 AND epoch=$2", d.ID, d.HealthEpoch).Scan(&count); internalError(w, err) {
 			return
 		}
 		if count >= 20 {
@@ -123,27 +122,17 @@ func (h *Handler) fenceList(w http.ResponseWriter, r *http.Request) {
 		write400(w, "设备无效")
 		return
 	}
-	rows, err := h.DB.Query(r.Context(), `SELECT f.id,f.device_id,f.revision,f.name,f.enabled,f.coordinates,f.coordinate_system,f.timezone,f.time_begin,f.time_end,f.min_points,f.dwell_seconds,f.max_accuracy
- FROM device_fence f JOIN device d ON d.device_id=f.device_id AND d.old_id=f.old_id AND d.health_epoch=f.epoch WHERE f.device_id=$1 ORDER BY f.id`, req.DeviceID)
-	if internalError(w, err) {
-		return
-	}
-	defer rows.Close()
-	items := []fenceConfig{}
-	for rows.Next() {
+	items, ok := queryRows(h, w, r.Context(), func(rows dbstore.Rows) (fenceConfig, error) {
 		var item fenceConfig
 		var b []byte
-		if err = rows.Scan(&item.ID, &item.DeviceID, &item.Revision, &item.Name, &item.Enabled, &b, &item.CoordinateSystem, &item.Timezone, &item.TimeBegin, &item.TimeEnd, &item.MinPoints, &item.DwellSeconds, &item.MaxAccuracy); err != nil {
-			response.Error500(w, ref())
-			return
+		if err := rows.Scan(&item.ID, &item.DeviceID, &item.Revision, &item.Name, &item.Enabled, &b, &item.CoordinateSystem, &item.Timezone, &item.TimeBegin, &item.TimeEnd, &item.MinPoints, &item.DwellSeconds, &item.MaxAccuracy); err != nil {
+			return item, err
 		}
-		if json.Unmarshal(b, &item.Coordinates) != nil {
-			response.Error500(w, ref())
-			return
-		}
-		items = append(items, item)
-	}
-	if !rowsOK(w, rows) {
+		err := json.Unmarshal(b, &item.Coordinates)
+		return item, err
+	}, `SELECT f.id,f.device_id,f.revision,f.name,f.enabled,f.coordinates,f.coordinate_system,f.timezone,f.time_begin,f.time_end,f.min_points,f.dwell_seconds,f.max_accuracy
+ FROM device_fence f JOIN device d ON d.device_id=f.device_id AND d.old_id=f.old_id AND d.health_epoch=f.epoch WHERE f.device_id=$1 ORDER BY f.id`, req.DeviceID)
+	if !ok {
 		return
 	}
 	response.OK(w, map[string]any{"items": items})
@@ -183,8 +172,7 @@ func (h *Handler) fencePoint(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 		if err == nil && rev == f.Revision {
-			if json.Unmarshal(b, &state) != nil {
-				response.Error500(w, ref())
+			if internalError(w, json.Unmarshal(b, &state)) {
 				return
 			}
 		}
@@ -210,12 +198,10 @@ func (h *Handler) fencePoint(w http.ResponseWriter, r *http.Request) {
 		}
 		events = append(events, event)
 	}
-	if err = touchDevice(ctx, tx, d.ID, nil, nil, time.Now()); err != nil {
-		response.Error500(w, ref())
+	if err = touchDevice(ctx, tx, d.ID, nil, nil, time.Now()); internalError(w, err) {
 		return
 	}
-	if err = tx.Commit(ctx); err != nil {
-		response.Error500(w, ref())
+	if err = tx.Commit(ctx); internalError(w, err) {
 		return
 	}
 	response.OK(w, map[string]any{"events": events})

@@ -3,6 +3,7 @@ package handlers
 import (
 	"net/http"
 	"strings"
+	dbstore "suining-care/internal/db"
 	"time"
 	"unicode/utf8"
 
@@ -96,27 +97,20 @@ func (h *Handler) alertReviews(w http.ResponseWriter, r *http.Request) {
 		write400(w, "复核目标或游标无效")
 		return
 	}
-	rows, err := h.DB.Query(r.Context(), "SELECT id,kind,verdict,reason,actor_id,created_at FROM alert_review WHERE entity=$1 AND record_id=$2 AND ($3='' OR kind=$3) AND id>$4 ORDER BY id LIMIT 100", req.Entity, req.RecordID, req.Kind, req.After)
-	if internalError(w, err) {
-		return
-	}
-	defer rows.Close()
-	items := []map[string]any{}
-	for rows.Next() {
+	items, ok := queryRows(h, w, r.Context(), func(rows dbstore.Rows) (map[string]any, error) {
 		var id, actor int64
 		var kind, verdict, reason string
 		var at time.Time
-		if rows.Scan(&id, &kind, &verdict, &reason, &actor, &at) != nil {
-			response.Error500(w, ref())
-			return
+		if err := rows.Scan(&id, &kind, &verdict, &reason, &actor, &at); err != nil {
+			return nil, err
 		}
-		reason, err = h.openNote(reason)
-		if internalError(w, err) {
-			return
+		reason, err := h.openNote(reason)
+		if err != nil {
+			return nil, err
 		}
-		items = append(items, map[string]any{"id": id, "kind": kind, "verdict": verdict, "reason": reason, "actorId": actor, "createdAt": at})
-	}
-	if !rowsOK(w, rows) {
+		return map[string]any{"id": id, "kind": kind, "verdict": verdict, "reason": reason, "actorId": actor, "createdAt": at}, nil
+	}, "SELECT id,kind,verdict,reason,actor_id,created_at FROM alert_review WHERE entity=$1 AND record_id=$2 AND ($3='' OR kind=$3) AND id>$4 ORDER BY id LIMIT 100", req.Entity, req.RecordID, req.Kind, req.After)
+	if !ok {
 		return
 	}
 	response.OK(w, map[string]any{"items": items})

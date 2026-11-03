@@ -3,6 +3,7 @@ package handlers
 import (
 	"net/http"
 	"suining-care/internal/auth"
+	dbstore "suining-care/internal/db"
 	"suining-care/internal/response"
 )
 
@@ -19,35 +20,28 @@ func (h *Handler) familySelect(w http.ResponseWriter, r *http.Request) {
 	const filter = ` FROM oldperson o JOIN family f ON o.family_id=f.family_id
 		 WHERE ($1='' OR f.family_name LIKE '%'||$1||'%')`
 	const countSQL = `SELECT COUNT(*) AS total` + filter
-	rows, err := h.DB.Query(ctx,
-		`SELECT o.old_id,o.name,f.family_id,f.family_name,f.family_relation,
-		        f.family_sex,f.family_phone,f.family_address,f.family_tou_pic`+filter+`
-		 ORDER BY o.old_id LIMIT $2 OFFSET $3`, name, ps, (p-1)*ps)
-	if internalError(w, err) {
-		return
-	}
-	defer rows.Close()
-	list := []map[string]any{}
-	for rows.Next() {
+	list, ok := queryRows(h, w, ctx, func(rows dbstore.Rows) (map[string]any, error) {
 		var oldID, familyID int64
 		var oldName, fname, frel, fsex, fphone, faddr, fpic *string
-		if internalError(w, rows.Scan(&oldID, &oldName, &familyID, &fname, &frel, &fsex, &fphone, &faddr, &fpic)) {
-			return
+		if err := rows.Scan(&oldID, &oldName, &familyID, &fname, &frel, &fsex, &fphone, &faddr, &fpic); err != nil {
+			return nil, err
 		}
-		list = append(list, map[string]any{
+		return map[string]any{
 			"oldId": oldID, "name": oldName, "familyId": familyID,
 			"familyName": fname, "familyRelation": frel, "familySex": fsex,
 			"familyPhone": fphone, "familyAddress": faddr, "familyTouPic": fpic,
-		})
-	}
-	if internalError(w, rows.Err()) {
+		}, nil
+	},
+		`SELECT o.old_id,o.name,f.family_id,f.family_name,f.family_relation,
+		        f.family_sex,f.family_phone,f.family_address,f.family_tou_pic`+filter+`
+		 ORDER BY o.old_id LIMIT $2 OFFSET $3`, name, ps, (p-1)*ps)
+	if !ok {
 		return
 	}
 	// A partial page determines the total, except for an empty later page.
 	if len(list) < ps && (p == 1 || len(list) > 0) {
 		total = int64((p-1)*ps + len(list))
 	} else {
-		rows.Close()
 		if internalError(w, h.DB.QueryRow(ctx, countSQL, name).Scan(&total)) {
 			return
 		}

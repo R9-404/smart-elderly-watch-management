@@ -11,21 +11,7 @@ import (
 )
 
 func (e *Engine) Tick(ctx context.Context) error {
-	rows, err := e.DB.Query(ctx, "SELECT device_id FROM device WHERE device_id>$1 AND old_id IS NOT NULL AND status<>0 ORDER BY device_id LIMIT 100", e.After)
-	if err != nil {
-		return err
-	}
-	ids := []int64{}
-	for rows.Next() {
-		var id int64
-		if err = rows.Scan(&id); err != nil {
-			rows.Close()
-			return err
-		}
-		ids = append(ids, id)
-	}
-	err = rows.Err()
-	rows.Close()
+	ids, err := db.QueryList(ctx, e.DB, db.ScanValue[int64], "SELECT device_id FROM device WHERE device_id>$1 AND old_id IS NOT NULL AND status<>0 ORDER BY device_id LIMIT 100", e.After)
 	if err != nil {
 		return err
 	}
@@ -47,13 +33,11 @@ func (e *Engine) Tick(ctx context.Context) error {
 		limit = 8
 	}
 	for range min(limit, len(ids)) {
-		workers.Add(1)
-		go func() {
-			defer workers.Done()
+		workers.Go(func() {
 			for i := range jobs {
 				errors[i] = e.Device(ctx, ids[i], time.Now().UTC())
 			}
-		}()
+		})
 	}
 	workers.Wait()
 	for i, id := range ids {

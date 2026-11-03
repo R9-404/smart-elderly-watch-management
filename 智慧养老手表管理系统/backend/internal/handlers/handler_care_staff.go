@@ -35,8 +35,7 @@ func (h *Handler) careStaff(w http.ResponseWriter, r *http.Request) {
 	if !ok {
 		return
 	}
-	if _, err := h.DB.Exec(r.Context(), "INSERT INTO care_access_audit(admin_id,action) VALUES($1,'staff_list')", actor); err != nil {
-		response.Error500(w, ref())
+	if _, err := h.DB.Exec(r.Context(), "INSERT INTO care_access_audit(admin_id,action) VALUES($1,'staff_list')", actor); internalError(w, err) {
 		return
 	}
 	list, ok := queryRows(h, w, r.Context(), func(rows dbstore.Rows) (map[string]any, error) {
@@ -121,8 +120,7 @@ func (h *Handler) careAccessAudit(w http.ResponseWriter, r *http.Request) {
 	if !ok {
 		return
 	}
-	if _, err := h.DB.Exec(r.Context(), "INSERT INTO care_access_audit(admin_id,action) VALUES($1,'audit_view')", actor); err != nil {
-		response.Error500(w, ref())
+	if _, err := h.DB.Exec(r.Context(), "INSERT INTO care_access_audit(admin_id,action) VALUES($1,'audit_view')", actor); internalError(w, err) {
 		return
 	}
 	items, ok := queryRows(h, w, r.Context(), func(rows dbstore.Rows) (map[string]any, error) {

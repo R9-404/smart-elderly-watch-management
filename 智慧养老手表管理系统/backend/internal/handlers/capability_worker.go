@@ -5,6 +5,7 @@ import (
 	"log"
 	"time"
 
+	"suining-care/internal/db"
 	"suining-care/internal/health"
 	"suining-care/internal/observability"
 )
@@ -23,34 +24,17 @@ func (h *Handler) CapabilityTick(ctx context.Context) error {
 		observability.Default.Set("suining_capability_heartbeat_timestamp_seconds", float64(time.Now().Unix()))
 	}
 	// Binding changes invalidate pending commands; expiration never means success.
-	_, err := h.DB.Exec(ctx, `UPDATE device_command SET status='cancelled' WHERE status IN ('pending','sent') AND NOT EXISTS
- (SELECT 1 FROM device d WHERE d.device_id=device_command.device_id AND d.old_id=device_command.old_id AND d.health_epoch=device_command.epoch AND d.status<>0)`)
-	if err != nil {
-		return err
-	}
-	_, err = h.DB.Exec(ctx, `UPDATE device_command SET status='timeout' WHERE status IN ('pending','sent') AND (expires_at<=now() OR (status='sent' AND retry_at<=now() AND attempts>=max_attempts))`)
-	if err != nil {
-		return err
-	}
-	_, err = h.DB.Exec(ctx, `UPDATE device_command SET status='pending',delivery_token=NULL WHERE status='sent' AND retry_at<=now() AND expires_at>now() AND attempts<max_attempts`)
-	if err != nil {
-		return err
-	}
-	rows, err := h.DB.Query(ctx, "SELECT cache_key FROM metric_daily WHERE dirty=true ORDER BY updated_at LIMIT 16")
-	if err != nil {
-		return err
-	}
-	ids := []string{}
-	for rows.Next() {
-		var id string
-		if err = rows.Scan(&id); err != nil {
-			rows.Close()
+	for _, query := range [...]string{
+		`UPDATE device_command SET status='cancelled' WHERE status IN ('pending','sent') AND NOT EXISTS
+ (SELECT 1 FROM device d WHERE d.device_id=device_command.device_id AND d.old_id=device_command.old_id AND d.health_epoch=device_command.epoch AND d.status<>0)`,
+		`UPDATE device_command SET status='timeout' WHERE status IN ('pending','sent') AND (expires_at<=now() OR (status='sent' AND retry_at<=now() AND attempts>=max_attempts))`,
+		`UPDATE device_command SET status='pending',delivery_token=NULL WHERE status='sent' AND retry_at<=now() AND expires_at>now() AND attempts<max_attempts`,
+	} {
+		if _, err := h.DB.Exec(ctx, query); err != nil {
 			return err
 		}
-		ids = append(ids, id)
 	}
-	err = rows.Err()
-	rows.Close()
+	ids, err := db.QueryList(ctx, h.DB, db.ScanValue[string], "SELECT cache_key FROM metric_daily WHERE dirty=true ORDER BY updated_at LIMIT 16")
 	if err != nil {
 		return err
 	}

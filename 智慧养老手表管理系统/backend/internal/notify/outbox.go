@@ -51,9 +51,7 @@ func Run(ctx context.Context, pool *db.Database, box *securestore.Box) {
 	d := Worker{DB: pool, Box: box, URL: os.Getenv("NOTIFY_WEBHOOK_URL"), BulkURL: os.Getenv("NOTIFY_BULK_WEBHOOK_URL"), Token: os.Getenv("NOTIFY_WEBHOOK_TOKEN"), Client: &http.Client{Timeout: 10 * time.Second, Transport: transport}}
 	var workers sync.WaitGroup
 	for range drainConcurrency() {
-		workers.Add(1)
-		go func() {
-			defer workers.Done()
+		workers.Go(func() {
 			ticker := time.NewTicker(time.Second)
 			defer ticker.Stop()
 			for {
@@ -81,7 +79,7 @@ func Run(ctx context.Context, pool *db.Database, box *securestore.Box) {
 				case <-ticker.C:
 				}
 			}
-		}()
+		})
 	}
 	workers.Wait()
 }

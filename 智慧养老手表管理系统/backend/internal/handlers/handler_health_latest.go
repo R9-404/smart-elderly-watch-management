@@ -57,12 +57,10 @@ func (h *Handler) healthLatest(w http.ResponseWriter, r *http.Request) {
 		}
 		record := health.Record{OldID: oldID}
 		var payload []byte
-		if err = rows.Scan(&record.SampleID, &record.DeviceID, &record.Epoch, &record.Revision, &payload); err != nil {
-			response.Error500(w, ref())
+		if err = rows.Scan(&record.SampleID, &record.DeviceID, &record.Epoch, &record.Revision, &payload); internalError(w, err) {
 			return
 		}
-		if err = json.Unmarshal(payload, &record.Sample); err != nil {
-			response.Error500(w, ref())
+		if err = json.Unmarshal(payload, &record.Sample); internalError(w, err) {
 			return
 		}
 		s := &record.Sample

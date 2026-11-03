@@ -67,8 +67,7 @@ func (h *Handler) familyUpdateTouPic(w http.ResponseWriter, r *http.Request) {
 		recordNotFound(w)
 		return
 	}
-	if err = tx.Commit(r.Context()); err != nil {
-		response.Error500(w, ref())
+	if err = tx.Commit(r.Context()); internalError(w, err) {
 		return
 	}
 	response.OK(w, nil)

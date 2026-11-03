@@ -45,8 +45,7 @@ func (h *Handler) healthDaily(w http.ResponseWriter, r *http.Request) {
 	}
 	defer tx.Rollback(ctx)
 	// Use the same lock order as sample invalidation and the refresh worker.
-	if _, err = health.LockOwner(ctx, tx, oldID); err != nil {
-		response.Error500(w, ref())
+	if _, err = health.LockOwner(ctx, tx, oldID); internalError(w, err) {
 		return
 	}
 	items := []map[string]any{}
@@ -73,14 +72,12 @@ func (h *Handler) healthDaily(w http.ResponseWriter, r *http.Request) {
 			status = "pending"
 		} else if message != "" {
 			status = "conflict"
-		} else if json.Unmarshal(b, &result) != nil {
-			response.Error500(w, ref())
+		} else if internalError(w, json.Unmarshal(b, &result)) {
 			return
 		}
 		items = append(items, map[string]any{"day": k.Day, "status": status, "statistics": result, "message": message, "computedRevision": rev, "updatedAt": updated})
 	}
-	if err = tx.Commit(ctx); err != nil {
-		response.Error500(w, ref())
+	if err = tx.Commit(ctx); internalError(w, err) {
 		return
 	}
 	response.OK(w, map[string]any{"items": items, "source": req.Source, "sourceDevice": req.SourceDevice, "metric": req.Metric, "semantics": req.Semantics, "offsetMinutes": req.OffsetMinutes, "algorithmVersion": health.DailyAlgorithmVersion})

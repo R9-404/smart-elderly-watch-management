@@ -74,8 +74,7 @@ func (h *Handler) sessionInfo(w http.ResponseWriter, r *http.Request) {
 			err := h.DB.QueryRow(ctx, "SELECT duty FROM care_staff_permission WHERE admin_id=$1", p.ID).Scan(&duty)
 			if err == pgx.ErrNoRows {
 				duty = "supervisor"
-			} else if err != nil {
-				response.Error500(w, ref())
+			} else if internalError(w, err) {
 				return
 			}
 			account["duty"] = duty
@@ -168,8 +167,7 @@ func (h *Handler) login(w http.ResponseWriter, r *http.Request) {
 		// 两次查询都未命中：补一次等价 bcrypt 比较，消除账号枚举计时侧信道。
 		_ = auth.Matches(password, timingDummyHash)
 	}
-	if h.loginAudit(r, phone, "", 0, "invalid_credentials") != nil {
-		response.Error500(w, ref())
+	if internalError(w, h.loginAudit(r, phone, "", 0, "invalid_credentials")) {
 		return
 	}
 	response.JSON(w, http.StatusUnauthorized, map[string]any{"code": "INVALID_CREDENTIALS", "message": "手机号或密码不正确"})

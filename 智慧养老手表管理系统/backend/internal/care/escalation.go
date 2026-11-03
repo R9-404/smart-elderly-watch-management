@@ -2,6 +2,7 @@ package care
 
 import (
 	"context"
+	"suining-care/internal/db"
 	"suining-care/internal/notify"
 )
 
@@ -11,27 +12,13 @@ func (d *dispatcher) escalate(ctx context.Context) error {
 		return err
 	}
 	defer tx.Rollback(ctx)
-	rows, err := tx.Query(ctx, `
+	ids, err := db.QueryList(ctx, tx, db.ScanValue[int64], `
 		SELECT id FROM care_incident WHERE due_at<=now()
 		  AND state IN ('received','notifying','notified','acknowledged','in_progress','resolved')
 		ORDER BY due_at,id FOR UPDATE SKIP LOCKED LIMIT 20`)
 	if err != nil {
 		return err
 	}
-	var ids []int64
-	for rows.Next() {
-		var id int64
-		if err := rows.Scan(&id); err != nil {
-			rows.Close()
-			return err
-		}
-		ids = append(ids, id)
-	}
-	if err := rows.Err(); err != nil {
-		rows.Close()
-		return err
-	}
-	rows.Close()
 	for _, id := range ids {
 		if _, err := tx.Exec(ctx, `UPDATE care_incident
 			SET state=CASE WHEN state='resolved' THEN 'review_overdue' ELSE 'escalated' END,

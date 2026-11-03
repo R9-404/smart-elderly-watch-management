@@ -47,21 +47,9 @@ func familyPhonePredicate(mysql bool) string {
 // QueueCareSMS 为长者的每个有效家属手机号入队一条 SMS 通知，
 // 返回实际插入的行数（0 表示无可通知的家属）。
 func QueueCareSMS(ctx context.Context, tx *db.Transaction, box *securestore.Box, incidentID, oldID int64) (int64, error) {
-	rows, err := tx.Query(ctx, `SELECT f.family_phone FROM oldperson o JOIN family f ON f.family_id=o.family_id
+	phones, err := db.QueryList(ctx, tx, db.ScanValue[string], `SELECT f.family_phone FROM oldperson o JOIN family f ON f.family_id=o.family_id
 		WHERE o.old_id=$1 AND `+familyPhonePredicate(tx.IsMySQL()), oldID)
 	if err != nil {
-		return 0, err
-	}
-	defer rows.Close()
-	var phones []string
-	for rows.Next() {
-		var phone string
-		if err := rows.Scan(&phone); err != nil {
-			return 0, err
-		}
-		phones = append(phones, phone)
-	}
-	if err := rows.Err(); err != nil {
 		return 0, err
 	}
 	if len(phones) == 0 {

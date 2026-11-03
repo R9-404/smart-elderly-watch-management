@@ -59,8 +59,7 @@ func (h *Handler) careReceipt(w http.ResponseWriter, r *http.Request) {
 		response.JSON(w, http.StatusConflict, map[string]any{"message": "回执状态不符合预期"})
 		return
 	}
-	if _, err = tx.Exec(ctx, `UPDATE care_notification_outbox SET status='delivered',delivered_at=now() WHERE id=$1`, item.NotificationID); err != nil {
-		response.Error500(w, ref())
+	if _, err = tx.Exec(ctx, `UPDATE care_notification_outbox SET status='delivered',delivered_at=now() WHERE id=$1`, item.NotificationID); internalError(w, err) {
 		return
 	}
 	if _, err = tx.Exec(ctx, `UPDATE care_incident SET state='notified',updated_at=now()
@@ -73,8 +72,7 @@ func (h *Handler) careReceipt(w http.ResponseWriter, r *http.Request) {
 		response.Error500(w, ref())
 		return
 	}
-	if err = tx.Commit(ctx); err != nil {
-		response.Error500(w, ref())
+	if err = tx.Commit(ctx); internalError(w, err) {
 		return
 	}
 	response.OK(w, map[string]any{"notificationId": item.NotificationID, "status": "delivered"})

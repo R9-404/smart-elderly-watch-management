@@ -13,6 +13,10 @@ import (
 	"suining-care/internal/response"
 )
 
+func decodeRequiredForTest(w http.ResponseWriter, r *http.Request, dst any) bool {
+	return decodeBody(w, r, dst, false)
+}
+
 func TestJSONParserPolicyCharacterization(t *testing.T) {
 	type body struct {
 		Name  string `json:"name"`
@@ -23,7 +27,7 @@ func TestJSONParserPolicyCharacterization(t *testing.T) {
 		limit              int
 		current, reference func(http.ResponseWriter, *http.Request, any) bool
 	}{
-		{"ordinary", 1 << 20, decode, func(w http.ResponseWriter, r *http.Request, v any) bool { return referenceDecodeBody(w, r, v, false) }},
+		{"ordinary", 1 << 20, decodeRequiredForTest, func(w http.ResponseWriter, r *http.Request, v any) bool { return referenceDecodeBody(w, r, v, false) }},
 		{"optional", 1 << 20, func(w http.ResponseWriter, r *http.Request, v any) bool { return decodeBody(w, r, v, true) }, func(w http.ResponseWriter, r *http.Request, v any) bool { return referenceDecodeBody(w, r, v, true) }},
 		{"health", 2 << 20, decodeHealth, referenceDecodeHealth},
 		{"capability", 2 << 20, decodeCapability, referenceDecodeCapability},
@@ -70,7 +74,7 @@ type trackedBody struct {
 func (b *trackedBody) Close() error { b.closes++; return nil }
 
 func TestJSONParsersCloseBodiesOnSuccessAndFailure(t *testing.T) {
-	for _, parser := range []func(http.ResponseWriter, *http.Request, any) bool{decode, decodeHealth, decodeCapability} {
+	for _, parser := range []func(http.ResponseWriter, *http.Request, any) bool{decodeRequiredForTest, decodeHealth, decodeCapability} {
 		for _, raw := range []string{`{}`, `{} {}`, `{`} {
 			body := &trackedBody{Reader: strings.NewReader(raw)}
 			r := httptest.NewRequest("POST", "/test", nil)

@@ -34,8 +34,7 @@ func (h *Handler) resolveLatestLocationAlert(w http.ResponseWriter, r *http.Requ
 		}
 		return
 	}
-	if _, err := h.DB.Exec(ctx, `UPDATE alarm_precess SET status='0' WHERE id=$1`, alarmID); err != nil {
-		response.Error500(w, ref())
+	if _, err := h.DB.Exec(ctx, `UPDATE alarm_precess SET status='0' WHERE id=$1`, alarmID); internalError(w, err) {
 		return
 	}
 	response.OK(w, nil)

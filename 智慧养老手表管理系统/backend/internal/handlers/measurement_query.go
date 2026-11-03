@@ -48,18 +48,6 @@ func listLatestMeasurements[T any](h *Handler, w http.ResponseWriter, r *http.Re
 }
 
 func queryRows[T any](h *Handler, w http.ResponseWriter, ctx context.Context, scan func(dbstore.Rows) (T, error), sql string, args ...any) ([]T, bool) {
-	rows, err := h.DB.Query(ctx, sql, args...)
-	if internalError(w, err) {
-		return nil, false
-	}
-	defer rows.Close()
-	items := []T{}
-	for rows.Next() {
-		item, err := scan(rows)
-		if internalError(w, err) {
-			return nil, false
-		}
-		items = append(items, item)
-	}
-	return items, rowsOK(w, rows)
+	items, err := dbstore.QueryList(ctx, h.DB, scan, sql, args...)
+	return items, !internalError(w, err)
 }

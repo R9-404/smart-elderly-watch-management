@@ -8,6 +8,7 @@ import (
 	"net/http"
 	"os"
 	"strings"
+	"suining-care/internal/securestore"
 )
 
 func (d *Worker) deliver(ctx context.Context, id int64, topic, key, channel, phone string) error {
@@ -17,16 +18,14 @@ func (d *Worker) deliver(ctx context.Context, id int64, topic, key, channel, pho
 	if d.URL == "" || d.Token == "" {
 		return fmt.Errorf("gateway unavailable")
 	}
-	if !strings.HasPrefix(d.URL, "https://") && os.Getenv("NOTIFY_ALLOW_HTTP_TEST") != "1" {
+	if !validGatewayURL(d.URL) {
 		return fmt.Errorf("gateway requires HTTPS")
 	}
 	b, _ := json.Marshal(map[string]any{"type": topic, "sourceId": key, "channel": channel, "recipient": phone, "notificationId": id})
-	r, err := http.NewRequestWithContext(ctx, "POST", d.URL, bytes.NewReader(b))
+	r, err := d.gatewayRequest(ctx, d.URL, b)
 	if err != nil {
 		return err
 	}
-	r.Header.Set("Authorization", "Bearer "+d.Token)
-	r.Header.Set("Content-Type", "application/json")
 	r.Header.Set("Idempotency-Key", fmt.Sprintf("message-%d", id))
 	resp, err := d.Client.Do(r)
 	if err != nil {
@@ -37,4 +36,25 @@ func (d *Worker) deliver(ctx context.Context, id int64, topic, key, channel, pho
 		return fmt.Errorf("gateway not accepted")
 	}
 	return nil
+}
+
+func validGatewayURL(url string) bool {
+	return strings.HasPrefix(url, "https://") || os.Getenv("NOTIFY_ALLOW_HTTP_TEST") == "1"
+}
+
+func (d *Worker) gatewayRequest(ctx context.Context, url string, body []byte) (*http.Request, error) {
+	r, err := http.NewRequestWithContext(ctx, http.MethodPost, url, bytes.NewReader(body))
+	if err != nil {
+		return nil, err
+	}
+	r.Header.Set("Authorization", "Bearer "+d.Token)
+	r.Header.Set("Content-Type", "application/json")
+	return r, nil
+}
+
+func (d *Worker) openRecipient(phone string) (string, error) {
+	if strings.HasPrefix(phone, securestore.Prefix) {
+		return d.Box.Open(phone, "notification-recipient")
+	}
+	return phone, nil
 }

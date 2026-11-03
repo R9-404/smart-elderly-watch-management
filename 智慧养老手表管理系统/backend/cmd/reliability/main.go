@@ -174,9 +174,7 @@ func probe() error {
 		var next atomic.Int64
 		var workers sync.WaitGroup
 		for range 256 {
-			workers.Add(1)
-			go func() {
-				defer workers.Done()
+			workers.Go(func() {
 				r := &http.Request{Method: http.MethodPost, URL: &url.URL{Path: "/api/v1/auth/login"}}
 				for {
 					n := next.Add(1)
@@ -191,7 +189,7 @@ func probe() error {
 					}
 					l.Allow(r)
 				}
-			}()
+			})
 		}
 		workers.Wait()
 		runtime.GC()

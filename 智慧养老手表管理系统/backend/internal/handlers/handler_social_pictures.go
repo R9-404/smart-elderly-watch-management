@@ -19,26 +19,13 @@ type notificationTarget struct {
 	Phone    string
 }
 
-func (h *Handler) notificationPhones(r *http.Request, q dbQuerier) ([]notificationTarget, error) {
-	rows, err := q.Query(r.Context(),
-		"SELECT DISTINCT f.family_id,f.family_phone FROM family f INNER JOIN oldperson o ON o.family_id=f.family_id WHERE f.family_phone IS NOT NULL")
-	if err != nil {
-		return nil, err
-	}
-	defer rows.Close()
-	var out []notificationTarget
-	for rows.Next() {
-		var s notificationTarget
-		if err := rows.Scan(&s.FamilyID, &s.Phone); err != nil {
-			return nil, err
-		}
-		out = append(out, s)
-	}
-	return out, rows.Err()
+func notificationPhones(ctx context.Context, q dbQuerier) ([]notificationTarget, error) {
+	return dbstore.QueryList(ctx, q, func(row dbstore.Rows) (notificationTarget, error) {
+		var target notificationTarget
+		err := row.Scan(&target.FamilyID, &target.Phone)
+		return target, err
+	}, "SELECT DISTINCT f.family_id,f.family_phone FROM family f INNER JOIN oldperson o ON o.family_id=f.family_id WHERE f.family_phone IS NOT NULL")
 }
-
-// ---------------------------------------------------------------------------
-// ---------------------------------------------------------------------------
 
 type galleryImage struct {
 	ID      *int64  `json:"id"`
@@ -74,8 +61,7 @@ func (h *Handler) replaceGallery(w http.ResponseWriter, r *http.Request) {
 	if !h.lockImages(w, r.Context(), tx, names) {
 		return
 	}
-	if _, err := tx.Exec(r.Context(), "DELETE FROM pic_show"); err != nil {
-		response.Error500(w, ref())
+	if _, err := tx.Exec(r.Context(), "DELETE FROM pic_show"); internalError(w, err) {
 		return
 	}
 	for _, name := range names {

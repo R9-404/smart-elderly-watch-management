@@ -104,24 +104,17 @@ func pageIntVal(m map[string]any, key string, fallback int) (int, string) {
 	if !ok || v == nil {
 		return fallback, ""
 	}
-	var n int64
-	switch t := v.(type) {
-	case float64:
-		if math.Trunc(t) != t {
-			return 0, "分页参数必须为整数"
-		}
-		n = int64(t)
+	switch value := v.(type) {
 	case string:
-		s := strings.TrimSpace(t)
-		if s == "" {
+		if strings.TrimSpace(value) == "" {
 			return fallback, ""
 		}
-		x, err := strconv.ParseInt(s, 10, 64)
-		if err != nil {
-			return 0, "分页参数必须为整数"
-		}
-		n = x
+	case float64:
 	default:
+		return 0, "分页参数必须为整数"
+	}
+	n, ok := integerParam(v)
+	if !ok {
 		return 0, "分页参数必须为整数"
 	}
 	return int(n), ""
@@ -180,16 +173,4 @@ func parseReportTimeStrict(s string) (time.Time, bool) {
 		return time.Time{}, false
 	}
 	return t, true
-}
-
-// bodyMapOrEmpty 解析 body；空 body 视为 {}（device/list 可省略 body）。
-func bodyMapOrEmpty(w http.ResponseWriter, r *http.Request) (map[string]any, bool) {
-	var m map[string]any
-	if !decodeBody(w, r, &m, true) {
-		return nil, false
-	}
-	if m == nil {
-		m = map[string]any{}
-	}
-	return m, true
 }
