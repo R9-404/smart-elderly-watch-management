@@ -1,78 +1,37 @@
-# 性能测量
+# 性能基线与可复现测量
 
-历史本机 HTTP 延迟与 limiter 内存实验的原始记录已从当前分支清理，可从 Git 历史查阅。
-本文不再引用已删除的逐请求数据或复述其性能数字。
+本文是性能验证方法与实现入口，不是当前提交的性能承诺。历史本机微基准数值没有与每次线上运行条件、源代码 SHA、噪声分布建立完整关联，已从现行操作文档中移除；需要追溯可通过 Git 历史读取，**不能直接引用为当前吞吐或 p99**。
 
-当前性能基线应绑定源码 SHA、Go 与数据库版本、硬件和负载参数，并保留延迟分位数、
-错误率及内存记录。现存 CI 功能记录不代表当前版本的性能或容量测量。
+## 当前可测量的关键路径
 
-## JSON 字符串扫描：amd64 SSE2
+| 路径 | 代码/基准入口 | 注意事项 |
+| --- | --- | --- |
+| JSON 安全扫描 | `backend/internal/jsonscan` | amd64 SSE2 与 purego 路径须保持编码字节一致；包含转义字符和边界长度用例 |
+| 健康采样身份 | `backend/internal/health/identity_scan_benchmark_test.go` | 不改变样本 ID、哈希及去重语义 |
+| 健康统计热缓存 | `backend/internal/handlers/statistics_cache_benchmark_test.go` | 避免把缓存命中率等同于数据库写入速度；校验跨实例版本失效 |
+| 睡眠窗口聚合 | `backend/internal/health/sleep_sort_native_test.go` | Linux amd64 可选原生排序路径；比较总时长、分配、结果与纯 Go 路径 |
+| 限流窗口与列表分页 | `backend/internal/ratelimit/benchmark_test.go`、`backend/internal/handlers/list_pagination_benchmark_test.go` | 独立测试高基数、内存上界和错误率 |
 
-`backend/internal/jsonscan` 为健康样本序列化、样本身份哈希及规则证据生成提供共享扫描器。
-16 字节及以上在 amd64 使用手写 SSE2（`PCMPGTB`、`PCMPEQB`、`POR`、`PMOVMSKB`）；
-短字符串使用 Go 查表。其他架构及 `-tags purego` 使用原逐字节判定。
-控制字符、非 ASCII、引号、反斜杠及 `<>&` 仍返回 false，由原 JSON 编码器处理。
-不改变编码字节、样本身份、密码学算法、数据库事务或业务判定。
+部分 Linux amd64 加速路径依赖 CGO/C++ 编译器；不同架构、`-tags purego` 或 `CGO_ENABLED=0` 可能使用纯 Go。能编译不代表目标系统的指令集、ABI、并发或性能已实际验收。
 
-汇编使用 Go ABI0、`NOSPLIT` 和不逃逸声明，不使用 cgo；仅当剩余长度不少于 16 时执行
-向量加载，尾部逐字节读取，不依赖分配器填充或越界读取。amd64 使用基线 SSE2，无 AVX CPU 要求。
+## 本地复现
 
-本机 Go 1.26.10 / Linux amd64 / Intel Xeon Platinum 8573C，`GOMAXPROCS=2`，
-每项 150ms、三次结果中位数；环境存在调度波动。扫描基线为原 Go 字节条件，身份哈希基线为
-同一测试二进制内保存的原实现，保持 SHA-256 路径相同；不以全局 purego 标签比较性能。
-
-| 输入 | 原实现 ns/op | 新实现 ns/op | 说明 |
-|---|---:|---:|---|
-| 16 字节 ASCII 扫描 | 58.83 | 9.419 | 仅扫描器 |
-| 64 字节 ASCII 扫描 | 144.8 | 17.09 | 仅扫描器 |
-| 256 字节 ASCII 扫描 | 470.6 | 38.73 | 仅扫描器 |
-| 1024 字节 ASCII 扫描 | 1852 | 164.7 | 仅扫描器 |
-| 身份哈希：设备号及记录 ID 各 64 字节 | 1040 | 674.8 | 分配不变：128 B、2 次 |
-| 身份哈希：设备号及记录 ID 各 256 字节 | 2658 | 1824 | 分配不变：1024 B、3 次 |
-
-短字段未证明稳定的完整业务收益。32 字节身份字段第一次测量出现明显噪声，追加
-`GOMAXPROCS=1`、500ms、三次对照的中位数为 613.7 → 634.6 ns/op，未显示加速。
-以上结果不代表 HTTP 延迟、数据库吞吐或生产容量提升。
-
-复现（在 backend 目录）：
+在 `智慧养老手表管理系统/backend` 目录：
 
 ```sh
 go test ./internal/jsonscan ./internal/health ./internal/rules
 go test -tags purego ./internal/jsonscan
 go vet ./internal/jsonscan
-GOMAXPROCS=2 go test ./internal/jsonscan -run '^$' -bench 'BenchmarkSafe/ascii' -benchtime=150ms -count=3
-GOMAXPROCS=2 go test ./internal/health -run '^$' -bench BenchmarkIdentityScan -benchtime=150ms -count=3
+GOMAXPROCS=2 go test ./internal/jsonscan -run '^$' -bench 'BenchmarkSafe/ascii' -benchtime=500ms -count=3
+GOMAXPROCS=2 go test ./internal/health -run '^$' -bench BenchmarkIdentityScan -benchtime=500ms -count=3
 ```
 
-已执行字节等价、向量/尾部边界、Linux guard page 测试及相关 health/rules 包测试；
-Windows amd64 与 Linux arm64 仅完成交叉编译，未执行目标平台测试。未运行数据库压测。
+涉及数据库的性能评估必须在专用 MySQL/PG 测试实例上完成，并记录提交 SHA、Go 版本、CPU、CPU 限额、数据库版本/配置、数据规模、并发/请求混合、负载生成器、预热时间和重复次数。**报告 p50/p95/p99、吞吐、CPU、峰值 RSS、GC、网络错误、业务失败和重试量**，同时保存原始日志及构建来源。
 
-## Linux amd64 原生内核
+对照改动前后的相同路径和负载，首先检查业务结果、事务、告警、幂等与权限没有退化，再评估性能。微基准扫描器的 ns/op 改善不能推导出 SOS 交付提速，单机短时间分位数不能推导出生产容量。
 
-Linux amd64 在启用 CGO 的构建中使用 C/C++ 工具链。可在 backend 目录执行
-`CGO_ENABLED=1 go build -trimpath -o suining ./cmd/server` 构建带原生内核的服务端。
-`CGO_ENABLED=0`、`-tags purego` 及其他平台使用 Go 实现。
+## 验收与保留
 
-- 24/32 位无压缩及带颜色掩码的 BMP 通过 Go 的尺寸和长度校验后，达到 4096 像素时由 C 批量转换 RGBA。
-- 2048 条及以上的乱序睡眠记录在 C++ 中排序连续时间戳键，随后由 Go 原地重排样本。
-  已按时间排序的数据直接进入原有聚合流程，带单调时钟的输入由 Go 排序。
-
-Go 1.26.10、Linux amd64、Xeon Platinum 8573C 本机三次对照的中位数：
-
-| 测量 | Go | 原生实现 |
-|---|---:|---:|
-| 1024×1024 24 位 BMP 解码，Go 基线直接写 RGBA 缓冲区 | 3.37 ms | 1.81 ms |
-| 1024×1024 32 位 BMP 解码，Go 基线直接写 RGBA 缓冲区 | 4.77 ms | 3.17 ms |
-| 1024×1024 32 位 BI_BITFIELDS BMP 解码，RGB 5:6:5 掩码 | 14.80 ms | 8.59 ms |
-| 10,000 条乱序睡眠记录完整聚合，含打包和重排 | 4.87 ms | 3.10 ms |
-| 同一睡眠聚合的进程 CPU 时间 | 4.89 ms | 3.70 ms |
-
-BMP 对照包含输出缓冲区分配。睡眠聚合的分配从 310,840 增至 474,680 B/op。
-测量范围为解码和聚合函数，生产接口延迟仍需在真实负载下测量。
-
-### 紧凑睡眠排序键
-
-C++ 排序使用 64 位整数键，高位保存带偏置的纳秒时间差，低位保存样本索引。
-每条排序键从 16 字节减至 8 字节。时间差超出可表示范围时由 Go 排序。
-同一二进制对照中，10,000 条乱序睡眠样本的完整聚合分配由 474,680 降至
-392,760 B/op（每次少 80 KiB）。耗时对照存在波动，本次以分配减少为验收结果。
+- 对 SIMD/CGO 优化使用字节/哈希等价、向量尾部、越界访问及 `-race` 检查；根据支持的平台执行纯 Go 回退。
+- 如果提升很小或测试波动大，保留简单的 Go 实现，避免以额外复杂性换取不稳定微收益。
+- 只引用与**同一代码提交**匹配的实验 artifact；被删除的历史性能日志仅可用于历史对比，不可冒充最新环境证据。
