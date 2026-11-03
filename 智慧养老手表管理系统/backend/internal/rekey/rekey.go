@@ -250,13 +250,16 @@ func walk(ctx context.Context, pool *sql.DB, box *securestore.Box, t target, opt
 	}
 }
 
-func readPage(ctx context.Context, pool *sql.DB, query string, args []any, keyCount int) ([]item, error) {
+func readPage(ctx context.Context, pool *sql.DB, query string, args []any, keyCount int) (page []item, err error) {
 	rows, err := pool.QueryContext(ctx, query, args...)
 	if err != nil {
 		return nil, err
 	}
-	defer rows.Close()
-	var page []item
+	defer func() {
+		if closeErr := rows.Close(); err == nil && closeErr != nil {
+			page, err = nil, closeErr
+		}
+	}()
 	bytes := 0
 	for rows.Next() {
 		keys, dest := keyDestinations(keyCount)
@@ -272,7 +275,10 @@ func readPage(ctx context.Context, pool *sql.DB, query string, args []any, keyCo
 			break
 		}
 	}
-	return page, rows.Err()
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return page, nil
 }
 
 // compareSwap deliberately compares bytes, including case and trailing spaces,
