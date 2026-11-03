@@ -11,32 +11,61 @@ import (
 
 // POST /api/v1/residents/create —— 新增老人档案（ADMIN）。
 func (h *Handler) createResident(w http.ResponseWriter, r *http.Request) {
+	h.saveResident(w, r, false)
+}
+
+// POST /api/v1/residents/update —— 更新老人档案（ADMIN；不更新 be_time）。
+func (h *Handler) updateResident(w http.ResponseWriter, r *http.Request) {
+	h.saveResident(w, r, true)
+}
+
+func (h *Handler) saveResident(w http.ResponseWriter, r *http.Request, update bool) {
 	m, ok := bodyMap(w, r)
 	if !ok {
 		return
 	}
-	required := []string{"name", "bothdate", "sex", "phone", "room",
-		"illness", "warn", "foodLike", "foodHate", "drag", "customerId"}
-	vals := make(map[string]string, len(required))
-	for _, k := range required {
-		s, present := vstr(m, k)
+	keys := [...]string{"name", "bothdate", "sex", "phone", "room", "illness", "warn", "foodLike", "foodHate", "drag"}
+	fields := make(map[string]string, len(keys))
+	for _, key := range keys {
+		value, present := vstr(m, key)
 		if !present {
 			write400(w, "请求参数不完整")
 			return
 		}
-		vals[k] = s
+		fields[key] = value
 	}
-	if deviceID, _ := vstr(m, "deviceId"); deviceID != "" {
-		write400(w, "请先建立长者档案，再通过设备管理关联设备")
-		return
+	customer, present := vstr(m, "customerId")
+	rawDevice, _ := vstr(m, "deviceId")
+	var oldID int64
+	if update {
+		// Existing clients may send the numeric customer ID under customerName.
+		if !present {
+			customer, _ = vstr(m, "customerName")
+		}
+		raw, _ := vstr(m, "oldId")
+		var err error
+		oldID, err = strconv.ParseInt(raw, 10, 64)
+		if err != nil {
+			write400(w, "请求参数不完整")
+			return
+		}
+	} else {
+		if !present {
+			write400(w, "请求参数不完整")
+			return
+		}
+		if rawDevice != "" {
+			write400(w, "请先建立长者档案，再通过设备管理关联设备")
+			return
+		}
 	}
-	customerID, err := strconv.ParseInt(vals["customerId"], 10, 64)
+	customerID, err := strconv.ParseInt(customer, 10, 64)
 	if err != nil || customerID <= 0 {
 		write400(w, "请求参数不完整")
 		return
 	}
 	now := time.Now()
-	birth, err := time.Parse("2006-01-02", vals["bothdate"])
+	birth, err := time.Parse("2006-01-02", fields["bothdate"])
 	age := ageOn(birth, now)
 	if err != nil || birth.Year() < 1 || age < 0 {
 		write400(w, "出生日期须为有效的 yyyy-MM-dd，且不能晚于今天")
@@ -51,103 +80,43 @@ func (h *Handler) createResident(w http.ResponseWriter, r *http.Request) {
 	if !lockCustomer(w, r, tx, customerID) {
 		return
 	}
-	ct, err := tx.Exec(ctx,
-		`INSERT INTO oldperson(name,age,sex,phone,room,illness,warn,food_like,food_hate,drag,
-		 customer_id,be_time,bothdate) VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13)`,
-		vals["name"], age, vals["sex"], vals["phone"], vals["room"], vals["illness"],
-		vals["warn"], vals["foodLike"], vals["foodHate"], vals["drag"], customerID,
-		time.Date(now.Year(), now.Month(), now.Day(), 0, 0, 0, 0, time.Local),
-		vals["bothdate"])
-	if internalError(w, err) {
-		return
-	}
-	if ct.RowsAffected() == 1 {
-		if internalError(w, tx.Commit(ctx)) {
-			return
-		}
-		response.OK(w, nil)
-		return
-	}
-	recordNotFound(w)
-}
-
-// POST /api/v1/residents/update —— 更新老人档案（ADMIN；不更新 be_time）。
-func (h *Handler) updateResident(w http.ResponseWriter, r *http.Request) {
-	m, ok := bodyMap(w, r)
-	if !ok {
-		return
-	}
-	required := []string{"oldId", "name", "bothdate", "sex", "phone",
-		"room", "illness", "warn", "foodLike", "foodHate", "drag"}
-	vals := make(map[string]string, len(required)+1)
-	for _, k := range required {
-		s, present := vstr(m, k)
-		if !present {
-			write400(w, "请求参数不完整")
-			return
-		}
-		vals[k] = s
-	}
-	// Prefer the identifier; retain numeric customerName for existing clients.
-	custStr, present := vstr(m, "customerId")
-	if !present {
-		custStr, _ = vstr(m, "customerName")
-	}
-	oldID, err := strconv.ParseInt(vals["oldId"], 10, 64)
-	if err != nil {
-		write400(w, "请求参数不完整")
-		return
-	}
-	customerID, err := strconv.ParseInt(custStr, 10, 64)
-	if err != nil || customerID <= 0 {
-		write400(w, "请求参数不完整")
-		return
-	}
-	birth, err := time.Parse("2006-01-02", vals["bothdate"])
-	age := ageOn(birth, time.Now())
-	if err != nil || birth.Year() < 1 || age < 0 {
-		write400(w, "出生日期须为有效的 yyyy-MM-dd，且不能晚于今天")
-		return
-	}
-	ctx := r.Context()
-	tx, err := h.DB.Begin(ctx)
-	if internalError(w, err) {
-		return
-	}
-	defer tx.Rollback(ctx)
-	if !lockCustomer(w, r, tx, customerID) {
-		return
-	}
-	var currentDevice *int64
-	if err := tx.QueryRow(ctx, `SELECT device_id FROM oldperson WHERE old_id=$1 FOR UPDATE`, oldID).Scan(&currentDevice); err != nil {
+	args := []any{fields["name"], age, fields["sex"], fields["phone"], fields["room"], fields["illness"],
+		fields["warn"], fields["foodLike"], fields["foodHate"], fields["drag"], customerID, fields["bothdate"]}
+	query := `INSERT INTO oldperson(name,age,sex,phone,room,illness,warn,food_like,food_hate,drag,
+   customer_id,bothdate,be_time) VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13)`
+	if update {
+		var device *int64
+		err := tx.QueryRow(ctx, "SELECT device_id FROM oldperson WHERE old_id=$1 FOR UPDATE", oldID).Scan(&device)
 		if err == pgx.ErrNoRows {
 			response.Fail(w, "长者档案不存在")
-		} else {
-			response.Error500(w, ref())
-		}
-		return
-	}
-	if raw, present := vstr(m, "deviceId"); present && raw != "" {
-		deviceID, err := strconv.ParseInt(raw, 10, 64)
-		if err != nil || currentDevice == nil || *currentDevice != deviceID {
-			conflict409(w, "设备关联已变化，请通过设备管理绑定或解绑")
 			return
 		}
+		if internalError(w, err) {
+			return
+		}
+		if rawDevice != "" {
+			deviceID, err := strconv.ParseInt(rawDevice, 10, 64)
+			if err != nil || device == nil || *device != deviceID {
+				conflict409(w, "设备关联已变化，请通过设备管理绑定或解绑")
+				return
+			}
+		}
+		query = `UPDATE oldperson SET name=$1,age=$2,sex=$3,phone=$4,room=$5,illness=$6,warn=$7,
+   food_like=$8,food_hate=$9,drag=$10,customer_id=$11,bothdate=$12 WHERE old_id=$13`
+		args = append(args, oldID)
+	} else {
+		day := time.Date(now.Year(), now.Month(), now.Day(), 0, 0, 0, 0, time.Local)
+		args = append(args, day)
 	}
-	ct, err := tx.Exec(ctx,
-		`UPDATE oldperson SET name=$1,age=$2,sex=$3,phone=$4,room=$5,illness=$6,warn=$7,
-		 food_like=$8,food_hate=$9,drag=$10,customer_id=$11,bothdate=$12
-		 WHERE old_id=$13`,
-		vals["name"], age, vals["sex"], vals["phone"], vals["room"], vals["illness"],
-		vals["warn"], vals["foodLike"], vals["foodHate"], vals["drag"], customerID,
-		vals["bothdate"], oldID)
+	result, err := tx.Exec(ctx, query, args...)
 	if internalError(w, err) {
 		return
 	}
-	if internalError(w, tx.Commit(ctx)) {
+	affected := result.RowsAffected()
+	if (update || affected == 1) && internalError(w, tx.Commit(ctx)) {
 		return
 	}
-	writeSingleMutation(w, ct.RowsAffected())
+	writeSingleMutation(w, affected)
 }
 
 // POST /api/v1/residents/delete —— 删除老人（ADMIN，事务）。

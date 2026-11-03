@@ -89,6 +89,14 @@ func (h *Handler) sessionInfo(w http.ResponseWriter, r *http.Request) {
 	})
 }
 
+// Try the administrator account first when both roles share a phone number.
+var loginAccounts = [...]struct{ role, query string }{
+	{auth.RoleAdmin, `SELECT user_id, user_name, user_phone, password, NULL FROM users WHERE user_phone=$1`},
+	{auth.RoleFamily, `SELECT f.family_id, f.family_name, f.family_phone, f.family_password, o.old_id
+  FROM family f LEFT JOIN oldperson o ON o.family_id=f.family_id
+  WHERE f.family_phone=$1 ORDER BY o.old_id LIMIT 1`},
+}
+
 // login 处理 POST /api/v1/auth/login：公开；先查 users（管理员），再查 family（家属）。
 func (h *Handler) login(w http.ResponseWriter, r *http.Request) {
 	m, ok := bodyMap(w, r)
@@ -102,63 +110,31 @@ func (h *Handler) login(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	ctx := r.Context()
-
-	// 1. users 表（管理员）
 	if !h.loginAllowed(w, r, phone) {
 		return
 	}
-	var (
-		uid    int64
-		uName  pgtype.Text
-		uPass  pgtype.Text
-		uPhone pgtype.Text
-	)
-	err := h.DB.QueryRow(ctx,
-		`SELECT user_id, user_name, password, user_phone FROM users WHERE user_phone=$1`,
-		phone).Scan(&uid, &uName, &uPass, &uPhone)
-	if err != nil && !isNotFound(err) {
-		response.Error500(w, ref())
-		return
-	}
-	// Track whether any actual password hash was checked. An existing admin
-	// account with a wrong password must not trigger an extra dummy bcrypt call.
-	compared := err == nil
-	if err == nil && auth.Matches(password, uPass.String) {
-		h.finishAccountLogin(w, r, m, session.Principal{
-			Role: auth.RoleAdmin, ID: uid, Phone: uPhone.String, DisplayName: uName.String,
-		}, phone)
-		return
-	}
-
-	// 2. family 表（家属）
-	var (
-		fid    int64
-		fName  pgtype.Text
-		fPhone pgtype.Text
-		fPass  pgtype.Text
-		oldID  pgtype.Int8
-	)
-	err = h.DB.QueryRow(ctx, `
-		SELECT f.family_id, f.family_name, f.family_phone, f.family_password, o.old_id
-		FROM family f LEFT JOIN oldperson o ON o.family_id = f.family_id
-		WHERE f.family_phone=$1
-		ORDER BY o.old_id LIMIT 1`, phone).
-		Scan(&fid, &fName, &fPhone, &fPass, &oldID)
-	if err != nil && !isNotFound(err) {
-		response.Error500(w, ref())
-		return
-	}
-	if err == nil {
+	compared := false
+	for _, account := range loginAccounts {
+		var id int64
+		var name, storedPhone, hash pgtype.Text
+		var oldID pgtype.Int8
+		err := h.DB.QueryRow(r.Context(), account.query, phone).Scan(&id, &name, &storedPhone, &hash, &oldID)
+		if isNotFound(err) {
+			continue
+		}
+		if internalError(w, err) {
+			return
+		}
 		compared = true
-	}
-	if err == nil && auth.Matches(password, fPass.String) {
-		if !oldID.Valid {
+		if !auth.Matches(password, hash.String) {
+			continue
+		}
+		if account.role == auth.RoleFamily && !oldID.Valid {
 			response.JSON(w, http.StatusForbidden, map[string]any{"code": "ACCOUNT_UNLINKED", "message": "该家属账号尚未关联老人，请联系管理员"})
 			return
 		}
 		h.finishAccountLogin(w, r, m, session.Principal{
-			Role: auth.RoleFamily, ID: fid, Phone: fPhone.String, OldID: oldID.Int64, DisplayName: fName.String,
+			Role: account.role, ID: id, Phone: storedPhone.String, OldID: oldID.Int64, DisplayName: name.String,
 		}, phone)
 		return
 	}
