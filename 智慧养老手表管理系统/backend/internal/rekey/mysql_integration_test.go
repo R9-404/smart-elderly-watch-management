@@ -109,6 +109,9 @@ func TestRekeyMySQL(t *testing.T) {
 		if get("SELECT JSON_EXTRACT(evidence,'$.future') FROM rule_state LIMIT 1") != "7" {
 			t.Fatal("JSON wrapper metadata lost")
 		}
+		if get("SELECT COUNT(*) FROM analytics_outbox WHERE CAST(payload AS CHAR) LIKE '%sne1:v2:A:%'") == "0" || report.RetirementAuthorized {
+			t.Fatal("subset scan was treated as retirement approval despite historical outbox ciphertext")
+		}
 		// The preserved old ciphertext is backup-like historical input, not a
 		// claim of a coordinated backup restore. Only an A reader can open it.
 		if _, err := retired.Open(beforeNote, "care-text"); err == nil {
