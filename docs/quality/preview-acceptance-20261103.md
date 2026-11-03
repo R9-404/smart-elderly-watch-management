@@ -24,7 +24,7 @@
 | P0-03 | 分支 Ruleset 与独立审查 | [规则 26444520](https://github.com/WatchTestCs/smart-elderly-watch-management/rules/26444520) 已 active：仅 preview、无绕过、1 名独立审查、末次推送需他人批准、13 项 GitHub Actions 检查；隔离 [验证 PR #75](https://github.com/WatchTestCs/smart-elderly-watch-management/pull/75) 的缺失/失败检查合并请求均被 HTTP 405 拒绝，已关闭未合并；qiyuhuating 已独立批准 #74/de4b45a、#77/b627f94、#78/b68b91a，后续补丁仍须各自审查，不将合成检查算成功能测试 |
 | P0-04 | 原生 HarmonyOS 构建门禁 | [PR #77](https://github.com/WatchTestCs/smart-elderly-watch-management/pull/77) 固定 SDK/ETS/摘要，移除 native 跳过条件；b627f94 的远端原生 HAP 已下载并核对源码、API 24、ETS 6.1.1.125 和哈希，并获得独立批准；后续候选仍须原生构建与审查 |
 | P0-05 | 聚合与正式发布门禁 | b627f94 在真实 GitHub API 上通过 13 项 CI、2 项 CodeQL、10 份制品校验；Setup/Portable/源码与 HAP 的包内摘要及来源另行下载核对通过；#74/de4b45a 与 #77/b627f94 已独立批准，仍属于开发分支软件证据，Preview 固定候选及全部发布前置条件尚待满足 |
-| P0-06 | 字段保护与历史迁移 | 账号/联系方式读写路径盘点中；先补齐已实测的 LF/CRLF 历史迁移摘要兼容，保留原账本并拒绝 SQL 内容变化，见 [迁移摘要说明](../reliability/migration-checksums.md)；敏感字段、索引、回填、双读和回滚仍未完成 |
+| P0-06 | 字段保护与历史迁移 | LF/CRLF 历史迁移摘要兼容已验证并保留原账本；首批管理员手机号扩列、AEAD/HMAC、旧/新读取及有界回填/轮换/回退见 [管理员手机号说明](../reliability/user-phone-protection.md)，本批当前提交仍须完整 CI 与独立审查；其他联系方式、姓名/地址/健康、历史副本与恢复等仍未完成 |
 | P0-07 | Keyring 历史轮换 | 新增现有 19 个加密字段、MySQL 分析事件内坐标及选定来源 PG 位置投影的有界 CAS 重封装、认证预检及残留复查；真实 MySQL/PG 验证覆盖并发更新/删除、事件版本、A→B、缺 key/损坏及恢复重跑，见 [MySQL 工具](../reliability/rekey-data.md)与 [PG 工具](../reliability/rekey-projection.md)；对象、其他来源/历史明文、binlog/副本/WAL、lookupKey 历史索引、跨实例屏障、退役与旧备份恢复仍未完成，最终提交 SHA 仍须 CI 和独立审查 |
 | P0-08 | 协调备份与隔离恢复 | 待核查数据库、图片、密钥、审计、工单及 outbox 的完整恢复证据 |
 | P0-09 | 故障注入与恢复 | 待固定候选验证 MySQL、PG、网关、崩溃及重复回执矩阵 |

@@ -60,7 +60,7 @@ type Report struct {
 // keys and never authorizes retirement based on a live scan alone.
 func Run(ctx context.Context, pool *sql.DB, current, previous *securestore.Box, options Options) (report Report, err error) {
 	report = Report{Version: 1, Mode: "scan", Scope: "mysql_registered_fields", ActiveKey: current.ActiveKeyID(), StartedAt: time.Now().UTC().Format(time.RFC3339Nano), Stage: "validation",
-		Exclusions: []string{"plaintext fields and lookup-index migration", "blob objects and their references", "MySQL binary logs, replicas and PostgreSQL projections/WAL", "backups and rollback binaries", "writer key-version barrier and independent review"}}
+		Exclusions: []string{"plaintext fields and lookup-index migration", "administrator phone ciphertext (use protect-user-phones)", "blob objects and their references", "MySQL binary logs, replicas and PostgreSQL projections/WAL", "backups and rollback binaries", "writer key-version barrier and independent review"}}
 	defer func() { report.FinishedAt = time.Now().UTC().Format(time.RFC3339Nano) }()
 	if pool == nil || current.ActiveKeyID() == "" || !current.SameLookupKey(previous) {
 		return report, errors.New("rekey requires a versioned active keyring and an unchanged previous lookup key")
