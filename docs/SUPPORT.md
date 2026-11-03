@@ -31,7 +31,7 @@ Summary / 问题概述:
 Version or commit / 版本或提交:
 Exact package filename / 安装包名称:
 OS and architecture / 系统与架构:
-Distribution / 交付方式: Windows Setup / portable ZIP / Linux archive / Linux DEB / source
+Distribution / 交付方式: Windows Setup / portable ZIP / source build / other (state precisely)
 
 Steps to reproduce / 最小复现步骤:
 1.
@@ -60,8 +60,6 @@ How to verify success / 如何验收:
 
 Describe the user need before prescribing a framework or dependency. For database or authentication changes, explain compatibility and whether existing data could be affected.
 
-## Branch and automation scope / 分支与自动化范围
+## Template availability / 模板使用方式
 
-Current community documents are maintained on `preview`; the default branch remains unchanged. These are copyable reporting templates, not a claim that GitHub's automatic issue-form chooser has been enabled. GitHub makes issue templates available after they reach the default branch; see [official template documentation](https://docs.github.com/en/communities/using-templates-to-encourage-useful-issues-and-pull-requests/configuring-issue-templates-for-your-repository).
-
-本轮只维护 preview 文件，不为启用自动表单而修改 main、默认分支或仓库设置。
+上面的示例仅供复制，仓库当前没有部署自动的 GitHub Issue 表单选择器。是否在默认分支提供模板，应由维护者独立决定；`preview` 中的文档不会自动启用默认分支表单。参考 [GitHub 模板说明](https://docs.github.com/en/communities/using-templates-to-encourage-useful-issues-and-pull-requests/configuring-issue-templates-for-your-repository)。
