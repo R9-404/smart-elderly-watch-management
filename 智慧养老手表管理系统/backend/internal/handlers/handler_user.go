@@ -108,11 +108,7 @@ func (h *Handler) createGuardian(w http.ResponseWriter, r *http.Request) {
 	if internalError(w, err) {
 		return
 	}
-	if ct.RowsAffected() == 1 {
-		response.OK(w, nil)
-	} else {
-		recordNotFound(w)
-	}
+	writeSingleMutation(w, ct.RowsAffected())
 }
 
 // POST /api/v1/guardians/update —— 更新客户（ADMIN）。
@@ -137,11 +133,7 @@ func (h *Handler) updateGuardian(w http.ResponseWriter, r *http.Request) {
 	if internalError(w, err) {
 		return
 	}
-	if ct.RowsAffected() == 1 {
-		response.OK(w, nil)
-	} else {
-		recordNotFound(w)
-	}
+	writeSingleMutation(w, ct.RowsAffected())
 }
 
 // POST /api/v1/guardians/delete —— 删除客户（ADMIN）。

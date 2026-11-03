@@ -57,11 +57,10 @@ func randAlpha(n int) (string, error) {
 	if _, err := rand.Read(b); err != nil {
 		return "", err
 	}
-	out := make([]byte, n)
 	for i, v := range b {
-		out[i] = deviceAlphabet[int(v)%len(deviceAlphabet)]
+		b[i] = inviteCharset[int(v)%len(inviteCharset)]
 	}
-	return string(out), nil
+	return string(b), nil
 }
 
 // ---------------------------------------------------------------------------
@@ -108,35 +107,26 @@ func scanDeviceRecord(row dbstore.Row) (*deviceRecord, error) {
 }
 
 func (h *Handler) findDeviceByNo(ctx context.Context, q deviceQueries, deviceNo string) (*deviceRecord, error) {
-	d, err := scanDeviceRecord(q.QueryRow(ctx,
-		`SELECT `+deviceRecordColumns+` FROM device WHERE device_no=$1`, deviceNo))
-	if err != nil {
-		if err == pgx.ErrNoRows {
-			return nil, nil
-		}
-		return nil, err
-	}
-	d.LastLng, d.LastLat, err = openCoordinates(h.Box, d.LastLng, d.LastLat)
-	if err != nil {
-		return nil, err
-	}
-	return d, nil
+	return h.readDevice(q.QueryRow(ctx, `SELECT `+deviceRecordColumns+` FROM device WHERE device_no=$1`, deviceNo))
 }
 
 func (h *Handler) findDeviceByID(ctx context.Context, q deviceQueries, deviceID int64) (*deviceRecord, error) {
-	d, err := scanDeviceRecord(q.QueryRow(ctx,
-		`SELECT `+deviceRecordColumns+` FROM device WHERE device_id=$1`, deviceID))
+	return h.readDevice(q.QueryRow(ctx, `SELECT `+deviceRecordColumns+` FROM device WHERE device_id=$1`, deviceID))
+}
+
+func (h *Handler) readDevice(row dbstore.Row) (*deviceRecord, error) {
+	device, err := scanDeviceRecord(row)
+	if err == pgx.ErrNoRows {
+		return nil, nil
+	}
 	if err != nil {
-		if err == pgx.ErrNoRows {
-			return nil, nil
-		}
 		return nil, err
 	}
-	d.LastLng, d.LastLat, err = openCoordinates(h.Box, d.LastLng, d.LastLat)
+	device.LastLng, device.LastLat, err = openCoordinates(h.Box, device.LastLng, device.LastLat)
 	if err != nil {
 		return nil, err
 	}
-	return d, nil
+	return device, nil
 }
 
 // hwAuth checks the device number, secret and enabled status.

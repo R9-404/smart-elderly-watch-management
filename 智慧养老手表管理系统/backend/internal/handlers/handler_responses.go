@@ -18,3 +18,12 @@ func scopeDeny(w http.ResponseWriter) {
 func conflict409(w http.ResponseWriter, message string) {
 	response.JSON(w, http.StatusConflict, map[string]any{"message": message})
 }
+
+// writeSingleMutation replies with success only when one record changed.
+func writeSingleMutation(w http.ResponseWriter, affected int64) {
+	if affected == 1 {
+		response.OK(w, nil)
+		return
+	}
+	recordNotFound(w)
+}

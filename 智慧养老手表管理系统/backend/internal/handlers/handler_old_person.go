@@ -147,11 +147,7 @@ func (h *Handler) updateResident(w http.ResponseWriter, r *http.Request) {
 	if internalError(w, tx.Commit(ctx)) {
 		return
 	}
-	if ct.RowsAffected() == 1 {
-		response.OK(w, nil)
-		return
-	}
-	recordNotFound(w)
+	writeSingleMutation(w, ct.RowsAffected())
 }
 
 // POST /api/v1/residents/delete —— 删除老人（ADMIN，事务）。

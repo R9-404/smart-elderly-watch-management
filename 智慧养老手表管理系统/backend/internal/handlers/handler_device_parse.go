@@ -42,11 +42,9 @@ func dateOrNil(t *time.Time) any {
 }
 
 var (
-	idPattern      = regexp.MustCompile(`^[0-9]{1,9}$`)
-	reportTimeRe   = regexp.MustCompile(`^\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}$`)
-	secretHashRe   = regexp.MustCompile(`^sha256\$[A-Za-z0-9_-]{43}$`)
-	reportTimeFmt  = "2006-01-02 15:04:05"
-	deviceAlphabet = inviteCharset
+	idPattern    = regexp.MustCompile(`^[0-9]{1,9}$`)
+	reportTimeRe = regexp.MustCompile(`^\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}$`)
+	secretHashRe = regexp.MustCompile(`^sha256\$[A-Za-z0-9_-]{43}$`)
 )
 
 func validID(s string) bool { return idPattern.MatchString(s) }
@@ -167,7 +165,7 @@ func parseReportTimeStrict(s string) (time.Time, bool) {
 	if !reportTimeRe.MatchString(s) {
 		return time.Time{}, false
 	}
-	t, err := time.Parse(reportTimeFmt, s)
+	t, err := time.Parse(tsLayout, s)
 	if err != nil {
 		return time.Time{}, false
 	}

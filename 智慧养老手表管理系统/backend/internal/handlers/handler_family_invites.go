@@ -2,7 +2,6 @@ package handlers
 
 import (
 	"context"
-	"crypto/rand"
 	"net/http"
 	"strconv"
 	"strings"
@@ -21,19 +20,6 @@ func normalizeCode(s string) string {
 	s = strings.ReplaceAll(s, " ", "")
 	s = strings.ReplaceAll(s, "-", "")
 	return strings.ToUpper(s)
-}
-
-// genInviteCode 生成 8 位邀请码（crypto/rand）。
-func genInviteCode() (string, error) {
-	var b [8]byte
-	if _, err := rand.Read(b[:]); err != nil {
-		return "", err
-	}
-	out := make([]byte, 8)
-	for i, v := range b {
-		out[i] = inviteCharset[v%uint8(len(inviteCharset))]
-	}
-	return string(out), nil
 }
 
 // inviteStatus 状态判定：used=1 → used；过期 → expired；否则 unused。
@@ -260,7 +246,7 @@ func parseInvitationExpiry(m map[string]any) (*time.Time, bool) {
 func unusedInvitationCode(ctx context.Context, tx *db.Transaction) (string, error) {
 	code := ""
 	for a := 0; a < 20; a++ { // 最多 20 次重试保唯一
-		c, err := genInviteCode()
+		c, err := randAlpha(8)
 		if err != nil {
 			return "", err
 		}

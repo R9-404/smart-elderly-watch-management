@@ -151,11 +151,7 @@ func (h *Handler) updateMonitoringProfile(w http.ResponseWriter, r *http.Request
 	if internalError(w, err) {
 		return
 	}
-	if ct.RowsAffected() == 1 {
-		response.OK(w, nil)
-		return
-	}
-	recordNotFound(w)
+	writeSingleMutation(w, ct.RowsAffected())
 }
 
 // POST /api/v1/monitoring-profiles/delete —— 删除手表阈值档案（ADMIN）。
@@ -178,9 +174,5 @@ func (h *Handler) deleteMonitoringProfile(w http.ResponseWriter, r *http.Request
 	if internalError(w, err) {
 		return
 	}
-	if ct.RowsAffected() == 1 {
-		response.OK(w, nil)
-		return
-	}
-	recordNotFound(w)
+	writeSingleMutation(w, ct.RowsAffected())
 }

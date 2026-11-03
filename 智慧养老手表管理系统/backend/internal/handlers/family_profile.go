@@ -32,11 +32,7 @@ func (h *Handler) familyUpdateTwo(w http.ResponseWriter, r *http.Request) {
 	if internalError(w, err) {
 		return
 	}
-	if ct.RowsAffected() == 1 {
-		response.OK(w, nil)
-	} else {
-		recordNotFound(w)
-	}
+	writeSingleMutation(w, ct.RowsAffected())
 }
 
 // POST /api/v1/family/updateTouPic —— 家属更新头像（ADMIN+FAMILY，归属隔离）。
