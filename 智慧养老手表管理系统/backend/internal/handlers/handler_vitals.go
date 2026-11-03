@@ -76,66 +76,20 @@ func strictPage(w http.ResponseWriter, m map[string]any) (int, int, bool) {
 	return p, ps, true
 }
 
-func strictPageVal(w http.ResponseWriter, m map[string]any, key string, def int) (int, bool) {
-	v, exists := m[key]
-	if !exists || v == nil {
-		return def, true
+func strictPageVal(w http.ResponseWriter, m map[string]any, key string, fallback int) (int, bool) {
+	if m[key] == nil {
+		return fallback, true
 	}
-	var n int64
-	switch t := v.(type) {
-	case float64:
-		if t != math.Trunc(t) {
-			badPageInt(w)
-			return 0, false
-		}
-		n = int64(t)
-	case string:
-		var err error
-		n, err = strconv.ParseInt(strings.TrimSpace(t), 10, 64)
-		if err != nil {
-			badPageInt(w)
-			return 0, false
-		}
-	case int:
-		n = int64(t)
-	case int64:
-		n = t
-	default:
-		badPageInt(w)
-		return 0, false
+	n, ok := numParam(m, key)
+	if !ok {
+		write400(w, "分页参数必须为整数")
 	}
-	return int(n), true
+	return int(n), ok
 }
 
-func badPageInt(w http.ResponseWriter) {
-	response.JSON(w, http.StatusBadRequest, map[string]any{"message": "分页参数必须为整数"})
-}
-
-// numParam 解析必填数字参数（兼容 JSON 数字与数字字符串）。
+// numParam accepts a required integer as either a JSON number or a string.
 func numParam(m map[string]any, key string) (int64, bool) {
-	v, exists := m[key]
-	if !exists || v == nil {
-		return 0, false
-	}
-	switch t := v.(type) {
-	case string:
-		s := strings.TrimSpace(t)
-		if s == "" {
-			return 0, false
-		}
-		n, err := strconv.ParseInt(s, 10, 64)
-		return n, err == nil
-	case float64:
-		if t != math.Trunc(t) {
-			return 0, false
-		}
-		return int64(t), true
-	case int:
-		return int64(t), true
-	case int64:
-		return t, true
-	}
-	return 0, false
+	return integerParam(m[key])
 }
 
 // strID 取数字 id 参数的字符串形态（字符串或整数 JSON 值）。
@@ -207,34 +161,36 @@ func principalOr401(w http.ResponseWriter, r *http.Request) (*session.Principal,
 	return p, true
 }
 
+func (h *Handler) readScopedOldID(w http.ResponseWriter, r *http.Request) (int64, bool) {
+	body, ok := bodyMap(w, r)
+	if !ok {
+		return 0, false
+	}
+	return h.resolveOldID(w, r, body["oldId"])
+}
+
+func (h *Handler) resolveOptionalOldID(w http.ResponseWriter, r *http.Request, id int64) (int64, bool) {
+	if id == 0 {
+		return h.resolveOldID(w, r, nil)
+	}
+	return h.resolveOldID(w, r, id)
+}
+
 // resolveOldID allows ADMIN to select an elder by ID;
 // FAMILY 传空用会话绑定的 oldId，传值则实时查库核对 oldperson.family_id。
-func (h *Handler) resolveOldID(w http.ResponseWriter, r *http.Request, m map[string]any) (int64, bool) {
+func (h *Handler) resolveOldID(w http.ResponseWriter, r *http.Request, value any) (int64, bool) {
 	p, ok := principalOr401(w, r)
 	if !ok {
 		return 0, false
 	}
-	var raw string
-	if v, exists := m["oldId"]; exists && v != nil {
-		switch t := v.(type) {
-		case string:
-			raw = strings.TrimSpace(t)
-		case float64:
-			if t == math.Trunc(t) {
-				raw = strconv.FormatInt(int64(t), 10)
-			}
-		case int:
-			raw = strconv.Itoa(t)
-		case int64:
-			raw = strconv.FormatInt(t, 10)
+	id := p.OldID
+	if value != nil {
+		var valid bool
+		id, valid = integerParam(value)
+		if !valid {
+			write400(w, "老人编号不正确")
+			return 0, false
 		}
-	} else {
-		raw = strconv.FormatInt(p.OldID, 10)
-	}
-	id, err := strconv.ParseInt(raw, 10, 64)
-	if err != nil {
-		response.JSON(w, http.StatusBadRequest, map[string]any{"message": "老人编号不正确"})
-		return 0, false
 	}
 	if p.Role != auth.RoleAdmin {
 		var familyID *int64
@@ -245,6 +201,22 @@ func (h *Handler) resolveOldID(w http.ResponseWriter, r *http.Request, m map[str
 		}
 	}
 	return id, true
+}
+
+func integerParam(value any) (int64, bool) {
+	switch id := value.(type) {
+	case string:
+		parsed, err := strconv.ParseInt(strings.TrimSpace(id), 10, 64)
+		return parsed, err == nil
+	case float64:
+		return int64(id), id == math.Trunc(id)
+	case int:
+		return int64(id), true
+	case int64:
+		return id, true
+	default:
+		return 0, false
+	}
 }
 
 // pagedTotal counts rows for a paginated query.

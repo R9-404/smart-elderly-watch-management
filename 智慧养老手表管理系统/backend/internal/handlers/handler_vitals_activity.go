@@ -44,11 +44,7 @@ func (h *Handler) listLatestActivity(w http.ResponseWriter, r *http.Request) {
 
 // POST /api/v1/activity/history —— 家属查询老人睡眠步数列表。
 func (h *Handler) listActivityHistory(w http.ResponseWriter, r *http.Request) {
-	m, ok := bodyMap(w, r)
-	if !ok {
-		return
-	}
-	oldID, ok := h.resolveOldID(w, r, m)
+	oldID, ok := h.readScopedOldID(w, r)
 	if !ok {
 		return
 	}
@@ -64,11 +60,7 @@ func (h *Handler) listActivityHistory(w http.ResponseWriter, r *http.Request) {
 
 // POST /api/v1/activity/chart —— 家属查询老人睡眠明细（图表用）。
 func (h *Handler) getActivityChart(w http.ResponseWriter, r *http.Request) {
-	m, ok := bodyMap(w, r)
-	if !ok {
-		return
-	}
-	oldID, ok := h.resolveOldID(w, r, m)
+	oldID, ok := h.readScopedOldID(w, r)
 	if !ok {
 		return
 	}

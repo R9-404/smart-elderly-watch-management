@@ -19,11 +19,11 @@ func (h *Handler) healthLatest(w http.ResponseWriter, r *http.Request) {
 	if !decodeHealth(w, r, &req) {
 		return
 	}
-	m := map[string]any{}
+	var requested any
 	if req.OldID != nil {
-		m["oldId"] = *req.OldID
+		requested = *req.OldID
 	}
-	oldID, ok := h.resolveOldID(w, r, m)
+	oldID, ok := h.resolveOldID(w, r, requested)
 	if !ok {
 		return
 	}

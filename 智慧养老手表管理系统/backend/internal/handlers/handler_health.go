@@ -130,11 +130,7 @@ func (h *Handler) healthChanges(w http.ResponseWriter, r *http.Request) {
 	if req.Limit == 0 {
 		req.Limit = 100
 	}
-	m := map[string]any{}
-	if req.OldID != 0 {
-		m["oldId"] = req.OldID
-	}
-	oldID, ok := h.resolveOldID(w, r, m)
+	oldID, ok := h.resolveOptionalOldID(w, r, req.OldID)
 	if !ok {
 		return
 	}

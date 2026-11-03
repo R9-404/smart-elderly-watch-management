@@ -24,11 +24,7 @@ func (h *Handler) healthDaily(w http.ResponseWriter, r *http.Request) {
 	if !decodeCapability(w, r, &req) {
 		return
 	}
-	m := map[string]any{}
-	if req.OldID != 0 {
-		m["oldId"] = req.OldID
-	}
-	oldID, ok := h.resolveOldID(w, r, m)
+	oldID, ok := h.resolveOptionalOldID(w, r, req.OldID)
 	if !ok {
 		return
 	}

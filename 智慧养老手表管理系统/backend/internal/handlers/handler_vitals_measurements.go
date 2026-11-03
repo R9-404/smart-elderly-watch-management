@@ -12,11 +12,7 @@ func (h *Handler) listLatestVitals(w http.ResponseWriter, r *http.Request) {
 
 // POST /api/v1/vitals/history —— 家属查询自己老人的心率血压列表。
 func (h *Handler) listVitalHistory(w http.ResponseWriter, r *http.Request) {
-	m, ok := bodyMap(w, r)
-	if !ok {
-		return
-	}
-	oldID, ok := h.resolveOldID(w, r, m)
+	oldID, ok := h.readScopedOldID(w, r)
 	if !ok {
 		return
 	}
@@ -36,11 +32,7 @@ func (h *Handler) listVitalHistory(w http.ResponseWriter, r *http.Request) {
 
 // POST /api/v1/vitals/chart —— 家属查询老人心率血压明细（图表用）。
 func (h *Handler) getVitalChart(w http.ResponseWriter, r *http.Request) {
-	m, ok := bodyMap(w, r)
-	if !ok {
-		return
-	}
-	oldID, ok := h.resolveOldID(w, r, m)
+	oldID, ok := h.readScopedOldID(w, r)
 	if !ok {
 		return
 	}

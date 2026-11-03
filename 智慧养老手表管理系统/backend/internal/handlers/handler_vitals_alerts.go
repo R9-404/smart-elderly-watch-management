@@ -43,28 +43,20 @@ func (h *Handler) countVitalAlerts(w http.ResponseWriter, r *http.Request) {
 	if _, ok := optBody(w, r); !ok {
 		return
 	}
-	rate, err := h.countPendingAlert(r, "rate")
-	if internalError(w, err) {
-		return
-	}
-	pre, err := h.countPendingAlert(r, "pre")
+	var rate, pre int64
+	err := h.DB.QueryRow(r.Context(), `SELECT
+		(SELECT COUNT(*) FROM ratepre r WHERE `+pendingRate+`),
+		(SELECT COUNT(*) FROM ratepre r WHERE `+pendingPressure+`)`).Scan(&rate, &pre)
 	if internalError(w, err) {
 		return
 	}
 	response.OK(w, map[string]any{"rateTotal": rate, "preTotal": pre, "total": rate + pre})
 }
 
-// countPendingAlert 只统计"上次处理之后"新产生的异常。
-func (h *Handler) countPendingAlert(r *http.Request, kind string) (int64, error) {
-	stateCol, handledAtCol := "rate_state", "rate_handled_at"
-	if kind == "pre" {
-		stateCol, handledAtCol = "pre_state", "pre_handled_at"
-	}
-	var n int64
-	err := h.DB.QueryRow(r.Context(),
-		"SELECT COUNT(1) FROM ratepre WHERE "+stateCol+"='1' AND ("+handledAtCol+" IS NULL OR create_time > "+handledAtCol+")").Scan(&n)
-	return n, err
-}
+const (
+	pendingRate     = "(r.rate_state='1' AND (r.rate_handled_at IS NULL OR r.create_time > r.rate_handled_at))"
+	pendingPressure = "(r.pre_state='1' AND (r.pre_handled_at IS NULL OR r.create_time > r.pre_handled_at))"
+)
 
 type alertRow struct {
 	ID            int64
@@ -115,6 +107,24 @@ func (h *Handler) getVitalAlert(w http.ResponseWriter, r *http.Request) {
 	response.OK(w, describeRatepreAlert(a))
 }
 
+func alertThresholds(first, last *int, low, high int) (int, int) {
+	if first != nil && last != nil {
+		return min(*first, *last), max(*first, *last)
+	}
+	return low, high
+}
+
+func vitalAlertReason(metric string, value, low, high int) string {
+	switch {
+	case value > high:
+		return metric + "偏高"
+	case value < low:
+		return metric + "偏低"
+	default:
+		return "历史" + metric + "异常"
+	}
+}
+
 func describeRatepreAlert(a alertRow) map[string]any {
 	hr, bp := 0, 0
 	if a.Hr != nil {
@@ -125,33 +135,16 @@ func describeRatepreAlert(a alertRow) map[string]any {
 	}
 	rateBad := a.RateState != nil && *a.RateState == "1" && !a.RateDone
 	preBad := a.PreState != nil && *a.PreState == "1" && !a.PreDone
-	hrLow, hrHigh, bpLow, bpHigh := 55, 110, 90, 140
-	if a.HrHigh != nil && a.HrLow != nil {
-		hrLow, hrHigh = min(*a.HrHigh, *a.HrLow), max(*a.HrHigh, *a.HrLow)
-	}
-	if a.BpHigh != nil && a.BpLow != nil {
-		bpLow, bpHigh = min(*a.BpHigh, *a.BpLow), max(*a.BpHigh, *a.BpLow)
-	}
 	var reasons, details []string
 	if rateBad {
-		if hr > hrHigh {
-			reasons = append(reasons, "心率偏高")
-		} else if hr < hrLow {
-			reasons = append(reasons, "心率偏低")
-		} else {
-			reasons = append(reasons, "历史心率异常")
-		}
-		details = append(details, "心率当前档案范围 "+strconv.Itoa(hrLow)+"-"+strconv.Itoa(hrHigh)+" 次/分，本次测量 "+strconv.Itoa(hr)+" 次/分。")
+		low, high := alertThresholds(a.HrHigh, a.HrLow, 55, 110)
+		reasons = append(reasons, vitalAlertReason("心率", hr, low, high))
+		details = append(details, "心率当前档案范围 "+strconv.Itoa(low)+"-"+strconv.Itoa(high)+" 次/分，本次测量 "+strconv.Itoa(hr)+" 次/分。")
 	}
 	if preBad {
-		if bp > bpHigh {
-			reasons = append(reasons, "血压偏高")
-		} else if bp < bpLow {
-			reasons = append(reasons, "血压偏低")
-		} else {
-			reasons = append(reasons, "历史血压异常")
-		}
-		details = append(details, "血压当前档案范围 "+strconv.Itoa(bpLow)+"-"+strconv.Itoa(bpHigh)+" mmHg，本次测量 "+strconv.Itoa(bp)+" mmHg。")
+		low, high := alertThresholds(a.BpHigh, a.BpLow, 90, 140)
+		reasons = append(reasons, vitalAlertReason("血压", bp, low, high))
+		details = append(details, "血压当前档案范围 "+strconv.Itoa(low)+"-"+strconv.Itoa(high)+" mmHg，本次测量 "+strconv.Itoa(bp)+" mmHg。")
 	}
 	if len(reasons) == 0 {
 		return map[string]any{"hasAlert": 0, "message": "该记录已处理，没有待处理的红点"}
@@ -180,44 +173,37 @@ func describeRatepreAlert(a alertRow) map[string]any {
 	}
 }
 
-func (h *Handler) findAlertRecord(r *http.Request, id int64) (alertRow, bool, error) {
-	var a alertRow
-	a.ID = id
-	err := h.DB.QueryRow(r.Context(), `SELECT r.device_id, r.old_id, r.hr, r.bp, r.rate_state, r.pre_state,
+const vitalAlertSelect = `SELECT r.id, r.device_id, r.old_id, r.hr, r.bp, r.rate_state, r.pre_state,
 		COALESCE((r.rate_handled_at IS NOT NULL AND r.create_time <= r.rate_handled_at), false),
 		COALESCE((r.pre_handled_at IS NOT NULL AND r.create_time <= r.pre_handled_at), false),
 		TO_CHAR(r.create_time,'YYYY-MM-DD HH24:MI:SS'), o.name, w.hrf, w.hrl, w.bpf, w.bpl
 		FROM ratepre r LEFT JOIN oldperson o ON o.old_id=r.old_id
-		LEFT JOIN watch_info w ON w.device_id=r.device_id WHERE r.id=$1`, id).
-		Scan(&a.DeviceID, &a.OldID, &a.Hr, &a.Bp, &a.RateState, &a.PreState,
-			&a.RateDone, &a.PreDone, &a.CreateTime, &a.OldPersonName, &a.HrHigh, &a.HrLow, &a.BpHigh, &a.BpLow)
-	if isNotFound(err) {
-		return a, false, nil
-	}
-	return a, err == nil, err
+		LEFT JOIN watch_info w ON w.device_id=r.device_id`
+
+func (h *Handler) findAlertRecord(r *http.Request, id int64) (alertRow, bool, error) {
+	return scanVitalAlert(h.DB.QueryRow(r.Context(), vitalAlertSelect+` WHERE r.id=$1`, id))
 }
 
 func (h *Handler) findLatestPending(r *http.Request, oldID int64, kind string) (alertRow, bool, error) {
-	cond := "((r.rate_state='1' AND (r.rate_handled_at IS NULL OR r.create_time > r.rate_handled_at))" +
-		" OR (r.pre_state='1' AND (r.pre_handled_at IS NULL OR r.create_time > r.pre_handled_at)))"
-	if kind == "rate" {
-		cond = "(r.rate_state='1' AND (r.rate_handled_at IS NULL OR r.create_time > r.rate_handled_at))"
-	} else if kind == "pre" {
-		cond = "(r.pre_state='1' AND (r.pre_handled_at IS NULL OR r.create_time > r.pre_handled_at))"
+	condition := "(" + pendingRate + " OR " + pendingPressure + ")"
+	switch kind {
+	case "rate":
+		condition = pendingRate
+	case "pre":
+		condition = pendingPressure
 	}
-	var a alertRow
-	err := h.DB.QueryRow(r.Context(), `SELECT r.id, r.device_id, r.old_id, r.hr, r.bp, r.rate_state, r.pre_state,
-		COALESCE((r.rate_handled_at IS NOT NULL AND r.create_time <= r.rate_handled_at), false),
-		COALESCE((r.pre_handled_at IS NOT NULL AND r.create_time <= r.pre_handled_at), false),
-		TO_CHAR(r.create_time,'YYYY-MM-DD HH24:MI:SS'), o.name, w.hrf, w.hrl, w.bpf, w.bpl
-		FROM ratepre r LEFT JOIN oldperson o ON o.old_id=r.old_id
-		LEFT JOIN watch_info w ON w.device_id=r.device_id
-		WHERE r.old_id=$1 AND `+cond+` ORDER BY r.create_time DESC, r.id DESC LIMIT 1`, oldID).
-		Scan(&a.ID, &a.DeviceID, &a.OldID, &a.Hr, &a.Bp, &a.RateState, &a.PreState, &a.RateDone, &a.PreDone, &a.CreateTime, &a.OldPersonName, &a.HrHigh, &a.HrLow, &a.BpHigh, &a.BpLow)
+	return scanVitalAlert(h.DB.QueryRow(r.Context(), vitalAlertSelect+
+		` WHERE r.old_id=$1 AND `+condition+` ORDER BY r.create_time DESC, r.id DESC LIMIT 1`, oldID))
+}
+
+func scanVitalAlert(row dbstore.Row) (alertRow, bool, error) {
+	var alert alertRow
+	err := row.Scan(&alert.ID, &alert.DeviceID, &alert.OldID, &alert.Hr, &alert.Bp, &alert.RateState, &alert.PreState,
+		&alert.RateDone, &alert.PreDone, &alert.CreateTime, &alert.OldPersonName, &alert.HrHigh, &alert.HrLow, &alert.BpHigh, &alert.BpLow)
 	if isNotFound(err) {
-		return a, false, nil
+		return alert, false, nil
 	}
-	return a, err == nil, err
+	return alert, err == nil, err
 }
 
 // POST /api/v1/vitals/alerts/resolve —— 处置异常（消除红点），事务内执行。

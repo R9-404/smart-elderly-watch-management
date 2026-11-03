@@ -16,10 +16,8 @@ func (h *Handler) deviceAlertCounts(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 	rows, err := h.DB.Query(ctx,
 		`SELECT `+personCols+`,
-			(SELECT COUNT(1) FROM ratepre r WHERE r.device_id = d.device_id AND r.rate_state='1'
-				AND (r.rate_handled_at IS NULL OR r.create_time > r.rate_handled_at)) AS rate_count,
-			(SELECT COUNT(1) FROM ratepre r WHERE r.device_id = d.device_id AND r.pre_state='1'
-				AND (r.pre_handled_at IS NULL OR r.create_time > r.pre_handled_at)) AS pre_count
+			(SELECT COUNT(1) FROM ratepre r WHERE r.device_id = d.device_id AND `+pendingRate+`) AS rate_count,
+			(SELECT COUNT(1) FROM ratepre r WHERE r.device_id = d.device_id AND `+pendingPressure+`) AS pre_count
 		 `+personFrom+` WHERE d.status = 1 ORDER BY d.device_id`)
 	if internalError(w, err) {
 		return
@@ -61,12 +59,10 @@ func (h *Handler) deviceAlertDetail(w http.ResponseWriter, r *http.Request) {
 	if !ok {
 		return
 	}
-	idStr, present := vstr(m, "deviceId")
-	if !present || !validID(idStr) {
-		writeValidation400(w)
+	deviceID, ok := requireID(w, m, "deviceId")
+	if !ok {
 		return
 	}
-	deviceID, _ := strconv.ParseInt(idStr, 10, 64)
 	kind, _ := vstr(m, "kind")
 	kind = strings.ToLower(kind)
 	// 规格：kind 默认 person；非法值按 person 处理。

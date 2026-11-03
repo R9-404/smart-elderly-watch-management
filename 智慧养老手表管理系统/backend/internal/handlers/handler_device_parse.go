@@ -49,6 +49,16 @@ var (
 
 func validID(s string) bool { return idPattern.MatchString(s) }
 
+func requireID(w http.ResponseWriter, body map[string]any, key string) (int64, bool) {
+	value, _ := vstr(body, key)
+	if !validID(value) {
+		writeValidation400(w)
+		return 0, false
+	}
+	id, _ := strconv.ParseInt(value, 10, 64)
+	return id, true
+}
+
 // vstr 取字段的字符串形式（trim 后）；JSON 数字保留小数，整数字段由各自解析器校验。
 // 返回 (值, 是否存在)。缺失/显式 null → ("", false)。
 func vstr(m map[string]any, key string) (string, bool) {

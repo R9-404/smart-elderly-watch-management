@@ -17,12 +17,10 @@ func (h *Handler) resolveLatestLocationAlert(w http.ResponseWriter, r *http.Requ
 	if !ok {
 		return
 	}
-	idStr, present := vstr(m, "oldId")
-	if !present || !validID(idStr) {
-		writeValidation400(w)
+	oldID, ok := requireID(w, m, "oldId")
+	if !ok {
 		return
 	}
-	oldID, _ := strconv.ParseInt(idStr, 10, 64)
 	ctx := r.Context()
 	var alarmID int64
 	err := h.DB.QueryRow(ctx,
@@ -175,14 +173,15 @@ func describePersonAlert(pr *personRow, now time.Time) map[string]any {
 // findRatepreAlert returns the selected pending record, or the latest when recordID is nil.
 func (h *Handler) findRatepreAlert(ctx context.Context, q deviceQueries, deviceID int64, kind string, recordID *int64) (map[string]any, error) {
 	isRate := kind == "rate"
-	stateCol, hatCol := "rate_state", "rate_handled_at"
+	pending := pendingRate
 	if !isRate {
-		stateCol, hatCol = "pre_state", "pre_handled_at"
+		pending = pendingPressure
 	}
 	var id int64
 	var hr, bp *int
 	var createTime *time.Time
-	var oldID *int64
+	var residentID *int64
+	var residentName *string
 	var hrf, hrl, bpf, bpl *int
 	recordFilter := ""
 	args := []any{deviceID}
@@ -191,63 +190,43 @@ func (h *Handler) findRatepreAlert(ctx context.Context, q deviceQueries, deviceI
 		args = append(args, *recordID)
 	}
 	err := q.QueryRow(ctx,
-		`SELECT r.id, r.hr, r.bp, r.create_time, r.old_id, w.hrf, w.hrl, w.bpf, w.bpl
+		`SELECT r.id, r.hr, r.bp, r.create_time, o.old_id, o.name, w.hrf, w.hrl, w.bpf, w.bpl
 		 FROM ratepre r LEFT JOIN watch_info w ON w.device_id = r.device_id
-		 WHERE r.device_id=$1 AND r.`+stateCol+`='1'
-		   AND (r.`+hatCol+` IS NULL OR r.create_time > r.`+hatCol+`)`+recordFilter+`
+		 LEFT JOIN oldperson o ON o.old_id = r.old_id
+		 WHERE r.device_id=$1 AND `+pending+recordFilter+`
 		 ORDER BY r.create_time DESC, r.id DESC LIMIT 1`, args...).
-		Scan(&id, &hr, &bp, &createTime, &oldID, &hrf, &hrl, &bpf, &bpl)
+		Scan(&id, &hr, &bp, &createTime, &residentID, &residentName, &hrf, &hrl, &bpf, &bpl)
 	if err != nil {
 		if err == pgx.ErrNoRows {
 			return nil, nil
 		}
 		return nil, err
 	}
-	value := 0
+	value, first, last := hr, hrf, hrl
 	low, high := 55, 110
-	first, last := hrf, hrl
-	unit, kindText, histText := "次/分", "心率不合格", "历史心率异常"
-	highText, lowText := "心率偏高", "心率偏低"
+	metric, unit := "心率", "次/分"
 	if !isRate {
+		value, first, last = bp, bpf, bpl
 		low, high = 90, 140
-		first, last = bpf, bpl
-		unit, kindText, histText = "mmHg", "血压不合格", "历史血压异常"
-		highText, lowText = "血压偏高", "血压偏低"
+		metric, unit = "血压", "mmHg"
 	}
-	if isRate && hr != nil {
-		value = *hr
+	measurement := 0
+	if value != nil {
+		measurement = *value
 	}
-	if !isRate && bp != nil {
-		value = *bp
-	}
-	if first != nil && last != nil {
-		low, high = min(*first, *last), max(*first, *last)
-	}
-	var reason string
-	switch {
-	case value >= low && value <= high:
-		reason = histText
-	case value > high:
-		reason = highText
-	default:
-		reason = lowText
-	}
+	low, high = alertThresholds(first, last, low, high)
 	oldName := "（未绑定）"
-	if oldID != nil {
-		var nm *string
-		if err := q.QueryRow(ctx, `SELECT name FROM oldperson WHERE old_id=$1`, *oldID).Scan(&nm); err == nil && nm != nil {
-			oldName = *nm
-		} else if err == nil {
-			oldName = ""
-		} else if err != pgx.ErrNoRows {
-			return nil, err
+	if residentID != nil {
+		oldName = ""
+		if residentName != nil {
+			oldName = *residentName
 		}
 	}
 	return map[string]any{
-		"kind": kind, "kindText": kindText, "reason": reason,
+		"kind": kind, "kindText": kindTextOf(kind), "reason": vitalAlertReason(metric, measurement, low, high),
 		"detail": "当前档案范围 " + strconv.Itoa(low) + "-" + strconv.Itoa(high) + " " + unit +
-			"，本次测量 " + strconv.Itoa(value) + " " + unit + "。",
-		"value": value, "threshold": strconv.Itoa(low) + "-" + strconv.Itoa(high),
+			"，本次测量 " + strconv.Itoa(measurement) + " " + unit + "。",
+		"value": measurement, "threshold": strconv.Itoa(low) + "-" + strconv.Itoa(high),
 		"occurTime": tsOrNil(createTime), "recordId": id,
 		"deviceId": deviceID, "oldPersonName": oldName,
 	}, nil

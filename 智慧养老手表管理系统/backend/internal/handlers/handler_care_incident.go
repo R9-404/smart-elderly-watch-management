@@ -123,12 +123,10 @@ func (h *Handler) careTransition(w http.ResponseWriter, r *http.Request) {
 	if !ok {
 		return
 	}
-	idStr, present := vstr(m, "id")
-	if !present || !validID(idStr) {
-		writeValidation400(w)
+	id, ok := requireID(w, m, "id")
+	if !ok {
 		return
 	}
-	id, _ := strconv.ParseInt(idStr, 10, 64)
 	action := str(m, "action")
 	if !h.authorizeCareAction(w, r, actor, action) {
 		return
@@ -206,12 +204,10 @@ func (h *Handler) careEvents(w http.ResponseWriter, r *http.Request) {
 	if !ok {
 		return
 	}
-	idStr, present := vstr(m, "id")
-	if !present || !validID(idStr) {
-		writeValidation400(w)
+	id, ok := requireID(w, m, "id")
+	if !ok {
 		return
 	}
-	id, _ := strconv.ParseInt(idStr, 10, 64)
 	if !h.auditCareAccess(w, r, actor, "incident_events", &id) {
 		return
 	}

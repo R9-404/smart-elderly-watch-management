@@ -22,11 +22,7 @@ func (h *Handler) healthStatistics(w http.ResponseWriter, r *http.Request) {
 		write400(w, message)
 		return
 	}
-	m := map[string]any{}
-	if req.OldID != 0 {
-		m["oldId"] = req.OldID
-	}
-	oldID, ok := h.resolveOldID(w, r, m)
+	oldID, ok := h.resolveOptionalOldID(w, r, req.OldID)
 	if !ok {
 		return
 	}

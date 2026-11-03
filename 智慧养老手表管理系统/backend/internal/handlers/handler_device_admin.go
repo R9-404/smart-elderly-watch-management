@@ -249,12 +249,10 @@ func (h *Handler) deviceDeleteBindCode(w http.ResponseWriter, r *http.Request) {
 	if !ok {
 		return
 	}
-	idStr, present := vstr(m, "id")
-	if !present || !validID(idStr) {
-		writeValidation400(w)
+	id, ok := requireID(w, m, "id")
+	if !ok {
 		return
 	}
-	id, _ := strconv.ParseInt(idStr, 10, 64)
 	ct, err := h.DB.Exec(r.Context(), `DELETE FROM bind_code WHERE id=$1 AND used=0`, id)
 	if internalError(w, err) {
 		return

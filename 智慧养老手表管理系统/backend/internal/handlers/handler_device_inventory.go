@@ -124,12 +124,10 @@ func (h *Handler) deviceResetSecret(w http.ResponseWriter, r *http.Request) {
 	if !ok {
 		return
 	}
-	idStr, present := vstr(m, "deviceId")
-	if !present || !validID(idStr) {
-		writeValidation400(w)
+	deviceID, ok := requireID(w, m, "deviceId")
+	if !ok {
 		return
 	}
-	deviceID, _ := strconv.ParseInt(idStr, 10, 64)
 	ctx := r.Context()
 	var exists bool
 	if internalError(w, h.DB.QueryRow(ctx, `SELECT EXISTS(SELECT 1 FROM device WHERE device_id=$1)`, deviceID).Scan(&exists)) {
@@ -173,12 +171,10 @@ func (h *Handler) detachDevice(w http.ResponseWriter, r *http.Request, remove bo
 	if !ok {
 		return
 	}
-	idStr, present := vstr(m, "deviceId")
-	if !present || !validID(idStr) {
-		writeValidation400(w)
+	deviceID, ok := requireID(w, m, "deviceId")
+	if !ok {
 		return
 	}
-	deviceID, _ := strconv.ParseInt(idStr, 10, 64)
 	ctx := r.Context()
 	tx, err := h.DB.Begin(ctx)
 	if internalError(w, err) {
