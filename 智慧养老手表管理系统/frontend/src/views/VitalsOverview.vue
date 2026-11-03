@@ -27,7 +27,7 @@
       </form>
     </div>
 
-    <el-table class="adaptive-record-table" :data="oldsList"
+    <el-table v-if="!mobileLayout" class="adaptive-record-table" :data="oldsList"
     style="width: 100%" border>
     <template #empty><div  class="care-empty-state"><strong>暂无健康记录</strong><span>最新上报的心率与血压数据会显示在这里。</span></div></template>
 
@@ -64,7 +64,7 @@
         </template>
       </el-table-column>
     </el-table>
-    <record-cards :records="oldsList" :fields='[{"key":"preState","label":"血压状态","state":"health","handled":"preHandled"},{"key":"rateState","label":"心率状态","state":"health","handled":"rateHandled"},{"key":"oldId","label":"长者编号"},{"key":"sex","label":"性别"}]' label="心率与血压记录" title-key="name" key-field="oldId" time-key="createTime">
+    <record-cards v-if="mobileLayout" :records="oldsList" :fields='[{"key":"preState","label":"血压状态","state":"health","handled":"preHandled"},{"key":"rateState","label":"心率状态","state":"health","handled":"rateHandled"},{"key":"oldId","label":"长者编号"},{"key":"sex","label":"性别"}]' label="心率与血压记录" title-key="name" key-field="oldId" time-key="createTime">
       <template #actions="scope"  ><el-button v-if="scope.row.rateState==1 || scope.row.preState==1"
                      size="small" plain type="danger" icon="el-icon-warning"
                      @click="showAlertRow(scope.row)">查看原因</el-button>
@@ -89,16 +89,17 @@
 
     <HealthAlertDialog :dialog="alertDialog" @resolve="resolveAlert" />
 
-    <el-dialog title="健康记录详情" v-model="isShowRoleDialog" @opened="resizeCharts" @closed="disposeCharts">
+    <el-dialog title="健康记录详情" v-model="detailsVisible" @opened="resizeCharts" @closed="disposeCharts">
       <el-alert v-if="chartError" :title="chartError" type="warning" :closable="false" show-icon></el-alert>
       <div v-loading="chartLoading" class="record-chart-content"><div id="myChart" ref="mychart" class="record-chart"></div><div id="myChartTwo" ref="mychartTwo" class="record-chart"></div></div>
-      <template #footer><div  class="dialog-footer"><el-button type="primary" @click="isShowRoleDialog = false">关闭详情</el-button></div></template>
+      <template #footer><div  class="dialog-footer"><el-button type="primary" @click="detailsVisible = false">关闭详情</el-button></div></template>
     </el-dialog>
   </div>
 
 </template>
 
 <script>
+import { useCollectionLayout } from '@/composables/useCollectionLayout'
 import { apiErrorMessage } from '../api/httpContract'
 
 import axios from 'axios'
@@ -109,24 +110,17 @@ import { healthAlertMethods } from './vitals.alert-methods'
 import { recordCharts } from '@/charts'
 
 export default {
+  setup () { return { mobileLayout: useCollectionLayout(900) } },
   components: { RecordCards, HealthAlertDialog },
   mixins: [recordCharts],
   data () {
     return {
       searchText: '',
-      chartLoading: false, chartError: '',
 
       total: 0,
       pageSize: 10,
       currentPage: 1,
       oldsList: [],
-      isShowRoleDialog: false,
-
-      hrs: [],
-      bps: [],
-      createTimes: [],
-      time: '',
-      name: '',
       rateCount: '',
       preCount: '',
       // 异常（红点）处置
@@ -157,7 +151,6 @@ export default {
 
   },
 
-  beforeUnmount () { this.isShowRoleDialog = false },
   methods: {
     ...healthAlertMethods,
     searchOlds (keepPage = false) {
@@ -225,31 +218,10 @@ export default {
       this.currentPage = val
       this.searchOlds(true)
     },
-    showRoleDialog (curOld) {
-      this.isShowRoleDialog = true
-      this.chartLoading = true
-      this.chartError = ''
-      this.name = curOld.name || ''
-      return axios.post('api/v1/vitals/chart', { oldId: curOld.oldId }, { withCredentials: true }).then(response => {
-        if (!this.isShowRoleDialog) return
-        this.bps = Array.isArray(response.data.bps) ? response.data.bps : []; this.hrs = Array.isArray(response.data.hrs) ? response.data.hrs : []; this.createTimes = Array.isArray(response.data.createTimes) ? response.data.createTimes : []; this.time = response.data.time;
-        if (!this.hrs.length && !this.bps.length) { this.chartError = '暂无可展示的健康详情。'; return }
-        this.drawLine(); this.drawLineTwo()
-      }).catch((error) => { this.chartError = apiErrorMessage(error, '详情暂时无法加载，请关闭后重试。') }).then(() => { this.chartLoading = false })
-    },
 
-  drawLine () {
-    this.$nextTick(() => {
-      if (!this.isShowRoleDialog) return
-      this.renderRecordChart(this.$refs.mychart, { title: '心率记录', subtitle: this.name + ' · ' + (this.time || ''), labels: this.createTimes, values: this.hrs, unit: '次/分' })
-    })
-  },
-  drawLineTwo () {
-    this.$nextTick(() => {
-      if (!this.isShowRoleDialog) return
-      this.renderRecordChart(this.$refs.mychartTwo, { title: '血压记录', subtitle: this.name + ' · ' + (this.time || ''), labels: this.createTimes, values: this.bps, unit: 'mmHg' })
-    })
-  }
+    showRoleDialog (row) {
+      return this.showRecordDetails('vitals', row.oldId, row.name)
+    }
   }
 }
 </script>

@@ -26,7 +26,7 @@
     </div>
 
     <el-alert v-if="loadError" :title="loadError" type="error" :closable="false" show-icon></el-alert>
-    <el-table class="adaptive-record-table" v-loading="isLoading" :data="positionList"
+    <el-table v-if="!mobileLayout" class="adaptive-record-table" v-loading="isLoading" :data="positionList"
     style="width: 100%" border>
     <template #empty><div  class="position-empty">{{ loadError ? '位置记录暂时无法加载' : '暂无位置记录' }}</div></template>
 
@@ -56,7 +56,7 @@
       	</template>
       </el-table-column>
     </el-table>
-    <record-cards :records="positionList" :fields='[{"key":"sex","label":"性别"},{"key":"status","label":"告警状态","state":"fall"},{"key":"lng","label":"经度"},{"key":"lat","label":"纬度"}]' label="位置与告警记录" title-key="name" key-field="oldId" time-key="beTime">
+    <record-cards v-if="mobileLayout" :records="positionList" :fields='[{"key":"sex","label":"性别"},{"key":"status","label":"告警状态","state":"fall"},{"key":"lng","label":"经度"},{"key":"lat","label":"纬度"}]' label="位置与告警记录" title-key="name" key-field="oldId" time-key="beTime">
       <template #actions="scope"  ><span class="position-context">{{ describePositionContext(scope.row) }}</span><el-button v-if="scope.row.status==1" size="small" plain type="danger" icon="el-icon-warning"
                        @click="showFallReason(scope.row)">告警记录与处理</el-button>
 <el-button v-if="scope.row.status==1" size="small" plain type="primary" icon="el-icon-check"
@@ -82,6 +82,7 @@
 </template>
 
 <script>
+import { useCollectionLayout } from '@/composables/useCollectionLayout'
 import { apiErrorMessage } from '../api/httpContract'
 
 import axios from 'axios'
@@ -90,6 +91,7 @@ import RecordCards from '@/components/RecordCards.vue'
 import { describePositionContext } from '../utils/positionContext'
 
 export default {
+  setup () { return { mobileLayout: useCollectionLayout(900) } },
   components: { RecordCards, PositionMap },
   data () {
     return {

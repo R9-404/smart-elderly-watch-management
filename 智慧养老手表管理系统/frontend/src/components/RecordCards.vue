@@ -3,8 +3,8 @@
     <div v-if="!records.length" class="care-empty-state" role="status"><strong>{{ emptyTitle }}</strong><span>记录会显示在这里，可调整搜索条件后重试。</span></div>
     <article v-for="(row, index) in records" :key="row[keyField] == null ? index : row[keyField]" class="admin-record">
       <header><h2>{{ row[titleKey] || '记录' }}</h2><span v-if="timeKey && row[timeKey]">{{ row[timeKey] }}</span></header>
-      <dl><template v-for="field in fields.slice(0, 4)" :key="field.key"><dt>{{ field.label }}</dt><dd :class="stateClass(row, field)">{{ valueOf(row, field) }}</dd></template></dl>
-      <details v-if="fields.length > 4" class="record-more"><summary>更多资料</summary><dl><template v-for="field in fields.slice(4)" :key="field.key"><dt>{{ field.label }}</dt><dd :class="stateClass(row, field)">{{ valueOf(row, field) }}</dd></template></dl></details>
+      <dl><template v-for="field in primaryFields" :key="field.key"><dt>{{ field.label }}</dt><dd :class="stateClass(row, field)">{{ valueOf(row, field) }}</dd></template></dl>
+      <details v-if="extraFields.length" class="record-more"><summary>更多资料</summary><dl><template v-for="field in extraFields" :key="field.key"><dt>{{ field.label }}</dt><dd :class="stateClass(row, field)">{{ valueOf(row, field) }}</dd></template></dl></details>
       <div v-if="$slots.actions" class="record-actions"><slot name="actions" v-bind="{ row: row, $index: index }"></slot></div>
     </article>
   </section>
@@ -18,6 +18,10 @@ export default {
     label: { type: String, required: true }, emptyTitle: { type: String, default: '暂无记录' },
     titleKey: { type: String, default: 'name' }, keyField: { type: String, default: 'oldId' },
     timeKey: { type: String, default: '' }
+  },
+  computed: {
+    primaryFields () { return this.fields.slice(0, 4) },
+    extraFields () { return this.fields.slice(4) }
   },
   methods: {
     valueOf (row, field) {
@@ -41,7 +45,6 @@ export default {
 </script>
 
 <style scoped>
-.admin-record-list { display: none; }
 @media (max-width: 900px) {
   .admin-record-list { display: grid; gap: 20px; }
   .admin-record { min-width: 0; padding: 20px 0; border-top: 1px solid #dce4da; }

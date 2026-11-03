@@ -49,7 +49,7 @@
     </el-dialog>
 
     <div v-if="loadError" class="collection-feedback" role="alert"><span>{{ loadError }}</span><el-button plain :loading="isLoading" @click="searchOldPersons(true)">重新加载</el-button></div>
-    <el-table v-if="!loadError" class="adaptive-record-table" :data="personDetailList"
+    <el-table v-if="!mobileLayout && !loadError" class="adaptive-record-table" :data="personDetailList"
     style="width: 100%" border>
     <template #empty><div  class="care-empty-state"><strong>暂无老人档案</strong><span>添加老人或调整搜索条件后，档案会显示在这里。</span></div></template>
 
@@ -87,7 +87,7 @@
         </template>
       </el-table-column>
     </el-table>
-    <record-cards v-if="!loadError" :records="personDetailList" :fields='[{"key":"bothdate","label":"出生日期"},{"key":"sex","label":"性别"},{"key":"phone","label":"电话"},{"key":"room","label":"房间"},{"key":"beTime","label":"入院时间"},{"key":"familyName","label":"家属姓名"},{"key":"familyRelation","label":"关系"},{"key":"familyPhone","label":"家属电话"},{"key":"familyAddress","label":"家属地址"},{"key":"familySex","label":"家属性别"},{"key":"customerName","label":"监护人"},{"key":"deviceId","label":"手表编号"},{"key":"illness","label":"病史"},{"key":"warn","label":"过敏"},{"key":"foodLike","label":"喜好食物"},{"key":"foodHate","label":"忌口食物"},{"key":"drag","label":"常用药物"}]' label="老人档案" empty-title="暂无老人档案" title-key="name" key-field="oldId">
+    <record-cards v-if="mobileLayout && !loadError" :records="personDetailList" :fields='[{"key":"bothdate","label":"出生日期"},{"key":"sex","label":"性别"},{"key":"phone","label":"电话"},{"key":"room","label":"房间"},{"key":"beTime","label":"入院时间"},{"key":"familyName","label":"家属姓名"},{"key":"familyRelation","label":"关系"},{"key":"familyPhone","label":"家属电话"},{"key":"familyAddress","label":"家属地址"},{"key":"familySex","label":"家属性别"},{"key":"customerName","label":"监护人"},{"key":"deviceId","label":"手表编号"},{"key":"illness","label":"病史"},{"key":"warn","label":"过敏"},{"key":"foodLike","label":"喜好食物"},{"key":"foodHate","label":"忌口食物"},{"key":"drag","label":"常用药物"}]' label="老人档案" empty-title="暂无老人档案" title-key="name" key-field="oldId">
       <template #actions="scope"  ><el-button size="small" plain type="primary" icon="el-icon-edit"
                      @click="handleeditOldPerson(scope.$index, scope.row)">编辑
           </el-button>
@@ -110,6 +110,7 @@
 </template>
 
 <script>
+import { useCollectionLayout } from '@/composables/useCollectionLayout'
 import { apiErrorMessage } from '../api/httpContract'
 
 import axios from 'axios'
@@ -118,6 +119,7 @@ import RecordCards from '@/components/RecordCards.vue'
 import ResidentForm from '@/components/records/ResidentForm.vue'
 
 export default {
+  setup () { return { mobileLayout: useCollectionLayout(900) } },
   components: { RecordCards, ResidentForm },
   data () {
     var checkPhone = (rule, value, callback) => {

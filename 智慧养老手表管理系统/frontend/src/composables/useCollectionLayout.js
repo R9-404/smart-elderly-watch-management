@@ -1,8 +1,8 @@
 import { onBeforeUnmount, onMounted, ref } from 'vue'
 
-// Keep this breakpoint aligned with the collection layouts in commercial.css.
-export function useCollectionLayout () {
-  const query = window.matchMedia('(max-width: 1100px)')
+// Keep this breakpoint aligned with the corresponding CSS layouts.
+export function useCollectionLayout (breakpoint = 1100) {
+  const query = window.matchMedia(`(max-width: ${breakpoint}px)`)
   const mobileLayout = ref(query.matches)
   const update = event => { mobileLayout.value = event.matches }
   onMounted(() => {

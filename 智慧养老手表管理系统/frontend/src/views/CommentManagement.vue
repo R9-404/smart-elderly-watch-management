@@ -23,7 +23,7 @@
     </el-dialog>
 
     <div v-if="loadError" class="collection-feedback" role="alert"><span>{{ loadError }}</span><el-button plain :loading="isLoading" @click="searchSaid(true)">重新加载</el-button></div>
-    <el-table v-if="!loadError" class="adaptive-record-table" :data="saidList"
+    <el-table v-if="!mobileLayout && !loadError" class="adaptive-record-table" :data="saidList"
     style="width: 100%" >
     <template #empty><div  class="care-empty-state"><strong>暂无评论</strong><span>收到的评论和回复会显示在这里。</span></div></template>
 
@@ -46,7 +46,7 @@
         </template>
       </el-table-column>
     </el-table>
-    <record-cards v-if="!loadError" :records="saidList" :fields='[{"key":"saidId","label":"作者"},{"key":"said","label":"评论"},{"key":"back","label":"回复"},{"key":"backTime","label":"回复时间"},{"key":"title","label":"文章标题"}]' label="公告评论" title-key="personName" key-field="saidId" time-key="saidTime">
+    <record-cards v-if="mobileLayout && !loadError" :records="saidList" :fields='[{"key":"saidId","label":"作者"},{"key":"said","label":"评论"},{"key":"back","label":"回复"},{"key":"backTime","label":"回复时间"},{"key":"title","label":"文章标题"}]' label="公告评论" title-key="personName" key-field="saidId" time-key="saidTime">
       <template #actions="scope"  ><el-button v-if="scope.row.back==null" size="small" plain type="primary" icon="el-icon-edit"
                      @click="handleeditSaid(scope.$index, scope.row)">回复
           </el-button>
@@ -69,12 +69,14 @@
 </template>
 
 <script>
+import { useCollectionLayout } from '@/composables/useCollectionLayout'
 import { apiErrorMessage } from '../api/httpContract'
 
 import axios from 'axios'
 import RecordCards from '@/components/RecordCards.vue'
 
 export default {
+  setup () { return { mobileLayout: useCollectionLayout(900) } },
   components: { RecordCards },
   data () {
     return {

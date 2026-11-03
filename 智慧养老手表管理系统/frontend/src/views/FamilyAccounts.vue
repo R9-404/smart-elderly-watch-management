@@ -47,7 +47,7 @@
     </el-dialog>
 
     <div v-if="loadError" class="collection-feedback" role="alert"><span>{{ loadError }}</span><el-button plain :loading="isLoading" @click="searchfamily(true)">重新加载</el-button></div>
-    <el-table v-if="!loadError" class="adaptive-record-table" :data="familyList"
+    <el-table v-if="!mobileLayout && !loadError" class="adaptive-record-table" :data="familyList"
     style="width: 100%" border>
     <template #empty><div  class="care-empty-state"><strong>暂无家属账号</strong><span>添加家属或调整搜索条件后，账号会显示在这里。</span></div></template>
 
@@ -70,7 +70,7 @@
         </template>
       </el-table-column>
     </el-table>
-    <record-cards v-if="!loadError" :records="familyList" :fields='[{"key":"name","label":"姓名"},{"key":"oldId","label":"老人编号"},{"key":"familyRelation","label":"关系"},{"key":"familySex","label":"性别"},{"key":"familyPhone","label":"电话"},{"key":"familyAddress","label":"地址"}]' label="家属账号资料" title-key="familyName" key-field="familyId">
+    <record-cards v-if="mobileLayout && !loadError" :records="familyList" :fields='[{"key":"name","label":"姓名"},{"key":"oldId","label":"老人编号"},{"key":"familyRelation","label":"关系"},{"key":"familySex","label":"性别"},{"key":"familyPhone","label":"电话"},{"key":"familyAddress","label":"地址"}]' label="家属账号资料" title-key="familyName" key-field="familyId">
       <template #actions="scope"  ><el-button size="small" plain type="primary" icon="el-icon-edit"
                      @click="handleeditFamily(scope.$index, scope.row)">编辑
           </el-button>
@@ -93,6 +93,7 @@
 </template>
 
 <script>
+import { useCollectionLayout } from '@/composables/useCollectionLayout'
 import { apiErrorMessage } from '../api/httpContract'
 
 import axios from 'axios'
@@ -100,6 +101,7 @@ import RecordCards from '@/components/RecordCards.vue'
 import FamilyForm from '@/components/records/FamilyForm.vue'
 
 export default {
+  setup () { return { mobileLayout: useCollectionLayout(900) } },
   components: { RecordCards, FamilyForm },
   data () {
     var checkPhone = (rule, value, callback) => {

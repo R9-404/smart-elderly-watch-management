@@ -3,7 +3,7 @@
     <div class="record-heading"><h2>最近上报记录</h2><el-button link :loading="isLoading" @click="searchposition">刷新记录 <i class="el-icon-refresh" aria-hidden="true"></i></el-button></div>
 
     <el-alert v-if="loadError" :title="loadError" type="error" :closable="false" show-icon></el-alert>
-    <el-table class="desktop-records" v-loading="isLoading" :data="positionList"
+    <el-table v-if="!mobileLayout" class="desktop-records" v-loading="isLoading" :data="positionList"
     style="width: 100%" border>
     <template #empty><div  class="position-empty">{{ loadError ? '位置记录暂时无法加载' : '暂无位置记录' }}</div></template>
 
@@ -27,7 +27,7 @@
       	</template>
       </el-table-column>
     </el-table>
-    <section v-if="positionList.length" class="family-record-cards" aria-label="位置和安全记录">
+    <section v-if="mobileLayout && positionList.length" class="family-record-cards" aria-label="位置和安全记录">
       <article v-for="item in positionList" :key="item.oldId" class="family-record-card">
         <h2>{{ item.name || '位置记录' }}</h2>
         <dl>
@@ -40,13 +40,14 @@
         <el-button type="primary" @click="showLocation(item)">在地图中查看位置</el-button>
       </article>
     </section>
-    <div v-else-if="!isLoading" class="family-record-empty">{{ loadError || '暂时没有位置和安全记录。' }}</div>
+    <div v-else-if="mobileLayout && !isLoading" class="family-record-empty">{{ loadError || '暂时没有位置和安全记录。' }}</div>
     <position-map :selection="selectedLocation" />
   </div>
 
 </template>
 
 <script>
+import { useCollectionLayout } from '@/composables/useCollectionLayout'
 import { apiErrorMessage } from '../api/httpContract'
 
 
@@ -55,6 +56,7 @@ import PositionMap from '@/components/PositionMap.vue'
 import { describePositionContext } from '../utils/positionContext'
 
 export default {
+  setup () { return { mobileLayout: useCollectionLayout() } },
   components: { PositionMap },
   data () {
     return {

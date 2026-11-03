@@ -46,7 +46,7 @@
     </el-dialog>
 
     <div v-if="loadError" class="collection-feedback" role="alert"><span>{{ loadError }}</span><el-button plain :loading="isLoading" @click="searchWatchs(true)">重新加载</el-button></div>
-    <el-table v-if="!loadError" class="adaptive-record-table" :data="watchsList"
+    <el-table v-if="!mobileLayout && !loadError" class="adaptive-record-table" :data="watchsList"
     style="width: 100%" border>
     <template #empty><div  class="care-empty-state"><strong>暂无监测阈值档案</strong><span>添加手表或调整搜索条件后，档案会显示在这里。</span></div></template>
 
@@ -69,7 +69,7 @@
         </template>
       </el-table-column>
     </el-table>
-    <record-cards v-if="!loadError" :records="watchsList" :fields='[{"key":"deviceId","label":"手表ID"},{"key":"bpf","label":"血压高值"},{"key":"bpl","label":"血压低值"},{"key":"hrf","label":"心率高值"},{"key":"hrl","label":"心率低值"}]' label="监测阈值档案" title-key="name" key-field="deviceId" time-key="opTime">
+    <record-cards v-if="mobileLayout && !loadError" :records="watchsList" :fields='[{"key":"deviceId","label":"手表ID"},{"key":"bpf","label":"血压高值"},{"key":"bpl","label":"血压低值"},{"key":"hrf","label":"心率高值"},{"key":"hrl","label":"心率低值"}]' label="监测阈值档案" title-key="name" key-field="deviceId" time-key="opTime">
       <template #actions="scope"  ><el-button size="small" plain type="primary" icon="el-icon-edit"
                      @click="handleEditwatch(scope.$index, scope.row)">编辑
           </el-button>
@@ -92,6 +92,7 @@
 </template>
 
 <script>
+import { useCollectionLayout } from '@/composables/useCollectionLayout'
 import { apiErrorMessage } from '../api/httpContract'
 
 import axios from 'axios'
@@ -100,6 +101,7 @@ import RecordCards from '@/components/RecordCards.vue'
 import ThresholdForm from '@/components/records/ThresholdForm.vue'
 
 export default {
+  setup () { return { mobileLayout: useCollectionLayout(900) } },
   components: { RecordCards, ThresholdForm },
   data () {
     return {

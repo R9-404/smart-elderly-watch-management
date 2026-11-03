@@ -90,7 +90,7 @@
 
     <el-alert v-if="mutationError" :title="mutationError" type="error" :closable="false" show-icon />
     <div v-if="loadError" class="collection-feedback" role="alert"><span>{{ loadError }}</span><el-button plain :loading="isLoading" @click="searchCustomers(true)">重新加载</el-button></div>
-    <el-table v-if="!loadError" class="adaptive-record-table" :data="customerList"
+    <el-table v-if="!mobileLayout && !loadError" class="adaptive-record-table" :data="customerList"
     style="width: 100%" border>
     <template #empty><div  class="care-empty-state"><strong>暂无监护人信息</strong><span>添加监护人或调整搜索条件后，信息会显示在这里。</span></div></template>
 
@@ -111,7 +111,7 @@
         </template>
       </el-table-column>
     </el-table>
-    <record-cards v-if="!loadError" :records="customerList" :fields='[{"key":"customerAge","label":"年龄"},{"key":"customerSex","label":"性别"},{"key":"customerPhone","label":"电话"},{"key":"customerAddress","label":"地址"}]' label="监护人资料" title-key="customerName" key-field="customerId">
+    <record-cards v-if="mobileLayout && !loadError" :records="customerList" :fields='[{"key":"customerAge","label":"年龄"},{"key":"customerSex","label":"性别"},{"key":"customerPhone","label":"电话"},{"key":"customerAddress","label":"地址"}]' label="监护人资料" title-key="customerName" key-field="customerId">
       <template #actions="scope"  ><el-button size="small" plain type="primary" icon="el-icon-edit"
                      @click="handleEditRole(scope.$index, scope.row)">编辑
           </el-button>
@@ -134,11 +134,13 @@
 </template>
 
 <script setup lang="ts">
+import { useCollectionLayout } from '@/composables/useCollectionLayout'
 import { onMounted, ref } from 'vue'
 import { ElMessage, ElMessageBox, type FormInstance } from 'element-plus'
 import RecordCards from '@/components/RecordCards.vue'
 import { api } from '../api/client'
 import { useCustomers, validAge, validPhone } from '../composables/useCustomers'
+const mobileLayout = useCollectionLayout(900)
 const state = useCustomers(api)
 const { searchText, customerDialogVisible, oldEditDialogVisible, customerForm, oldEditForm, isLoading, saving, loadError, mutationError, total, pageSize, currentPage, customerList, searchCustomers, handleEditRole, closeRoleAddDialog, handleSizeChange, changePage } = state
 const addcustomerFormRef = ref<FormInstance>()

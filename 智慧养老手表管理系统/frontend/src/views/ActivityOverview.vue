@@ -21,7 +21,7 @@
       </form>
     </div>
 
-    <el-table class="adaptive-record-table" :data="stepList"
+    <el-table v-if="!mobileLayout" class="adaptive-record-table" :data="stepList"
     style="width: 100%" border>
     <template #empty><div  class="care-empty-state"><strong>暂无活动数据</strong><span>手表上报的步数与睡眠记录会显示在这里。</span></div></template>
     
@@ -46,7 +46,7 @@
         </template>
       </el-table-column>
     </el-table>
-    <record-cards :records="stepList" :fields='[{"key":"sex","label":"性别"},{"key":"step","label":"今日步数"},{"key":"sleep","label":"睡眠时间"},{"key":"sleepAlertState","label":"睡眠情况","state":"health"}]' label="睡眠与步数记录" title-key="name" key-field="oldId" time-key="createTime">
+    <record-cards v-if="mobileLayout" :records="stepList" :fields='[{"key":"sex","label":"性别"},{"key":"step","label":"今日步数"},{"key":"sleep","label":"睡眠时间"},{"key":"sleepAlertState","label":"睡眠情况","state":"health"}]' label="睡眠与步数记录" title-key="name" key-field="oldId" time-key="createTime">
       <template #actions="scope"  ><el-button size="small" plain type="success" icon="el-icon-check" aria-label="查看睡眠详情" @click="showRoleDialog(scope.row)">
             查看睡眠详情
           </el-button></template>
@@ -63,16 +63,17 @@
       </el-pagination>
     </div>
 
-    <el-dialog title="睡眠记录详情" v-model="isShowRoleDialog" @opened="resizeCharts" @closed="disposeCharts">
+    <el-dialog title="睡眠记录详情" v-model="detailsVisible" @opened="resizeCharts" @closed="disposeCharts">
       <el-alert v-if="chartError" :title="chartError" type="warning" :closable="false" show-icon></el-alert>
       <div v-loading="chartLoading" class="record-chart-content"><div id="myChart" ref="mychart" class="record-chart"></div></div>
-      <template #footer><div  class="dialog-footer"><el-button type="primary" @click="isShowRoleDialog = false">关闭详情</el-button></div></template>
+      <template #footer><div  class="dialog-footer"><el-button type="primary" @click="detailsVisible = false">关闭详情</el-button></div></template>
     </el-dialog>
   </div>
 
 </template>
 
 <script>
+import { useCollectionLayout } from '@/composables/useCollectionLayout'
 import { apiErrorMessage } from '../api/httpContract'
 
 import axios from 'axios'
@@ -81,23 +82,17 @@ import RecordCards from '@/components/RecordCards.vue'
 import { recordCharts } from '@/charts'
 
 export default {
+  setup () { return { mobileLayout: useCollectionLayout(900) } },
   components: { RecordCards },
   mixins: [recordCharts],
   data () {
     return {
       searchText: '',
-      chartLoading: false, chartError: '',
 
       total: 0,
       pageSize: 10,
       currentPage: 1,
       stepList: [],
-
-		sleep: [],
-		name: '',
-
-		createTime: [],
-      isShowRoleDialog: false,
 
 			stepCount:''
     }
@@ -109,7 +104,6 @@ export default {
 
   },
 
-  beforeUnmount () { this.isShowRoleDialog = false },
   methods: {
     searchStep (keepPage = false) {
       if (keepPage !== true) this.currentPage = 1
@@ -155,25 +149,10 @@ export default {
       this.currentPage = val
       this.searchStep(true)
     },
-    showRoleDialog (curOld) {
-      this.isShowRoleDialog = true
-      this.chartLoading = true
-      this.chartError = ''
-      this.name = curOld.name || ''
-      return axios.post('api/v1/activity/chart', { oldId: curOld.oldId }, { withCredentials: true }).then(response => {
-        if (!this.isShowRoleDialog) return
-        this.sleep = Array.isArray(response.data.sleep) ? response.data.sleep : []; this.createTime = Array.isArray(response.data.createTime) ? response.data.createTime : [];
-        if (!this.sleep.length) { this.chartError = '暂无可展示的睡眠详情。'; return }
-        this.drawLine()
-      }).catch((error) => { this.chartError = apiErrorMessage(error, '详情暂时无法加载，请关闭后重试。') }).then(() => { this.chartLoading = false })
-    },
 
-	drawLine () {
-    this.$nextTick(() => {
-      if (!this.isShowRoleDialog) return
-      this.renderRecordChart(this.$refs.mychart, { title: '睡眠时长', subtitle: this.name, labels: this.createTime, values: this.sleep, unit: '小时', type: 'bar' })
-    })
-  }
+    showRoleDialog (row) {
+      return this.showRecordDetails('activity', row.oldId, row.name)
+    }
   }
 }
 

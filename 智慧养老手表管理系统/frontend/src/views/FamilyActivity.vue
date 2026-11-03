@@ -3,7 +3,7 @@
     <div class="record-heading"><h2>最近上报记录</h2><el-button link :loading="isLoading" @click="searchStep">刷新记录 <i class="el-icon-refresh" aria-hidden="true"></i></el-button></div>
     <el-alert v-if="loadError" :title="loadError" type="error" :closable="false" show-icon></el-alert>
 
-    <el-table v-loading="isLoading" class="desktop-records" :data="stepList"
+    <el-table v-if="!mobileLayout" v-loading="isLoading" class="desktop-records" :data="stepList"
     style="width: 100%" border>
     <template #empty><div  class="care-empty-state"><strong>暂无活动数据</strong><span>家人手表上报的步数与睡眠记录会显示在这里。</span></div></template>
 
@@ -25,7 +25,7 @@
         </template>
       </el-table-column>
     </el-table>
-    <section v-if="stepList.length" class="family-record-cards" aria-label="活动和睡眠记录">
+    <section v-if="mobileLayout && stepList.length" class="family-record-cards" aria-label="活动和睡眠记录">
       <article v-for="item in stepList" :key="item.oldId" class="family-record-card">
         <h2>{{ item.name || '活动记录' }}</h2>
         <dl>
@@ -37,10 +37,10 @@
         <el-button type="primary" @click="showDetails(item)">查看睡眠详情</el-button>
       </article>
     </section>
-    <div v-else class="family-record-empty">{{ isLoading ? '正在加载活动记录…' : loadError || '暂时没有活动或睡眠记录。' }}</div>
+    <div v-else-if="mobileLayout" class="family-record-empty">{{ isLoading ? '正在加载活动记录…' : loadError || '暂时没有活动或睡眠记录。' }}</div>
 
-    <el-dialog :title="name ? name + '的睡眠详情' : '睡眠详情'" width="92%" v-model="detailsVisible" @opened="resizeCharts" @closed="disposeCharts">
-      <el-alert v-if="chartError" :title="chartError" type="warning" :closable="false" show-icon></el-alert><el-button v-if="chartError" link @click="showDetails({ name: name })">重新加载详情</el-button><div v-loading="chartLoading">
+    <el-dialog :title="chartName ? chartName + '的睡眠详情' : '睡眠详情'" width="92%" v-model="detailsVisible" @opened="resizeCharts" @closed="disposeCharts">
+      <el-alert v-if="chartError" :title="chartError" type="warning" :closable="false" show-icon></el-alert><el-button v-if="chartError" link @click="showDetails({ name: chartName })">重新加载详情</el-button><div v-loading="chartLoading">
 
 	  <div v-show="!chartError" id="myChart" ref="mychart" class="sleep-chart"></div>
 
@@ -54,6 +54,7 @@
 </template>
 
 <script>
+import { useCollectionLayout } from '@/composables/useCollectionLayout'
 import { apiErrorMessage } from '../api/httpContract'
 
 
@@ -61,6 +62,7 @@ import axios from 'axios'
 import { recordCharts } from '@/charts'
 
 export default {
+  setup () { return { mobileLayout: useCollectionLayout() } },
   mixins: [recordCharts],
   data () {
     return {
@@ -68,15 +70,7 @@ export default {
 
       stepList: [],
       isLoading: false,
-      chartLoading: false,
-      chartError: '',
       loadError: '',
-		sleep: [],
-		name: '',
-
-		createTime: [],
-
-      detailsVisible: false,
 
       }
   },
@@ -88,7 +82,6 @@ export default {
 
   },
 
-  beforeUnmount () { this.detailsVisible = false },
   methods: {
     stateLabel (value) {
       if (value === 1 || value === '1') return '异常'
@@ -127,44 +120,9 @@ export default {
         }).then(function () { _this.isLoading = false })
     },
 
-    showDetails (curOld) {
-      var _this=this
-      var oldId=_this.oldId
-
-      _this.detailsVisible = true
-      _this.chartLoading = true
-      _this.chartError = ''
-      _this.name = curOld.name || ''
-      			axios.post('api/v1/activity/chart',{
-								"oldId":oldId
-							},
-      				{
-      					headers: {
-      						'content-type': 'application/json'
-      					},
-      					withCredentials: true
-      				}).then(function (response) {
-
-        _this.sleep = Array.isArray(response.data.sleep) ? response.data.sleep : []
-        _this.createTime = Array.isArray(response.data.createTime) ? response.data.createTime : []
-        if (!_this.sleep.length) { _this.chartError = '暂时没有可展示的睡眠详情。'; return }
-        if (!_this.detailsVisible) return
-        _this.drawLine()
-
-      			})
-      				.catch(function (error) {
-
-          _this.chartError = apiErrorMessage(error, '详情暂时无法加载，请重试。')
-        }).then(function () { _this.chartLoading = false })
-
-    },
-
-	drawLine () {
-    this.$nextTick(() => {
-      if (!this.detailsVisible) return
-      this.renderRecordChart(this.$refs.mychart, { title: '睡眠时长', subtitle: this.name, labels: this.createTime, values: this.sleep, unit: '小时', type: 'bar' })
-    })
-  }
+    showDetails (row) {
+      return this.showRecordDetails('activity', this.oldId, row.name)
+    }
   }
 }
 

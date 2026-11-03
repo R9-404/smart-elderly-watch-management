@@ -160,7 +160,6 @@ html.large-text #app .care-app .device-record-actions .el-button, html.large-tex
   html.large-text #app .care-app .collection-metrics span { font-size: 17px; min-height: 54px; }
 }
 
-@media (max-width: 900px) { #app .care-app .adaptive-record-table { display: none; } }
 
 /* Scoped additive rules from 2026-10-16 screen-fit changes; preserve preview tokens. */
 #app .care-app .roles .search-field { flex: 0 1 380px; min-width: 240px; max-width: 100%; }

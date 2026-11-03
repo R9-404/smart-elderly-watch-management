@@ -23,7 +23,7 @@
       </form>
     </div>
     
-    <el-table class="adaptive-record-table" :data="OldPersonList"
+    <el-table v-if="!mobileLayout" class="adaptive-record-table" :data="OldPersonList"
     style="width: 100%" border v-loading="isLoading">
     <template #empty><div  class="care-empty-state"><strong>暂无生活信息</strong><span>设备上报的生活信息会显示在这里。</span></div></template>
 
@@ -36,7 +36,7 @@
       <el-table-column prop="foodLike" label="喜欢吃的食物" width="auto" align="center"></el-table-column>
 	  <el-table-column prop="foodHate" label="忌口" width="auto" align="center"></el-table-column>
     </el-table>
-    <record-cards :records="OldPersonList" :fields='[{"key":"sex","label":"性别"},{"key":"illness","label":"病史"},{"key":"warn","label":"过敏药物"},{"key":"drag","label":"常用药物"},{"key":"foodLike","label":"喜欢吃的食物"},{"key":"foodHate","label":"忌口"}]' label="生活资料" title-key="name" key-field="oldId"></record-cards>
+    <record-cards v-if="mobileLayout" :records="OldPersonList" :fields='[{"key":"sex","label":"性别"},{"key":"illness","label":"病史"},{"key":"warn","label":"过敏药物"},{"key":"drag","label":"常用药物"},{"key":"foodLike","label":"喜欢吃的食物"},{"key":"foodHate","label":"忌口"}]' label="生活资料" title-key="name" key-field="oldId"></record-cards>
     
     <div style="margin-top: 10px;text-align: center">
       <el-pagination
@@ -54,12 +54,14 @@
 </template>
 
 <script>
+import { useCollectionLayout } from '@/composables/useCollectionLayout'
 import { apiErrorMessage } from '../api/httpContract'
 
 import axios from 'axios'
 import RecordCards from '@/components/RecordCards.vue'
 
 export default {
+  setup () { return { mobileLayout: useCollectionLayout(900) } },
   components: { RecordCards },
   data () { return { searchText: '', OldPersonList: [], pageSize: 10, currentPage: 1, total: 0, isLoading: false, loadError: '' } },
   created () { this.searchOldPersonLife() },

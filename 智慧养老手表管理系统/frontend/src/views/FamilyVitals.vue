@@ -3,7 +3,7 @@
     <div class="record-heading"><h2>最近上报记录</h2><el-button link :loading="isLoading" @click="searchOlds">刷新记录 <i class="el-icon-refresh" aria-hidden="true"></i></el-button></div>
     <el-alert v-if="loadError" :title="loadError" type="error" :closable="false" show-icon></el-alert>
 
-    <el-table v-loading="isLoading" class="desktop-records" :data="oldsList"
+    <el-table v-if="!mobileLayout" v-loading="isLoading" class="desktop-records" :data="oldsList"
     style="width: 100%" border>
     <template #empty><div  class="care-empty-state"><strong>暂无健康记录</strong><span>老人的最新心率与血压状态会显示在这里。</span></div></template>
 
@@ -28,7 +28,7 @@
         </template>
       </el-table-column>
     </el-table>
-    <section v-if="oldsList.length" class="family-record-cards" aria-label="心率与血压记录">
+    <section v-if="mobileLayout && oldsList.length" class="family-record-cards" aria-label="心率与血压记录">
       <article v-for="item in oldsList" :key="item.oldId" class="family-record-card">
         <h2>{{ item.name || '健康记录' }}</h2>
         <dl>
@@ -39,10 +39,10 @@
         <el-button type="primary" @click="showDetails(item)">查看心率和血压详情</el-button>
       </article>
     </section>
-    <div v-else class="family-record-empty">{{ isLoading ? '正在加载健康记录…' : loadError || '暂时没有心率或血压记录。' }}</div>
+    <div v-else-if="mobileLayout" class="family-record-empty">{{ isLoading ? '正在加载健康记录…' : loadError || '暂时没有心率或血压记录。' }}</div>
 
-    <el-dialog :title="name ? name + '的健康详情' : '心率与血压详情'" width="92%" v-model="detailsVisible" @opened="resizeCharts" @closed="disposeCharts" >
-      <el-alert v-if="chartError" :title="chartError" type="warning" :closable="false" show-icon></el-alert><el-button v-if="chartError" link @click="showDetails({ name: name })">重新加载详情</el-button><div v-loading="chartLoading" class="health-chart-grid">
+    <el-dialog :title="chartName ? chartName + '的健康详情' : '心率与血压详情'" width="92%" v-model="detailsVisible" @opened="resizeCharts" @closed="disposeCharts" >
+      <el-alert v-if="chartError" :title="chartError" type="warning" :closable="false" show-icon></el-alert><el-button v-if="chartError" link @click="showDetails({ name: chartName })">重新加载详情</el-button><div v-loading="chartLoading" class="health-chart-grid">
 
 	  <div v-show="!chartError" id="myChart" ref="mychart" class="rate-chart"></div>
 
@@ -58,6 +58,7 @@
 </template>
 
 <script>
+import { useCollectionLayout } from '@/composables/useCollectionLayout'
 import { apiErrorMessage } from '../api/httpContract'
 
 
@@ -65,24 +66,15 @@ import axios from 'axios'
 import { recordCharts } from '@/charts'
 
 export default {
+  setup () { return { mobileLayout: useCollectionLayout() } },
   mixins: [recordCharts],
   data () {
     return {
 
       oldsList: [],
       isLoading: false,
-      chartLoading: false,
-      chartError: '',
       loadError: '',
 		oldId: '',
-
-      detailsVisible: false,
-
-			hrs: [],
-			bps: [],
-			createTimes: [],
-			time: '',
-			name: '',
 
 			}
   },
@@ -94,7 +86,6 @@ export default {
 
   },
 
-  beforeUnmount () { this.detailsVisible = false },
   methods: {
     stateLabel (value) {
       if (value === 1 || value === '1') return '异常'
@@ -134,53 +125,9 @@ export default {
         }).then(function () { _this.isLoading = false })
     },
 
-    showDetails (curOld) {
-			var _this=this
-			var oldId=_this.oldId
-
-      _this.detailsVisible = true
-      _this.chartLoading = true
-      _this.chartError = ''
-      _this.name = curOld.name || ''
-			axios.post('api/v1/vitals/chart',{
-          "oldId":oldId
-        },
-				{
-					headers: {
-						'content-type': 'application/json'
-					},
-					withCredentials: true
-				}).then(function (response) {
-
-				_this.bps = Array.isArray(response.data.bps) ? response.data.bps : []
-				_this.hrs = Array.isArray(response.data.hrs) ? response.data.hrs : []
-				_this.time=response.data.time
-				_this.createTimes = Array.isArray(response.data.createTimes) ? response.data.createTimes : []
-				if (!_this.hrs.length && !_this.bps.length) { _this.chartError = '暂时没有可展示的健康详情。'; return }
-        if (!_this.detailsVisible) return
-        _this.drawLine()
-				_this.drawLineTwo()
-
-			})
-				.catch(function (error) {
-
-          _this.chartError = apiErrorMessage(error, '详情暂时无法加载，请重试。')
-				}).then(function () { _this.chartLoading = false })
-
-    },
-
-	drawLine () {
-    this.$nextTick(() => {
-      if (!this.detailsVisible) return
-      this.renderRecordChart(this.$refs.mychart, { title: '心率记录', subtitle: this.name + ' · ' + (this.time || ''), labels: this.createTimes, values: this.hrs, unit: '次/分' })
-    })
-  },
-  drawLineTwo () {
-    this.$nextTick(() => {
-      if (!this.detailsVisible) return
-      this.renderRecordChart(this.$refs.mychartTwo, { title: '血压记录', subtitle: this.name + ' · ' + (this.time || ''), labels: this.createTimes, values: this.bps, unit: 'mmHg' })
-    })
-  }
+    showDetails (row) {
+      return this.showRecordDetails('vitals', this.oldId, row.name)
+    }
   }
 }
 

@@ -56,8 +56,6 @@
 .care-family .record-heading { display: flex; justify-content: space-between; align-items: center; gap: 16px; margin-bottom: 20px; }
 .care-family .record-heading h2 { margin: 0; color: #213c32; font-size: 22px; }
 .care-family .el-alert { margin-bottom: 16px; }
-.care-family .family-record-cards,
-.care-family .family-record-empty { display: none; }
 .care-family .status-normal { color: #236b3d; font-weight: 600; }
 .care-family .status-danger { color: #a4262c; font-weight: 600; }
 .care-family .el-tag--success { color: #236b3d; background: #edf7f0; border-color: #bad8c2; }
@@ -110,7 +108,6 @@ html.large-text .care-family .unknown-state { font-size: 18px; }
   #app .care-family .roles { padding: 0; border: 0; background: transparent; box-shadow: none; }
   .care-family .family-record-cards { display: grid; gap: 14px; }
   .care-family .family-record-empty { display: block; padding: 24px 16px; border: 1px solid var(--care-line); border-radius: 12px; background: #fff; color: #33453c; font-size: 17px; line-height: 1.7; text-align: center; }
-  .care-family .desktop-records { display: none; }
   .care-family .family-record-card { padding: 18px; border: 1px solid var(--care-line); border-radius: 12px; background: #fff; }
   .care-family .family-record-card h2 { margin: 0 0 12px; color: var(--care-ink); font-size: 19px; }
   .care-family .family-record-card dl { display: grid; grid-template-columns: minmax(100px, auto) 1fr; gap: 10px 12px; margin: 0 0 14px; }
