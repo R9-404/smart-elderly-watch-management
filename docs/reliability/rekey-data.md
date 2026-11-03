@@ -28,7 +28,7 @@ rekey-data --previous-key-file <私有旧配置文件> > after.json
 
 程序中断不会回滚已经提交的其他行。保留 A+B 后再次从头执行即可：active 密文先认证再跳过，旧密文继续处理，失败值不被替换。遇到任一冲突、认证错误、残留明文、超时或预算耗尽，apply 返回非零。CLI stdout 始终只输出聚合计数，stderr 使用固定错误说明，不输出行主键、密文、明文、DSN 或 key 内容。
 
-`before`、`applied`、`after` 分别记录预检、实际更新和新扫描。`scanned` 与 `rewritten` 按数据库行计数；新增的 `values` 按检查的值计数，一个位置事件可以包含两个坐标值。`complete` 表示该列完成了本次高水位扫描；`encrypted_columns_clean` 仅表示本次扫描未发现清单内残留。分析消费者可能已经删除源事件并将 A 密文写入 PG，因此处理 MySQL outbox 不代表 PG 也已轮换。扫描期间的插入、旧实例继续写 A、对象、binlog、副本、WAL、历史备份和回滚程序也不能由此推断安全，`retirement_authorized` 始终为 `false`。最终停用 A 仍需独立的写版本屏障、全部资产残留盘点、最旧备份恢复和审查。
+`before`、`applied`、`after` 分别记录预检、实际更新和新扫描。`scanned` 与 `rewritten` 按数据库行计数；新增的 `values` 按检查的值计数，一个位置事件可以包含两个坐标值。`scope=mysql_registered_fields` 明确报告范围；`complete` 表示该列完成了本次高水位扫描，`encrypted_columns_clean` 仅表示本次扫描未发现清单内残留。分析消费者可能已经删除源事件并将 A 密文写入 PG，因此处理 MySQL outbox 不代表 PG 也已轮换；选定来源的 PG 坐标另用 [`rekey-projection`](rekey-projection.md) 处理。扫描期间的插入、旧实例继续写 A、对象、binlog、副本、WAL、历史备份和回滚程序也不能由此推断安全，`retirement_authorized` 始终为 `false`。最终停用 A 仍需独立的写版本屏障、全部资产残留盘点、最旧备份恢复和审查。
 
 ## 验证边界
 
