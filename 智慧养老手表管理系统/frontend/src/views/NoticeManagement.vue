@@ -58,6 +58,7 @@
 @media (max-width: 480px) { .announcement-actions { align-items: stretch; flex-direction: column; } .announcement-actions .el-input { width: 100%; } }
 </style>
 <script>
+import { api as requestClient } from '../api/client'
 import { apiErrorMessage } from '../api/httpContract'
 
 	
@@ -77,7 +78,7 @@ export default {
       picShow () {
         if (this.gallerySaving || !this.fileList2.length || this.fileList2.some(file => file.status !== 'success')) return
         this.gallerySaving = true
-        axios.post('api/v1/gallery/replace', { fileListName: this.fileList2.map(file => file.name) }, { withCredentials: true }).then((response) => {
+        requestClient.post('api/v1/gallery/replace', { fileListName: this.fileList2.map(file => file.name) }).then((response) => {
           if (response.data.returnCode !== '1111') throw new Error('gallery rejected')
           this.$message.success('展示图片已保存')
           this.$refs.galleryUpload.clearFiles()
@@ -108,7 +109,7 @@ export default {
         if (this.deletingId !== null) return
         this.deletingId = row.textId
         this.$confirm('删除后将无法继续阅读这条公告，是否删除？', '删除公告', { confirmButtonText: '删除公告', cancelButtonText: '保留公告', type: 'warning' }).then(() => {
-          return axios.post('api/v1/notices/delete', { textId: row.textId }, { withCredentials: true })
+          return requestClient.post('api/v1/notices/delete', { textId: row.textId })
         }).then((response) => {
           if (response.data.returnCode !== '1111') throw new Error('delete rejected')
           this.$message.success('公告已删除')
@@ -122,7 +123,7 @@ export default {
       if (keepPage !== true) this.currentPage = 1
         this.isLoading = true
         this.loadError = ''
-        return axios.post('api/v1/notices/list', { page: this.currentPage, pageSize: this.pageSize,  title: this.searchText }, { withCredentials: true }).then((response) => {
+        return requestClient.post('api/v1/notices/list', { page: this.currentPage, pageSize: this.pageSize,  title: this.searchText }).then((response) => {
           if (!Array.isArray(response.data.texts)) throw new Error('missing notices')
           this.tableData = response.data.texts
           this.total = response.data.total ?? this.tableData.length

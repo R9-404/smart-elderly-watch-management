@@ -92,15 +92,16 @@
 </template>
 
 <script>
+import { deleteRecord, writeRecord } from '@/composables/recordActions'
+import { pagedRecords } from '@/composables/pagedRecords'
 import { useCollectionLayout } from '@/composables/useCollectionLayout'
-import { apiErrorMessage } from '../api/httpContract'
 
-import axios from 'axios'
 import { checkThreshold } from './watch.validation'
 import RecordCards from '@/components/RecordCards.vue'
 import ThresholdForm from '@/components/records/ThresholdForm.vue'
 
 export default {
+  mixins: [pagedRecords({ path: "api/v1/monitoring-profiles/list", responseKey: "watchDtos", recordsKey: "watchsList", searchKey: "oldName", load: "searchWatchs", failure: "监测阈值档案暂时无法加载，请检查服务连接后重试。" })],
   setup () { return { mobileLayout: useCollectionLayout(900) } },
   components: { RecordCards, ThresholdForm },
   data () {
@@ -132,12 +133,6 @@ export default {
         hrl: [{ validator: checkThreshold, trigger: 'blur' }]
       },
 
-      isLoading: false,
-      loadError: '',
-      total: 0,
-      pageSize: 10,
-      currentPage: 1,
-      watchsList: [],
 
     }
   },
@@ -145,148 +140,33 @@ export default {
     this.searchWatchs()
   },
   methods: {
-    searchWatchs (keepPage = false) {
-      if (this.isLoading) return
-      this.isLoading = true
-      this.loadError = ''
-      if (keepPage !== true) this.currentPage = 1
-      var _this = this
-        var oldName = _this.searchText
-        
-        return axios.post('api/v1/monitoring-profiles/list',
-          { page: this.currentPage, pageSize: this.pageSize,
-            'oldName': oldName === '' ? '' : _this.searchText
-          },
-          {
-            headers: {
-              'content-type': 'application/json'
-            },
-            withCredentials: true
-          }).then(function (response) {
-          if (!Array.isArray(response.data.watchDtos)) throw new Error('invalid records')
-          _this.watchsList = response.data.watchDtos
-          _this.total = response.data.total ?? response.data.watchDtos.length
-
-        })
-          .catch(function (error) {
-            _this.loadError = apiErrorMessage(error, '监测阈值档案暂时无法加载，请检查服务连接后重试。')
-            _this.watchsList = []
-            _this.total = 0
-          }).finally(function () { _this.isLoading = false })
-      
-    },
-    addWatchs () {
-      var _this = this
-      this.$refs.addwatchFormRef.validate(function (valid) {
-        if (!valid) return
-        axios.post('api/v1/monitoring-profiles/create',
-          _this.watchForm,
-          {
-            headers: {
-              'content-type': 'application/json'
-            },
-            withCredentials: true
-          }).then(function (response) {
-
-          if (response.data.returnCode === '1111') {
-            _this.watchDialogVisible = false
-            _this.searchWatchs()
-            _this.$message({
-              type: 'success',
-              message: '添加手表成功'
-            })
-          } else {
-            _this.$message({
-              type: 'error',
-              message: '添加手表失败——可能原因手表ID重复'
-            })
-          }
-        })
-          .catch(function (error) {
-            _this.$message.error(apiErrorMessage(error, '请求未完成，请重试'))
-          })
-      })
-    },
+    addWatchs () { return this.saveProfile(false) },
     closeRoleAddDialog () {
       this.$refs.addwatchFormRef.resetFields()
     },
-    editWatch () {
-      var _this = this
-      this.$refs.editwatchFormRef.validate(function (valid) {
+    editWatch () { return this.saveProfile(true) },
+    saveProfile (editing) {
+      const form = this.$refs[editing ? 'editwatchFormRef' : 'addwatchFormRef']
+      form.validate(valid => {
         if (!valid) return
-        axios.post('api/v1/monitoring-profiles/update', _this.watchEditForm,
-          {
-            headers: {
-              'content-type': 'application/json'
-            },
-            withCredentials: true
-          }).then(function (response) {
-
-          if (response.data.returnCode === '1111') {
-            _this.watchEditDialogVisible = false
-            _this.$message({
-              type: 'success',
-              message: '编辑手表信息成功'
-            })
-            _this.searchWatchs()
-          } else {
-            _this.$message({
-              type: 'error',
-              message: '编辑手表信息失败'
-            })
-          }
+        const path = editing ? 'api/v1/monitoring-profiles/update' : 'api/v1/monitoring-profiles/create'
+        const body = editing ? this.watchEditForm : this.watchForm
+        return writeRecord(this, path, body, '监测档案已保存', () => {
+          if (editing) this.watchEditDialogVisible = false
+          else this.watchDialogVisible = false
+          this.searchWatchs()
         })
-          .catch(function (error) {
-            _this.$message.error(apiErrorMessage(error, '请求未完成，请重试'))
-          })
       })
     },
-    async deleteRole (deviceId) {
-
-      var _this = this
-      try {
-        await _this.$confirm('此操作将永久删除该文件, 是否继续?', '提示', {
-          confirmButtonText: '确定',
-          cancelButtonText: '取消',
-          type: 'warning'
-        })
-
-        axios.post('api/v1/monitoring-profiles/delete', {'deviceId': deviceId},
-          {
-            headers: {
-              'content-type': 'application/json'
-            },
-            withCredentials: true
-          }).then(function (response) {
-
-          if (response.data.returnCode === '1111') {
-            _this.$message({
-              type: 'success',
-              message: '删除信息成功'
-            })
-          }
-          _this.searchWatchs()
-        })
-          .catch(function (error) {
-            _this.$message.error(apiErrorMessage(error, '请求未完成，请重试'))
-          })
-      } catch (err) {
-        this.$message({
-          type: 'info',
-          message: '已取消删除'
-        })
-      }
+    deleteRole (deviceId) {
+      return deleteRecord(this, 'api/v1/monitoring-profiles/delete', { deviceId }, '确认删除该监测档案？', () => this.searchWatchs())
     },
     handleEditwatch (index, row) {
       this.watchEditDialogVisible = true
       this.watchEditForm = Object.fromEntries(['deviceId', 'bpf', 'bpl', 'hrf', 'hrl'].map(key => [key, row[key]])) // 解决修改弹出框数据时，表格数据会发生同步改变
 
     },
-    handleSizeChange (val) { this.pageSize = val; this.currentPage = 1; this.searchWatchs(true)
-    },
 
-    changePage (val) { this.currentPage = val; this.searchWatchs(true)
-    },
 
 
   }

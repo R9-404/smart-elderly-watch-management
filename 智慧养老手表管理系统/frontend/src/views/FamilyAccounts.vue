@@ -93,14 +93,15 @@
 </template>
 
 <script>
+import { deleteRecord, writeRecord } from '@/composables/recordActions'
+import { pagedRecords } from '@/composables/pagedRecords'
 import { useCollectionLayout } from '@/composables/useCollectionLayout'
-import { apiErrorMessage } from '../api/httpContract'
 
-import axios from 'axios'
 import RecordCards from '@/components/RecordCards.vue'
 import FamilyForm from '@/components/records/FamilyForm.vue'
 
 export default {
+  mixins: [pagedRecords({ path: "api/v1/family/select", responseKey: "familyDtos", recordsKey: "familyList", searchKey: "familyName", load: "searchfamily", failure: "家属账号暂时无法加载，请检查服务连接后重试。" })],
   setup () { return { mobileLayout: useCollectionLayout(900) } },
   components: { RecordCards, FamilyForm },
   data () {
@@ -109,18 +110,15 @@ export default {
     if (!value) {
       return callback(new Error('电话号码不能为空'))
     }
-    setTimeout(() => {
-
-      if (!Number.isInteger(+value)) {
-        callback(new Error('请输入数字值'))
+    if (!Number.isInteger(+value)) {
+      callback(new Error('请输入数字值'))
+    } else {
+      if (phoneReg.test(value)) {
+        callback()
       } else {
-        if (phoneReg.test(value)) {
-          callback()
-        } else {
-          callback(new Error('电话号码格式不正确'))
-        }
+        callback(new Error('电话号码格式不正确'))
       }
-    }, 100)
+    }
   }
     return {
       searchText: '', // 角色查询内容
@@ -136,12 +134,6 @@ export default {
       },
       familyEditForm: {},
 
-      isLoading: false,
-      loadError: '',
-      total: 0,
-      pageSize: 10,
-      currentPage: 1,
-      familyList: [],
 
     rules: {
       familyPhone: [
@@ -157,145 +149,32 @@ export default {
     this.searchfamily()
   },
   methods: {
-    searchfamily (keepPage = false) {
-      if (this.isLoading) return
-      this.isLoading = true
-      this.loadError = ''
-      if (keepPage !== true) this.currentPage = 1
-     var _this = this
-       var familyName = _this.searchText
-
-       return axios.post('api/v1/family/select',
-         { page: this.currentPage, pageSize: this.pageSize,
-           'familyName': familyName === '' ? '' : _this.searchText
-         },
-         {
-           headers: {
-             'content-type': 'application/json'
-           },
-           withCredentials: true
-         }).then(function (response) {
-         if (!Array.isArray(response.data.familyDtos)) throw new Error('invalid records')
-         _this.familyList = response.data.familyDtos
-         _this.total = response.data.total ?? response.data.familyDtos.length
-
-       })
-         .catch(function (error) {
-           _this.loadError = apiErrorMessage(error, '家属账号暂时无法加载，请检查服务连接后重试。')
-           _this.familyList = []
-           _this.total = 0
-         }).finally(function () { _this.isLoading = false })
-
-    },
     addFamily () {
-      var _this = this
-      axios.post('api/v1/family/add',
-        _this.familyForm,
-        {
-          headers: {
-            'content-type': 'application/json'
-          },
-          withCredentials: true
-        }).then(function (response) {
-
-        if (response.data.returnCode === '1111') {
-          _this.customerDialogVisible = false
-          _this.searchfamily()
-          _this.$message({
-            type: 'success',
-            message: '家属已添加，请生成该老人的邀请码，由家属注册并设置登录密码。'
-          })
-        } else {
-          _this.$message({
-            type: 'error',
-            message: response.data.message || '添加监护人失败'
-          })
-        }
-      })
-        .catch(function (error) {
-          _this.$message({
-            type: 'error',
-            message: error.response?.data?.message || '添加家属失败，请检查服务连接后重试。'
-          })
-        })
+      return writeRecord(this, 'api/v1/family/add', this.familyForm, '家属已添加，请生成该老人的邀请码，由家属注册并设置登录密码。', () => {
+        this.customerDialogVisible = false
+        this.searchfamily()
+      }, '添加家属失败，请检查服务连接后重试。')
     },
     closeRoleAddDialog () {
       this.$refs.addfamilyFormRef.resetFields()
     },
     editFamily () {
-      var _this = this
-      axios.post('api/v1/family/updateFamily', Object.fromEntries(['familyId', 'familyName', 'familyRelation', 'familySex', 'familyPhone', 'familyAddress'].map(key => [key, _this.familyEditForm[key]])),
-        {
-          headers: {
-            'content-type': 'application/json'
-          },
-          withCredentials: true
-        }).then(function (response) {
-
-        if (response.data.returnCode === '1111') {
-          _this.oldEditDialogVisible = false
-          _this.$message({
-            type: 'success',
-            message: '编辑监护人信息成功'
-          })
-          _this.searchfamily()
-        } else {
-          _this.$message({
-            type: 'error',
-            message: '编辑监护人信息失败'
-          })
-        }
+      const fields = ['familyId', 'familyName', 'familyRelation', 'familySex', 'familyPhone', 'familyAddress']
+      const body = Object.fromEntries(fields.map(key => [key, this.familyEditForm[key]]))
+      return writeRecord(this, 'api/v1/family/updateFamily', body, '家属信息已保存', () => {
+        this.oldEditDialogVisible = false
+        this.searchfamily()
       })
-        .catch(function (error) {
-          _this.$message.error(apiErrorMessage(error, '请求未完成，请重试'))
-        })
     },
-    async deleteFamily (familyId) {
-
-      var _this = this
-      try {
-        await _this.$confirm('此操作将永久删除该文件, 是否继续?', '提示', {
-          confirmButtonText: '确定',
-          cancelButtonText: '取消',
-          type: 'warning'
-        })
-
-        axios.post('api/v1/family/deleteFamily', {'familyId': familyId},
-          {
-            headers: {
-              'content-type': 'application/json'
-            },
-            withCredentials: true
-          }).then(function (response) {
-
-          if (response.data.returnCode === '1111') {
-            _this.$message({
-              type: 'success',
-              message: '删除信息成功'
-            })
-          }
-          _this.searchfamily()
-        })
-          .catch(function (error) {
-            _this.$message.error(apiErrorMessage(error, '请求未完成，请重试'))
-          })
-      } catch (err) {
-        this.$message({
-          type: 'info',
-          message: '已取消删除'
-        })
-      }
+    deleteFamily (familyId) {
+      return deleteRecord(this, 'api/v1/family/deleteFamily', { familyId }, '确认删除该家属账号？', () => this.searchfamily())
     },
     handleeditFamily (index, row) {
       this.oldEditDialogVisible = true
       this.familyEditForm = Object.assign({}, row) // 解决修改弹出框数据时，表格数据会发生同步改变
 
     },
-    handleSizeChange (val) { this.pageSize = val; this.currentPage = 1; this.searchfamily(true)
-    },
 
-    changePage (val) { this.currentPage = val; this.searchfamily(true)
-    },
 
 
   }

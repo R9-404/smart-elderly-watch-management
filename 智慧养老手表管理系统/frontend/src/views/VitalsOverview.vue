@@ -99,10 +99,11 @@
 </template>
 
 <script>
+import { pagedRecords } from '@/composables/pagedRecords'
+import { api as requestClient } from '../api/client'
 import { useCollectionLayout } from '@/composables/useCollectionLayout'
 import { apiErrorMessage } from '../api/httpContract'
 
-import axios from 'axios'
 import RecordCards from '@/components/RecordCards.vue'
 import HealthAlertDialog from '@/components/records/HealthAlertDialog.vue'
 import { healthAlertMethods } from './vitals.alert-methods'
@@ -112,15 +113,11 @@ import { recordCharts } from '@/charts'
 export default {
   setup () { return { mobileLayout: useCollectionLayout(900) } },
   components: { RecordCards, HealthAlertDialog },
-  mixins: [recordCharts],
+  mixins: [recordCharts, pagedRecords({ path: "api/v1/vitals/latest", responseKey: "vitalRecords", recordsKey: "oldsList", searchKey: "name", load: "searchOlds", filters: {"timeFirst":"","timeLast":""} })],
   data () {
     return {
       searchText: '',
 
-      total: 0,
-      pageSize: 10,
-      currentPage: 1,
-      oldsList: [],
       rateCount: '',
       preCount: '',
       // 异常（红点）处置
@@ -153,34 +150,8 @@ export default {
 
   methods: {
     ...healthAlertMethods,
-    searchOlds (keepPage = false) {
-      if (keepPage !== true) this.currentPage = 1
-
-      var _this = this
-      var name = _this.searchText
-
-      axios.post('api/v1/vitals/latest',
-        {
-          page: _this.currentPage, pageSize: _this.pageSize,
-          'name': name === '' ? '' : _this.searchText,
-          'timeFirst':'',
-          'timeLast': ''
-        },
-        {
-          headers: {
-            'content-type': 'application/json'
-          },
-          withCredentials: true
-        }).then(function (response) {
-        _this.oldsList = response.data.vitalRecords
-        _this.total = response.data.total ?? response.data.vitalRecords.length
-      })
-        .catch(function (error) {
-          _this.$message.error(apiErrorMessage(error, '请求未完成，请重试'))
-        })
-    },
     getCount () {
-      axios.post('api/v1/vitals/alerts/device-counts', {}, { withCredentials: true })
+      requestClient.post('api/v1/vitals/alerts/device-counts', {})
         .then(({ data }) => {
           this.rateCount = data.heartRate
           this.preCount = data.bloodPressure
@@ -206,18 +177,7 @@ export default {
       this.$message({ type: 'info', message: '已筛选出 ' + list.length + ' 条待处理异常，点「查看原因」了解处理办法' })
     },
 
-    handleSizeChange (val) {
 
-      this.pageSize = val
-      this.currentPage = 1
-      this.searchOlds(true)
-    },
-
-    changePage (val) {
-
-      this.currentPage = val
-      this.searchOlds(true)
-    },
 
     showRoleDialog (row) {
       return this.showRecordDetails('vitals', row.oldId, row.name)

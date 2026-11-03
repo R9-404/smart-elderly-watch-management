@@ -1,165 +1,52 @@
 import { createRouter, createWebHashHistory } from 'vue-router'
 import { loadSession, authState } from './auth'
-const Login = () => import('./views/Login.vue')
-const Register = () => import('./views/Register.vue')
-const OperationsShell = () => import('./views/OperationsShell.vue')
-const FamilyPortal = () => import('./views/FamilyPortal.vue')
-const OperationsOverview = () => import('./views/OperationsOverview.vue')
-const FamilyOverview = () => import('./views/FamilyOverview.vue')
-const VitalsOverview = () => import('./views/VitalsOverview.vue')
-const FamilyVitals = () => import('./views/FamilyVitals.vue')
-const NoticeEditor = () => import('./components/NoticeEditor.vue')
-const FamilyNotice = () => import('./views/FamilyNotice.vue')
-const NoticeDetail = () => import('./views/NoticeDetail.vue')
-const ActivityOverview = () => import('./views/ActivityOverview.vue')
-const FamilyActivity = () => import('./views/FamilyActivity.vue')
-const LocationOverview = () => import('./views/LocationOverview.vue')
-const FamilyLocation = () => import('./views/FamilyLocation.vue')
-const LifeOverview = () => import('./views/LifeOverview.vue')
-const MonitoringProfiles = () => import('./views/MonitoringProfiles.vue')
-const Residents = () => import('./views/Residents.vue')
-const Guardians = () => import('./views/Guardians.vue')
-const NoticeManagement = () => import('./views/NoticeManagement.vue')
-const FamilyAccounts = () => import('./views/FamilyAccounts.vue')
-const FamilyProfile = () => import('./views/FamilyProfile.vue')
-const CommentManagement = () => import('./views/CommentManagement.vue')
-const FamilyInvitations = () => import('./views/FamilyInvitations.vue')
-const DeviceManagement = () => import('./views/DeviceManagement.vue')
 
+const NoticeEditor = () => import('./components/NoticeEditor.vue')
+const page = (path, title, component, props) => ({
+  path, name: path.slice(1).replaceAll('/', '-'), meta: { title }, component, props
+})
 
 const router = createRouter({
   history: createWebHashHistory(),
   routes: [
+    { path: '/', redirect: '/sign-in' },
     { path: '/setup', component: () => import('./views/Setup.vue') },
-	  {path: '/',
-	    redirect: '/sign-in'
-	  },
-    {path: '/sign-in',
-      component: Login
+    { path: '/sign-in', component: () => import('./views/Login.vue') },
+    { path: '/join-family', component: () => import('./views/Register.vue') },
+    {
+      path: '/family-portal',
+      component: () => import('./views/FamilyPortal.vue'),
+      redirect: '/family-portal/overview',
+      children: [
+        page('/family-portal/overview', '家属首页', () => import('./views/FamilyOverview.vue')),
+        page('/family-portal/vitals', '心率血压', () => import('./views/FamilyVitals.vue')),
+        page('/family-portal/activity', '睡眠步数', () => import('./views/FamilyActivity.vue')),
+        page('/family-portal/location', '位置信息', () => import('./views/FamilyLocation.vue')),
+        page('/family-portal/profile', '个人中心', () => import('./views/FamilyProfile.vue')),
+        page('/family-portal/notice', '公告内容', () => import('./views/FamilyNotice.vue'))
+      ]
     },
-    // 家属凭邀请码自助注册（无需登录）
-    {path: '/join-family',
-      component: Register
-    },
-	{path: '/family-portal',
-	  component: FamilyPortal,
-	  redirect: '/family-portal/overview',
-	  children: [{
-				  path: '/family-portal/overview',
-				  meta: { title: '家属首页' }, name: 'family-portal-overview',
-				  component: FamilyOverview
-				},
-				{
-					path: '/family-portal/vitals',
-					meta: { title: '心率血压' }, name: 'family-portal-vitals',
-					component: FamilyVitals
-				},
-				{
-					path: '/family-portal/activity',
-					meta: { title: '睡眠步数' }, name: 'family-portal-activity',
-					component: FamilyActivity
-				},
-				{
-					path: '/family-portal/location',
-					meta: { title: '位置信息' }, name: 'family-portal-location',
-					component: FamilyLocation
-				},
-				{
-					path: '/family-portal/profile',
-					meta: { title: '个人中心' }, name: 'family-portal-profile',
-					component: FamilyProfile
-				},
-				{
-					path: '/family-portal/notice',
-					meta: { title: '公告内容' }, name: 'family-portal-notice',
-					component: FamilyNotice
-				}]
-	},
-    { path: '/operations',
-      component: OperationsShell,
+    {
+      path: '/operations',
+      component: () => import('./views/OperationsShell.vue'),
       redirect: '/operations/overview',
       children: [
-				{
-				  path: '/operations/overview',
-				  meta: { title: '运营总览' }, name: 'operations-overview',
-				  component: OperationsOverview
-				},
-				{
-					path: '/operations/vitals',
-					meta: { title: '心率与血压' }, name: 'operations-vitals',
-					component: VitalsOverview
-				},
-				{
-					path: '/operations/activity',
-					meta: { title: '睡眠与步数' }, name: 'operations-activity',
-					component: ActivityOverview
-				},
-				{
-					path: '/operations/locations',
-					meta: { title: '位置与告警' }, name: 'operations-locations',
-					component: LocationOverview
-				},
-				{
-					path: '/operations/life',
-					meta: { title: '生活信息' }, name: 'operations-life',
-					component: LifeOverview
-				},
-				{
-					path: '/operations/monitoring-profiles',
-					meta: { title: '监测阈值档案' }, name: 'operations-monitoring-profiles',
-					component: MonitoringProfiles
-				},
-				{
-					path: '/operations/residents',
-					meta: { title: '老人档案' }, name: 'operations-residents',
-					component: Residents
-				},
-				{
-					path: '/operations/guardians',
-					meta: { title: '监护人信息' }, name: 'operations-guardians',
-					component: Guardians
-				},
-				{
-					path: '/operations/notices/edit',
-					meta: { title: '编辑公告' }, name: 'operations-notices-edit',
-					component: NoticeEditor, props: { editing: true }
-				},
-				{
-					path: '/operations/notices/new',
-					meta: { title: '发布公告' }, name: 'operations-notices-new',
-					component: NoticeEditor, props: { editing: false }
-				},
-				{
-					path: '/operations/notices/detail',
-					meta: { title: '公告内容' }, name: 'operations-notices-detail',
-					component: NoticeDetail
-				},
-				{
-					path: '/operations/notices',
-					meta: { title: '公告管理' }, name: 'operations-notices',
-					component: NoticeManagement
-				},
-
-				{
-				  path: '/operations/families',
-				  meta: { title: '家属账号' }, name: 'operations-families',
-				  component: FamilyAccounts
-				},
-				{
-				  path: '/operations/comments',
-				  meta: { title: '评论管理' }, name: 'operations-comments',
-				  component: CommentManagement
-				},
-				{
-				  path: '/operations/invitations',
-				  meta: { title: '家属注册邀请码' }, name: 'operations-invitations',
-				  component: FamilyInvitations
-				},
-				{
-				  path: '/operations/devices',
-				  meta: { title: '设备管理' }, name: 'operations-devices',
-				  component: DeviceManagement
-				}
+        page('/operations/overview', '运营总览', () => import('./views/OperationsOverview.vue')),
+        page('/operations/vitals', '心率与血压', () => import('./views/VitalsOverview.vue')),
+        page('/operations/activity', '睡眠与步数', () => import('./views/ActivityOverview.vue')),
+        page('/operations/locations', '位置与告警', () => import('./views/LocationOverview.vue')),
+        page('/operations/life', '生活信息', () => import('./views/LifeOverview.vue')),
+        page('/operations/monitoring-profiles', '监测阈值档案', () => import('./views/MonitoringProfiles.vue')),
+        page('/operations/residents', '老人档案', () => import('./views/Residents.vue')),
+        page('/operations/guardians', '监护人信息', () => import('./views/Guardians.vue')),
+        page('/operations/notices/edit', '编辑公告', NoticeEditor, { editing: true }),
+        page('/operations/notices/new', '发布公告', NoticeEditor, { editing: false }),
+        page('/operations/notices/detail', '公告内容', () => import('./views/NoticeDetail.vue')),
+        page('/operations/notices', '公告管理', () => import('./views/NoticeManagement.vue')),
+        page('/operations/families', '家属账号', () => import('./views/FamilyAccounts.vue')),
+        page('/operations/comments', '评论管理', () => import('./views/CommentManagement.vue')),
+        page('/operations/invitations', '家属注册邀请码', () => import('./views/FamilyInvitations.vue')),
+        page('/operations/devices', '设备管理', () => import('./views/DeviceManagement.vue'))
       ]
     }
   ]

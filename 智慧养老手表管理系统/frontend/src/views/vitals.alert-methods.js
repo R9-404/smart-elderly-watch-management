@@ -1,3 +1,4 @@
+import { api as requestClient } from '../api/client'
 
 import { apiErrorMessage } from '../api/httpContract'
 import axios from 'axios'
@@ -6,10 +7,7 @@ import axios from 'axios'
 export const healthAlertMethods = {
     loadAlertCount () {
       var _this = this
-      axios.post('api/v1/vitals/alerts/count', {}, {
-        headers: { 'content-type': 'application/json' },
-        withCredentials: true
-      }).then(function (response) {
+      requestClient.post('api/v1/vitals/alerts/count', {}).then(function (response) {
         _this.rateCount = response.data.rateTotal
         _this.preCount = response.data.preTotal
       }).catch(function (error) {
@@ -46,10 +44,7 @@ export const healthAlertMethods = {
         occurTime: '', advice: '', message: ''
       }
       var params = recordId ? { recordId: recordId } : { oldId: oldId, kind: kind || '' }
-      axios.post('api/v1/vitals/alerts/detail', params, {
-        headers: { 'content-type': 'application/json' },
-        withCredentials: true
-      }).then(function (response) {
+      requestClient.post('api/v1/vitals/alerts/detail', params).then(function (response) {
         var d = response.data
         _this.alertDialog.loading = false
         if (d.returnCode !== '1111') {
@@ -79,12 +74,8 @@ export const healthAlertMethods = {
     resolveAlert (kind) {
       var _this = this
       this.alertDialog.resolving = true
-      axios.post('api/v1/vitals/alerts/resolve',
-        { recordId: this.alertDialog.recordId, kind: kind },
-        {
-          headers: { 'content-type': 'application/json' },
-          withCredentials: true
-        }).then(function (response) {
+      requestClient.post('api/v1/vitals/alerts/resolve',
+        { recordId: this.alertDialog.recordId, kind: kind }).then(function (response) {
           _this.alertDialog.resolving = false
           if (response.data.returnCode === '1111') {
             _this.$message({ type: 'success', message: '已处理，红点已消除' })

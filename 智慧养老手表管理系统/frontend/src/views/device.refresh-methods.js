@@ -1,13 +1,10 @@
+import { api as requestClient } from '../api/client'
 import { apiErrorMessage } from '../api/httpContract'
-import axios from 'axios'
 
 export const deviceRefreshMethods = {
     loadOldPeople () {
       var _this = this
-      axios.post('api/v1/inviteCode/oldPersonList', {}, {
-        headers: { 'content-type': 'application/json' },
-        withCredentials: true
-      }).then(function (response) {
+      requestClient.post('api/v1/inviteCode/oldPersonList', {}).then(function (response) {
         _this.oldPeople = response.data.oldPeople || []
       }).catch(function (error) {
         _this.$message.error(apiErrorMessage(error, '请求未完成，请重试'))

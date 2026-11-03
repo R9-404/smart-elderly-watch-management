@@ -54,31 +54,18 @@
 </template>
 
 <script>
+import { pagedRecords } from '@/composables/pagedRecords'
 import { useCollectionLayout } from '@/composables/useCollectionLayout'
-import { apiErrorMessage } from '../api/httpContract'
 
-import axios from 'axios'
 import RecordCards from '@/components/RecordCards.vue'
 
 export default {
+  mixins: [pagedRecords({ path: "api/v1/residents/list", responseKey: "oldPeople", recordsKey: "OldPersonList", searchKey: "name", load: "searchOldPersonLife", failure: "生活资料暂时无法加载，请重新加载。", trim: true })],
   setup () { return { mobileLayout: useCollectionLayout(900) } },
   components: { RecordCards },
-  data () { return { searchText: '', OldPersonList: [], pageSize: 10, currentPage: 1, total: 0, isLoading: false, loadError: '' } },
+  data () { return { searchText: '' } },
   created () { this.searchOldPersonLife() },
   methods: {
-    handleSizeChange (value) { this.pageSize = value; this.currentPage = 1; this.searchOldPersonLife(true) },
-    changePage (value) { this.currentPage = value; this.searchOldPersonLife(true) },
-    searchOldPersonLife (keepPage = false) {
-      if (keepPage !== true) this.currentPage = 1
-      if (this.isLoading) return
-      this.isLoading = true
-      this.loadError = ''
-      return axios.post('api/v1/residents/list', { page: this.currentPage, pageSize: this.pageSize,  name: this.searchText.trim() }, { withCredentials: true }).then(response => {
-        if (!Array.isArray(response.data.oldPeople)) throw new Error('missing life records')
-        this.OldPersonList = response.data.oldPeople
-        this.total = response.data.total ?? this.OldPersonList.length
-      }).catch((error) => { this.loadError = apiErrorMessage(error, '生活资料暂时无法加载，请重新加载。'); this.OldPersonList = [] }).then(() => { this.isLoading = false })
-    }
   }
 }
 </script>

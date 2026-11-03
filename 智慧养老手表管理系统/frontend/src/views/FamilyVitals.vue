@@ -58,11 +58,11 @@
 </template>
 
 <script>
+import { api as requestClient } from '../api/client'
 import { useCollectionLayout } from '@/composables/useCollectionLayout'
 import { apiErrorMessage } from '../api/httpContract'
 
 
-import axios from 'axios'
 import { recordCharts } from '@/charts'
 
 export default {
@@ -105,16 +105,10 @@ export default {
 
       _this.isLoading = true
       _this.loadError = ''
-      axios.post('api/v1/vitals/history',
+      requestClient.post('api/v1/vitals/history',
         {
 					"oldId":oldId
-				},
-        {
-          headers: {
-            'content-type': 'application/json'
-          },
-          withCredentials: true
-        }).then(function (response) {
+				}).then(function (response) {
 
         _this.oldsList = response.data && Array.isArray(response.data.vitalRecords) ? response.data.vitalRecords : []
       })

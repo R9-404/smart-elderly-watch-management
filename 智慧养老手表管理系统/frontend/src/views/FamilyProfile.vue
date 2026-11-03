@@ -85,6 +85,7 @@
 html.large-text .care-family .profile-identity span, html.large-text .care-family .profile-details dd { font-size: 21px; }
 </style>
 <script>
+import { api as requestClient } from '../api/client'
 import { apiErrorMessage } from '../api/httpContract'
 
 
@@ -167,15 +168,9 @@ export default {
 			  var _this = this
           _this.isProfileLoading = true
           _this.profileLoadError = ''
-			  axios.post('api/v1/family/selectTwo',
+			  requestClient.post('api/v1/family/selectTwo',
 			    {
 			      'familyPhone': _this.familyPhone
-			    },
-			    {
-			      headers: {
-			        'content-type': 'application/json'
-			      },
-			      withCredentials: true
 			    }).then(function (response) {
 
 			    _this.famiyList = response.data && response.data.familyDto2 ? response.data.familyDto2 : {}
@@ -195,7 +190,7 @@ export default {
         this.$refs.profileEditForm.validate((valid) => {
           if (!valid) return
           this.isProfileSaving = true
-          axios.post('api/v1/family/updateTwo', this.messageEditForm, { withCredentials: true }).then((response) => {
+          requestClient.post('api/v1/family/updateTwo', this.messageEditForm).then((response) => {
             if (response.data.returnCode === '1111') {
               this.messageEditDialogVisible = false
               this.$message.success('个人资料已保存')
@@ -211,7 +206,7 @@ export default {
           this.$message.error('头像上传未成功，请重试')
           return
         }
-        axios.post('api/v1/family/updateTouPic', { familyTouPic: res.filename, familyPhone: this.familyPhone }, { withCredentials: true }).then((response) => {
+        requestClient.post('api/v1/family/updateTouPic', { familyTouPic: res.filename, familyPhone: this.familyPhone }).then((response) => {
           if (response.data.returnCode === '1111') {
             this.$message.success('头像已更新')
             this.searchFamily()
@@ -226,11 +221,11 @@ export default {
         this.$refs[formName].validate((valid) => {
           if (!valid) return
           this.isPasswordSaving = true
-          axios.post('api/v1/family/updatePassword', {
+          requestClient.post('api/v1/family/updatePassword', {
             familyPhone: this.familyPhone,
             oldPassword: this.passwordEditForm.oldPassword,
             familyPassword: this.passwordEditForm.familyPassword
-          }, { withCredentials: true }).then((response) => {
+          }).then((response) => {
             if (response.data.returnCode === '1111') {
               this.resetForm(formName)
               this.$message.success('修改密码成功')

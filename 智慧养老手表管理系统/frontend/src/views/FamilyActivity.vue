@@ -54,11 +54,11 @@
 </template>
 
 <script>
+import { api as requestClient } from '../api/client'
 import { useCollectionLayout } from '@/composables/useCollectionLayout'
 import { apiErrorMessage } from '../api/httpContract'
 
 
-import axios from 'axios'
 import { recordCharts } from '@/charts'
 
 export default {
@@ -100,15 +100,9 @@ export default {
       			var oldId=_this.oldId
       _this.isLoading = true
       _this.loadError = ''
-      axios.post('api/v1/activity/history',
+      requestClient.post('api/v1/activity/history',
         {
           "oldId":oldId
-        },
-        {
-          headers: {
-            'content-type': 'application/json'
-          },
-          withCredentials: true
         }).then(function (response) {
 
         _this.stepList = response.data && Array.isArray(response.data.activityRecords) ? response.data.activityRecords : []

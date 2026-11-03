@@ -110,15 +110,17 @@
 </template>
 
 <script>
+import { pagedRecords } from '@/composables/pagedRecords'
+import { api as requestClient } from '../api/client'
 import { useCollectionLayout } from '@/composables/useCollectionLayout'
 import { apiErrorMessage } from '../api/httpContract'
 
-import axios from 'axios'
 import { residentCommandMethods } from './person.command-methods'
 import RecordCards from '@/components/RecordCards.vue'
 import ResidentForm from '@/components/records/ResidentForm.vue'
 
 export default {
+  mixins: [pagedRecords({ path: "api/v1/residents/details", responseKey: "oldPersonDetails", recordsKey: "personDetailList", searchKey: "name", load: "searchOldPersons", failure: "老人档案暂时无法加载，请检查服务连接后重试。" })],
   setup () { return { mobileLayout: useCollectionLayout(900) } },
   components: { RecordCards, ResidentForm },
   data () {
@@ -127,18 +129,15 @@ export default {
       if (!value) {
         return callback(new Error('电话号码不能为空'))
       }
-      setTimeout(() => {
-
-        if (!Number.isInteger(+value)) {
-          callback(new Error('请输入数字值'))
+      if (!Number.isInteger(+value)) {
+        callback(new Error('请输入数字值'))
+      } else {
+        if (phoneReg.test(value)) {
+          callback()
         } else {
-          if (phoneReg.test(value)) {
-            callback()
-          } else {
-            callback(new Error('电话号码格式不正确'))
-          }
+          callback(new Error('电话号码格式不正确'))
         }
-      }, 100)
+      }
     }
     return {
       searchText: '', // 角色查询内容
@@ -181,12 +180,6 @@ export default {
       customerLoading: false,
       customerError: '',
 
-      isLoading: false,
-      loadError: '',
-      total: 0,
-      pageSize: 10,
-      currentPage: 1,
-      personDetailList: [],
 
     rules: {
           phone: [
@@ -200,36 +193,6 @@ export default {
   },
   methods: {
     ...residentCommandMethods,
-    searchOldPersons (keepPage = false) {
-      if (this.isLoading) return
-      this.isLoading = true
-      this.loadError = ''
-      if (keepPage !== true) this.currentPage = 1
-      var _this = this
-      var name = _this.searchText
-
-      return axios.post('api/v1/residents/details',
-        { page: this.currentPage, pageSize: this.pageSize,
-          'name': name === '' ? '' : _this.searchText
-        },
-        {
-          headers: {
-            'content-type': 'application/json'
-          },
-          withCredentials: true
-        }).then(function (response) {
-        if (!Array.isArray(response.data.oldPersonDetails)) throw new Error('invalid records')
-        _this.personDetailList = response.data.oldPersonDetails
-        _this.total = response.data.total ?? response.data.oldPersonDetails.length
-
-      })
-        .catch(function (error) {
-          _this.loadError = apiErrorMessage(error, '老人档案暂时无法加载，请检查服务连接后重试。')
-          _this.personDetailList = []
-          _this.total = 0
-        }).finally(function () { _this.isLoading = false })
-
-    },
     async addCustomerList () {
       if (this.customerLoading) return
       this.customerLoading = true
@@ -237,7 +200,7 @@ export default {
       try {
         var options = [], page = 1, total = 0
         do {
-          var response = await axios.post('api/v1/guardians/list', { customerName: '', page, pageSize: 100 }, { withCredentials: true })
+          var response = await requestClient.post('api/v1/guardians/list', { customerName: '', page, pageSize: 100 })
           var items = response.data.customers
           if (!Array.isArray(items)) throw new Error('invalid guardians')
           total = response.data.total ?? items.length
@@ -256,11 +219,7 @@ export default {
       this.oldEditForm = Object.assign({}, row) // 解决修改弹出框数据时，表格数据会发生同步改变
 
     },
-    handleSizeChange (val) { this.pageSize = val; this.currentPage = 1; this.searchOldPersons(true)
-    },
 
-    changePage (val) { this.currentPage = val; this.searchOldPersons(true)
-    },
 
 
   }

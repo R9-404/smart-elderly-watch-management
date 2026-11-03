@@ -53,6 +53,7 @@
   </section>
 </template>
 <script setup>
+import { api as requestClient } from '../api/client'
 import { apiErrorMessage } from '../api/httpContract'
 import { ref, onMounted, onBeforeUnmount } from 'vue'
 import axios from 'axios'
@@ -137,9 +138,9 @@ async function submit () {
   }
   saving.value = true
   try {
-    const {data} = await axios.post('api/v1/care/transition', {
+    const {data} = await requestClient.post('api/v1/care/transition', {
       id:String(dialog.value.id),action:dialog.value.action,note:dialog.value.note.trim()
-    }, {withCredentials:true})
+    })
     if (data.returnCode !== '1111') throw new Error('transition rejected')
     dialog.value.visible = false
     error.value = ''

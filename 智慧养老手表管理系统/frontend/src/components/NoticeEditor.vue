@@ -15,6 +15,7 @@
   </div>
 </template>
 <script>
+import { api as requestClient } from '../api/client'
 import { apiErrorMessage } from '../api/httpContract'
 
 import axios from 'axios'
@@ -42,7 +43,7 @@ export default {
       this.loading = true
       this.loadError = ''
       this.attachments = []
-      return axios.post('api/v1/notices/detail', { textId: this.$route.query.textId }, { withCredentials: true }).then((response) => {
+      return requestClient.post('api/v1/notices/detail', { textId: this.$route.query.textId }).then((response) => {
         if (!response.data.text || response.data.text.picId == null) throw new Error('missing notice')
         this.form = { title: response.data.text.title || '', textMain: response.data.text.textMain || '' }
         this.attachments = (response.data.pics || []).map((pic, index) => ({ uid: 'existing-' + index, name: pic.picName, url: '/api/v1/image/download?name=' + encodeURIComponent(pic.picName), status: 'success' }))

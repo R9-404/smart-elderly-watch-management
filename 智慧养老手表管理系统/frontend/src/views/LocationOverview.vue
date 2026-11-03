@@ -82,29 +82,24 @@
 </template>
 
 <script>
+import { pagedRecords } from '@/composables/pagedRecords'
+import { api as requestClient } from '../api/client'
 import { useCollectionLayout } from '@/composables/useCollectionLayout'
-import { apiErrorMessage } from '../api/httpContract'
 
-import axios from 'axios'
 import PositionMap from '@/components/PositionMap.vue'
 import RecordCards from '@/components/RecordCards.vue'
 import { describePositionContext } from '../utils/positionContext'
 
 export default {
+  computed: { num () { return this.positionList.filter(row => row.status === 1 || row.status === "1").length } },
+  mixins: [pagedRecords({ path: "api/v1/position/select", responseKey: "positionDtos", recordsKey: "positionList", searchKey: "name", load: "searchposition", failure: "位置数据暂时无法加载，请检查服务连接后重试。" })],
   setup () { return { mobileLayout: useCollectionLayout(900) } },
   components: { RecordCards, PositionMap },
   data () {
     return {
       searchText: '',
 
-      total: 0,
-      pageSize: 10,
-      currentPage: 1,
-			positionList: [],
-			isLoading: false,
-			loadError: '',
 			selectedLocation: null,
-			num:''
     }
   },
   created () {
@@ -114,47 +109,6 @@ export default {
   },
   methods: {
     describePositionContext,
-    searchposition (keepPage = false) {
-      if (keepPage !== true) this.currentPage = 1
-      var _this = this
-      _this.isLoading = true
-      _this.loadError = ''
-      var name = _this.searchText
-
-      axios.post('api/v1/position/select',
-        {
-          page: _this.currentPage, pageSize: _this.pageSize,
-          'name': name === '' ? '' : _this.searchText
-        },
-        {
-          headers: {
-            'content-type': 'application/json'
-          },
-          withCredentials: true
-        }).then(function (response) {
-
-				_this.positionList = response.data && response.data.positionDtos ? response.data.positionDtos : []
-				var count=0;
-        var len=_this.positionList.length
-				for(var i=0;i<len;i++){
-					if(_this.positionList[i].status=='1'){
-
-						count++;
-					}
-				}
-
-				_this.num=count
-        _this.total = response.data.total ?? _this.positionList.length
-      })
-        .catch(function (error) {
-          _this.positionList = []
-          _this.total = 0
-          _this.num = ''
-          _this.loadError = apiErrorMessage(error, '请检查服务连接后重试')
-        }).then(function () {
-          _this.isLoading = false
-        })
-    },
     // 告警记录与处理办法（红点点进来就是这个）
     showFallReason (row) {
       var alarmPosition = row.alarmLng != null && row.alarmLat != null && row.alarmLng !== '' && row.alarmLat !== ''
@@ -182,11 +136,7 @@ export default {
         cancelButtonText: '取消',
         type: 'warning'
       }).then(function () {
-        axios.post('api/v1/locations/alerts/resolve-latest', {'oldId': row.oldId},
-          {
-            headers: {'content-type': 'application/json'},
-            withCredentials: true
-          }).then(function (response) {
+        requestClient.post('api/v1/locations/alerts/resolve-latest', {'oldId': row.oldId}).then(function (response) {
           if (response.data.returnCode === '1111') {
             _this.$message({type: 'success', message: '已处理，告警红点已消除'})
           } else {
@@ -198,18 +148,7 @@ export default {
         })
       }).catch(function () {})
     },
-    handleSizeChange (val) {
 
-      this.pageSize = val
-      this.currentPage = 1
-      this.searchposition(true)
-    },
-
-    changePage (val) {
-
-      this.currentPage = val
-      this.searchposition(true)
-    },
     showRoleDialog (curRole) {
       this.selectedLocation = { ...curRole }
     }

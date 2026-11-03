@@ -19,9 +19,9 @@
 </template>
 
 <script>
+import { api as requestClient } from '../api/client'
 import { apiErrorMessage } from '../api/httpContract'
 
-import axios from 'axios'
 export default {
   data () { return { notice: null, pictures: [], comments: [], loading: false, commentsLoading: false, error: '', commentsError: '' } },
   created () { this.loadNotice(); this.loadComments() },
@@ -33,7 +33,7 @@ export default {
       this.error = ''
       this.notice = null
       this.pictures = []
-      axios.post('api/v1/notices/detail', { textId: this.$route.query.textId }, { withCredentials: true }).then((response) => {
+      requestClient.post('api/v1/notices/detail', { textId: this.$route.query.textId }).then((response) => {
         if (!response.data.text) throw new Error('missing notice')
         this.notice = response.data.text
         this.pictures = response.data.pics || []
@@ -43,7 +43,7 @@ export default {
       this.commentsLoading = true
       this.commentsError = ''
       this.comments = []
-      axios.post('api/v1/notice-comments/list', { textId: this.$route.query.textId }, { withCredentials: true }).then((response) => {
+      requestClient.post('api/v1/notice-comments/list', { textId: this.$route.query.textId }).then((response) => {
         this.comments = response.data.comments || []
       }).catch((error) => { this.commentsError = apiErrorMessage(error, '留言暂时无法加载，请重试。') }).then(() => { this.commentsLoading = false })
     }

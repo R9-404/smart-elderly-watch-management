@@ -47,11 +47,11 @@
 </template>
 
 <script>
+import { api as requestClient } from '../api/client'
 import { useCollectionLayout } from '@/composables/useCollectionLayout'
 import { apiErrorMessage } from '../api/httpContract'
 
 
-import axios from 'axios'
 import PositionMap from '@/components/PositionMap.vue'
 import { describePositionContext } from '../utils/positionContext'
 
@@ -83,15 +83,9 @@ export default {
       _this.isLoading = true
       _this.loadError = ''
 
-      axios.post('api/v1/position/selectFamily',
+      requestClient.post('api/v1/position/selectFamily',
         {
           "oldId":oldId
-        },
-        {
-          headers: {
-            'content-type': 'application/json'
-          },
-          withCredentials: true
         }).then(function (response) {
 
         _this.positionList = response.data && response.data.positionDtos ? response.data.positionDtos : []

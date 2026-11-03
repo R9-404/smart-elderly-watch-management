@@ -13,9 +13,9 @@
   </div>
 </template>
 <script>
+import { api as requestClient } from '../api/client'
 import { apiErrorMessage } from '../api/httpContract'
 
-import axios from 'axios'
 export default {
   data () {
     return { title: '', time: '', textMain: '', imgList: [], failedImages: {}, tableData: [], formSaid: { said: '' }, isLoading: false, loadError: '', commentsLoading: false, commentsError: '', submitting: false, submitError: '', submitSuccess: '', likingId: null }
@@ -28,7 +28,7 @@ export default {
       this.isLoading = true
       this.loadError = ''
       this.failedImages = {}
-      axios.post('api/v1/notices/detail', { textId: this.$route.query.textId }, { withCredentials: true }).then(response => {
+      requestClient.post('api/v1/notices/detail', { textId: this.$route.query.textId }).then(response => {
         var text = response.data && response.data.text
         if (!text) throw new Error('missing notice')
         this.title = text.title || '未命名公告'
@@ -41,7 +41,7 @@ export default {
       if (!this.$route.query.textId) return
       this.commentsLoading = true
       this.commentsError = ''
-      return axios.post('api/v1/notice-comments/list', { textId: this.$route.query.textId }, { withCredentials: true }).then(response => {
+      return requestClient.post('api/v1/notice-comments/list', { textId: this.$route.query.textId }).then(response => {
         this.tableData = response.data && Array.isArray(response.data.comments) ? response.data.comments : []
       }).catch((error) => { this.commentsError = apiErrorMessage(error, '留言暂时无法加载。') }).then(() => { this.commentsLoading = false })
     },
@@ -50,7 +50,7 @@ export default {
       this.submitting = true
       this.submitError = ''
       this.submitSuccess = ''
-      axios.post('api/v1/notice-comments/create', { said: this.formSaid.said.trim(), textId: this.$route.query.textId }, { withCredentials: true }).then(response => {
+      requestClient.post('api/v1/notice-comments/create', { said: this.formSaid.said.trim(), textId: this.$route.query.textId }).then(response => {
         if (!response.data || response.data.returnCode !== '1111') throw new Error('comment rejected')
         this.formSaid.said = ''
         this.submitSuccess = '留言已发表。'
@@ -61,7 +61,7 @@ export default {
       if (this.likingId !== null) return
       this.likingId = item.saidId
       this.submitError = ''
-      axios.post('api/v1/notice-comments/toggle-like', { saidId: item.saidId }, { withCredentials: true }).then(response => {
+      requestClient.post('api/v1/notice-comments/toggle-like', { saidId: item.saidId }).then(response => {
         if (!response.data || response.data.returnCode !== '1111') throw new Error('like rejected')
         return this.searchSaid()
       }).catch((error) => { this.submitError = apiErrorMessage(error, '赞同操作未完成，请重试。') }).then(() => { this.likingId = null })

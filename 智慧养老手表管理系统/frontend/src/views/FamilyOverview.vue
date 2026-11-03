@@ -101,6 +101,7 @@ html.large-text .care-family .data-caption { font-size: 18px; }
 @media (max-width: 700px) { html.large-text .care-family .welcome-card h1 { font-size: 36px; } }
 </style>
 <script>
+import { api as requestClient } from '../api/client'
 import { apiErrorMessage } from '../api/httpContract'
 
 
@@ -145,13 +146,7 @@ export default {
 					'title': _this.searchText
 				}
 
-				axios.post('api/v1/notices/list',params,
-				{
-					headers: {
-						'content-type': 'application/json'
-					},
-					withCredentials: true
-				}).then(function (response) {
+				requestClient.post('api/v1/notices/list',params).then(function (response) {
 
 				_this.tableData = response.data && response.data.texts ? response.data.texts : []
 				_this.total = response.data.total ?? _this.tableData.length

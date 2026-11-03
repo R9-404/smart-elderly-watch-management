@@ -69,13 +69,14 @@
 </template>
 
 <script>
+import { deleteRecord, writeRecord } from '@/composables/recordActions'
+import { pagedRecords } from '@/composables/pagedRecords'
 import { useCollectionLayout } from '@/composables/useCollectionLayout'
-import { apiErrorMessage } from '../api/httpContract'
 
-import axios from 'axios'
 import RecordCards from '@/components/RecordCards.vue'
 
 export default {
+  mixins: [pagedRecords({ path: "api/v1/notice-comments/search", responseKey: "moderatedComments", recordsKey: "saidList", load: "searchSaid", failure: "评论暂时无法加载，请检查服务连接后重试。" })],
   setup () { return { mobileLayout: useCollectionLayout(900) } },
   components: { RecordCards },
   data () {
@@ -89,12 +90,6 @@ export default {
         back: ''
       },
       
-      isLoading: false,
-      loadError: '',
-      total: 0,
-      pageSize: 10,
-      currentPage: 1,
-      saidList: [],
 
     }
   },
@@ -102,121 +97,23 @@ export default {
     this.searchSaid()
   },
   methods: {
-    searchSaid (keepPage = false) {
-      if (this.isLoading) return
-      this.isLoading = true
-      this.loadError = ''
-      if (keepPage !== true) this.currentPage = 1
-      var _this = this
-        
-        return axios.post('api/v1/notice-comments/search',
-          { page: this.currentPage, pageSize: this.pageSize,
-          },
-          {
-            headers: {
-              'content-type': 'application/json'
-            },
-            withCredentials: true
-          }).then(function (response) {
-          if (!Array.isArray(response.data.moderatedComments)) throw new Error('invalid records')
-          var tableData2 = response.data.moderatedComments
-          _this.total = response.data.total ?? response.data.moderatedComments.length
-					for(var i=0;i<tableData2.length;i++){
-
-						tableData2[i].touPic = '/api/v1/image/download?name='+encodeURIComponent(tableData2[i].touPic)
-					}
-					_this.saidList=tableData2
-
-        })
-          .catch(function (error) {
-            _this.loadError = apiErrorMessage(error, '评论暂时无法加载，请检查服务连接后重试。')
-            _this.saidList = []
-            _this.total = 0
-          }).finally(function () { _this.isLoading = false })
-      
-    },
     
     
     editSaid () {
-      var _this = this
-      axios.post('api/v1/notice-comments/reply',_this.saidEditForm,
-        {
-          headers: {
-            'content-type': 'application/json'
-          },
-          withCredentials: true
-        }).then(function (response) {
-
-        if (response.data.returnCode === '1111') {
-          _this.watchEditDialogVisible = false
-          _this.$message({
-            type: 'success',
-            message: '回复评论成功'
-          })
-          _this.searchSaid()
-        } else {
-          _this.$message({
-            type: 'error',
-            message: '回复评论失败'
-          })
-        }
+      return writeRecord(this, 'api/v1/notice-comments/reply', this.saidEditForm, '回复已保存', () => {
+        this.watchEditDialogVisible = false
+        this.searchSaid()
       })
-        .catch(function (error) {
-          _this.$message.error(apiErrorMessage(error, '请求未完成，请重试'))
-        })
     },
-    async deleteSaid (saidId) {
-
-      var _this = this
-      try {
-        await _this.$confirm('此操作将永久删除该文件, 是否继续?', '提示', {
-          confirmButtonText: '确定',
-          cancelButtonText: '取消',
-          type: 'warning'
-        })
-        axios.post('api/v1/notice-comments/delete', {'saidId': saidId},
-          {
-            headers: {
-              'content-type': 'application/json'
-            },
-            withCredentials: true
-          }).then(function (response) {
-
-          if (response.data.returnCode === '1111') {
-            _this.$message({
-              type: 'success',
-              message: '删除信息成功'
-            })
-          }
-          _this.searchSaid()
-        })
-          .catch(function (error) {
-            _this.$message.error(apiErrorMessage(error, '请求未完成，请重试'))
-          })
-      } catch (err) {
-        this.$message({
-          type: 'info',
-          message: '已取消删除'
-        })
-      }
+    deleteSaid (saidId) {
+      return deleteRecord(this, 'api/v1/notice-comments/delete', { saidId }, '确认删除该评论？', () => this.searchSaid())
     },
     handleeditSaid (index, row) {
       this.watchEditDialogVisible = true
       this.saidEditForm = Object.assign({}, row) // 解决修改弹出框数据时，表格数据会发生同步改变
 
     },
-    handleSizeChange (val) {
 
-      this.pageSize = val
-      this.currentPage = 1
-      this.searchSaid(true)
-    },
-
-    changePage (val) {
-
-      this.currentPage = val
-      this.searchSaid(true)
-    },
 
 
   }

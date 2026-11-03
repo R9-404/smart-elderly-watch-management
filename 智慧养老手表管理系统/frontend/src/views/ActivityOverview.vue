@@ -73,10 +73,11 @@
 </template>
 
 <script>
+import { pagedRecords } from '@/composables/pagedRecords'
+import { api as requestClient } from '../api/client'
 import { useCollectionLayout } from '@/composables/useCollectionLayout'
 import { apiErrorMessage } from '../api/httpContract'
 
-import axios from 'axios'
 import RecordCards from '@/components/RecordCards.vue'
 
 import { recordCharts } from '@/charts'
@@ -84,15 +85,11 @@ import { recordCharts } from '@/charts'
 export default {
   setup () { return { mobileLayout: useCollectionLayout(900) } },
   components: { RecordCards },
-  mixins: [recordCharts],
+  mixins: [recordCharts, pagedRecords({ path: "api/v1/activity/latest", responseKey: "activityRecords", recordsKey: "stepList", searchKey: "name", load: "searchStep", filters: {"timeFirst":"","timeLast":""} })],
   data () {
     return {
       searchText: '',
 
-      total: 0,
-      pageSize: 10,
-      currentPage: 1,
-      stepList: [],
 
 			stepCount:''
     }
@@ -105,50 +102,13 @@ export default {
   },
 
   methods: {
-    searchStep (keepPage = false) {
-      if (keepPage !== true) this.currentPage = 1
-      
-      var _this = this
-      var name = _this.searchText
-
-      axios.post('api/v1/activity/latest',
-        {
-          page: _this.currentPage, pageSize: _this.pageSize,
-          'name': name === '' ? '' : _this.searchText,
-          'timeFirst': '',
-          'timeLast': ''
-        },
-        {
-          headers: {
-            'content-type': 'application/json'
-          },
-          withCredentials: true
-        }).then(function (response) {
-        _this.stepList = response.data.activityRecords
-        _this.total = response.data.total ?? response.data.activityRecords.length
-      })
-        .catch(function (error) {
-          _this.$message.error(apiErrorMessage(error, '请求未完成，请重试'))
-        })
-    },
     getCount () {
-      return axios.post('api/v1/activity/alerts/device-counts', {}, { withCredentials: true })
+      return requestClient.post('api/v1/activity/alerts/device-counts', {})
         .then(({ data }) => { this.stepCount = data.sleep })
         .catch(error => this.$message.error(apiErrorMessage(error, '请求未完成，请重试')))
     },
 
-    handleSizeChange (val) {
 
-      this.pageSize = val
-      this.currentPage = 1
-      this.searchStep(true)
-    },
-
-    changePage (val) {
-
-      this.currentPage = val
-      this.searchStep(true)
-    },
 
     showRoleDialog (row) {
       return this.showRecordDetails('activity', row.oldId, row.name)

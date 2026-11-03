@@ -96,9 +96,9 @@
 @media (max-width: 760px) { .overview-card { padding: 22px 18px; } .alert-card { border-right: 0; border-bottom: 1px solid #e2e9e1; } .overview-note { padding: 18px; } .desktop-announcements { display: none; } .mobile-announcements { display: block; } .page-heading { align-items: flex-start; flex-direction: column; } .page-heading h1 { font-size: 25px; } .overview-grid { grid-template-columns: 1fr; } .overview-note { grid-column: auto; } .panel-heading { align-items: flex-start; flex-direction: column; } .search-box { width: 100%; } .announcement-panel { padding: 18px 14px; } .pagination-wrap { justify-content: center; overflow-x: auto; } }
 </style>
 <script>
+import { api as requestClient } from '../api/client'
 import { apiErrorMessage } from '../api/httpContract'
 
-import axios from 'axios'
 import CareInbox from '@/components/CareInbox.vue'
 import { authState } from '@/auth'
 
@@ -131,7 +131,7 @@ export default {
       this.countError = ''
       this.allCount = null
       this.categoryCounts = null
-      return axios.post('api/v1/health/alerts/device-counts', {}, { withCredentials: true }).then(({ data }) => {
+      return requestClient.post('api/v1/health/alerts/device-counts', {}).then(({ data }) => {
         const { heartRate, bloodPressure, sleep } = data
         if (![heartRate, bloodPressure, sleep].every(count => Number.isSafeInteger(count) && count >= 0)) throw new Error('invalid counts')
         this.categoryCounts = { rate: heartRate, pressure: bloodPressure, sleep }
@@ -145,7 +145,7 @@ export default {
       this.num = null
       this.positionTotal = null
       try {
-        const { data } = await axios.post('api/v1/locations/alerts/summary', {}, { withCredentials: true })
+        const { data } = await requestClient.post('api/v1/locations/alerts/summary', {})
         const { totalResidents, activeAlerts } = data
         if (!Number.isSafeInteger(totalResidents) || totalResidents < 0 ||
             !Number.isSafeInteger(activeAlerts) || activeAlerts < 0 || activeAlerts > totalResidents) {
@@ -170,7 +170,7 @@ export default {
       this.appliedSearch = this.searchText.trim()
       this.isLoading = true
       this.loadError = ''
-      return axios.post('api/v1/notices/list', { page: this.currentPage, pageSize: this.pageSize,  title: this.appliedSearch }, { withCredentials: true }).then((response) => {
+      return requestClient.post('api/v1/notices/list', { page: this.currentPage, pageSize: this.pageSize,  title: this.appliedSearch }).then((response) => {
         if (!Array.isArray(response.data.texts)) throw new Error('missing notices')
         this.tableData = response.data.texts
         this.total = response.data.total ?? this.tableData.length
