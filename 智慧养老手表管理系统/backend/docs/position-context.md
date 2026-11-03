@@ -12,9 +12,9 @@
 
 位置查询为最新定位返回 positionSource、positionSampledAt、positionAccuracy、positionValidity；告警独立返回 alarmSource、alarmSampledAt、alarmAccuracy、alarmValidity，以及 alarmKind。采样时间是 UTC RFC3339，精度是数字；未知来源、时间和精度为 NULL。beTime/alarmTime 继续表示原记录/事件时间，不冒充采样时刻。
 
-有效性标记：reported 表示本次提供的坐标通过格式/范围校验，是未经独立核验的设备自报；missing 表示本次没有坐标；unknown 表示旧数据缺少可追溯上下文。reported 不是物理真实性、GPS 定位成功或精度可信证明。
+有效性标记：reported 表示本次提供的坐标通过格式/范围校验，是未经独立核验的设备自报；missing 表示本次没有坐标；unknown 表示旧数据缺少可追溯上下文。reported 仅验证数据格式，不验证传感器真实性。
 
-明确 alarm=fall 的新普通告警为 fall，SOS 入口为 sos；只提供共用 alarm=1 的类型仍为 unknown，不从 status 或坐标猜测。旧行默认 unknown，不根据无法追溯的历史回填类型或来源。既有独立围栏来源不改；离线事件持久化类型仍属后续任务，不能宣布完整事件类型治理完成。
+明确 alarm=fall 的新普通告警为 fall，SOS 入口为 sos；只提供共用 alarm=1 的类型仍为 unknown，不从 status 或坐标猜测。旧行默认 unknown，不根据无法追溯的历史回填类型或来源。围栏来源保持独立，离线事件类型尚无持久化分类。
 
 普通定位与告警各自保存元数据；新定位、重试 SOS、设备重绑定不会给旧告警补写来源、采样时间或精度。使用已有 location 字段加密机制封装带版本 JSON；无密钥的既有开发/测试模式与坐标行为一致，生产配置仍须通过原有密钥校验。
 

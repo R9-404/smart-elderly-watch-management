@@ -22,4 +22,4 @@ $env:SUINING_PG_ANALYTICS_URL='postgres://suining_analytics:替换密码@127.0.0
 
 本地目录：%APPDATA%\岁宁 保存图片、日志和运行信息；数据库内容独立备份。卸载不会删除这些资料。
 
-本地交付不附公开受信任签名，请核对随包 SHA256SUMS.txt。真实硬件、短信网关、生产迁移及长期值守未在本轮验收。
+安装包未附受信任代码签名；核对 SHA256SUMS.txt。生产联调见 docs/TESTING.md。

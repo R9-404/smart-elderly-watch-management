@@ -12,14 +12,14 @@
 | 浏览器 HTTP 响应与错误处理 | `智慧养老手表管理系统/frontend/src/api/httpContract.ts` |
 | 手表设备通信 | [手表工程说明](../SuiningWatch/README.md)及生产 ArkTS `WatchApi.ets` |
 
-`GET /openapi.json` 由运行中的 Go 服务合并路由、共享 schema 和字段清单后返回，**不是手工粘贴的字段表**。源码变更后在仓库根目录执行：
+`GET /openapi.json` 合并路由、共享 schema 和字段清单。源码变更后执行：
 
 ```sh
 python3 scripts/generate-openapi.py
 python3 scripts/generate-openapi.py --check
 ```
 
-第二条命令是只读一致性检查，CI 中必须保持通过；第一条用于有意更新生成产物。检查通过也不代替真实数据库、权限和设备协议测试。字段需要人工补足类型、可空性、状态码语义时，更新权威 schema 与对应用例，而不是在本文另维护一份清单。
+第一条更新生成产物，第二条检查一致性。类型、可空性及状态码变化直接更新 schema 与回归测试。
 
 ## 路由与客户端约定
 
@@ -51,4 +51,4 @@ python3 scripts/generate-openapi.py --check
 3. 校验生成产物、后端测试、前端 typecheck/测试和实际受影响的协议集成路径；对数据库、签名、幂等及事件归属变更另外执行专门的隔离环境验证。
 4. 发布结论必须绑定准确的提交 SHA；没有执行或被跳过的检查不得描述为通过。
 
-历史接口改造过程可通过 Git 提交记录查询，不应在当前协议说明中保留逐次字段改名的流水账。
+

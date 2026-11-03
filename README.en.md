@@ -167,7 +167,7 @@ The build script compiles the Vue frontend, embeds the assets into the Go binary
 
 Database integration and race tests require dedicated disposable test databases configured through `TEST_MYSQL_DSN` and `TEST_DATABASE_URL`. Tests must never target production databases. CI results must be read from the workflow run for the exact commit being assessed.
 
-Historical performance experiments and release-stage notes are not current-version acceptance evidence. Before production deployment, separately validate physical watch hardware, external notification gateways, production data migration, network TLS, and staffed incident response. Gateway acceptance does not prove notification delivery or completed care response.
+See [testing](docs/TESTING.md) for verification scope. Production acceptance covers physical watches, notification delivery, data migration, TLS, and staffed care response.
 ## Troubleshooting
 
 | Symptom | What to check |

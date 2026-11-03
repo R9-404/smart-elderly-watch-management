@@ -34,4 +34,4 @@ See `docs/ARCHITECTURE.md` and `docs/decisions/` for the full invariants.
 
 ## Scope notes
 
-The project has automated backend, UI/a11y, build-contract and static-security checks, but these are not a claim of complete security. Real-watch integration, real SMS, formal performance testing and a complete independent penetration test remain outside the currently published evidence.
+Automated checks cover backend, UI accessibility, build contracts and static analysis. Production assessment covers device integration, notifications, capacity, and independent penetration testing.
