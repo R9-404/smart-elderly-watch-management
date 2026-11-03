@@ -25,7 +25,7 @@
 | P0-04 | 原生 HarmonyOS 构建门禁 | [PR #77](https://github.com/WatchTestCs/smart-elderly-watch-management/pull/77) 固定 SDK/ETS/摘要，移除 native 跳过条件；b627f94 的远端原生 HAP 已下载并核对源码、API 24、ETS 6.1.1.125 和哈希；最终独立审查待完成 |
 | P0-05 | 聚合与正式发布门禁 | b627f94 在真实 GitHub API 上通过 13 项 CI、2 项 CodeQL、10 份制品校验；Setup/Portable/源码与 HAP 的包内摘要及来源另行下载核对通过；这属于开发分支软件证据，最终独立审查与 Preview 固定候选仍待完成 |
 | P0-06 | 字段保护与历史迁移 | 待逐字段核查实现、索引、回填、双读和回滚证据 |
-| P0-07 | Keyring 历史轮换 | 待核查自动化 CAS 重加密、残留扫描、密钥退役与旧备份恢复 |
+| P0-07 | Keyring 历史轮换 | 新增现有 19 个加密 MySQL 列的有界 CAS 重封装、全列认证预检及残留复查；真实 MySQL 验证覆盖并发更新/删除、A→B、缺 key/损坏及恢复重跑，见 [工具与边界](../reliability/rekey-data.md)；对象、PG、lookupKey 历史索引、跨实例屏障、退役与旧备份恢复仍未完成，最终提交 SHA 仍须 CI 和独立审查 |
 | P0-08 | 协调备份与隔离恢复 | 待核查数据库、图片、密钥、审计、工单及 outbox 的完整恢复证据 |
 | P0-09 | 故障注入与恢复 | 待固定候选验证 MySQL、PG、网关、崩溃及重复回执矩阵 |
 | P1-01 | 第一方严格类型覆盖 | 全量审计发现 50 文件/819 诊断；首批迁移记录卡片及共享工具并扩大 include，见 [迁移记录](typescript-migration.md)；仍未覆盖全站，须逐模块完成 |
