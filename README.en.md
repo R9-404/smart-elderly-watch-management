@@ -16,7 +16,7 @@
 
 Suining brings resident profiles, watch devices, health records, location alerts, and care tasks into a single workspace for care organizations and families. The application is built with Tauri 2, Rust, Vue 3, Vite, and Go, using an independently deployed MySQL primary database for business transactions and PostgreSQL for asynchronous analytics.
 
-This branch also includes [SuiningWatch](SuiningWatch/README.md), a native HarmonyOS (ArkTS) watch app used to test device-to-backend protocols in the emulator. See the [watch integration notes](docs/WATCH_INTEGRATION.md) for build and test details. The watch app includes foreground heart-rate and step sensors, permission requests, device authentication, health uploads and SOS. Simulated samples remain a separate debugging source. Native SDK builds, signing and physical-watch validation use the setup described in the watch guide.
+This branch also includes [SuiningWatch](SuiningWatch/README.md), a native HarmonyOS (ArkTS) watch app used to test device-to-backend protocols in the emulator. See the [watch project guide](SuiningWatch/README.md) for build, emulator and protocol verification steps. The watch app includes foreground heart-rate and step sensors, permission requests, device authentication, health uploads and SOS. Simulated samples remain a separate debugging source. Native SDK builds, signing and physical-watch validation use the setup described in the watch guide.
 
 ![Suining administrator workspace: device alerts, location alerts and announcements](docs/screenshots/overview-desktop.png)
 
@@ -196,4 +196,4 @@ Licensed under the [MIT License](LICENSE). Bundled fonts, map tiles, and third-p
 
 ## API contract
 
-[API contracts and resolved differences](docs/API_CONTRACTS.md) list request and success fields for 109 paths. JSON success uses HTTP 200 and `returnCode="1111"`. Failures use HTTP 4xx/5xx with `returnCode="0000"`, `code`, `message` and an optional `reference`. Image downloads return bytes; uploads use multipart field `file`.
+[API contracts and canonical sources](docs/API_CONTRACTS.md) explain how to inspect the current Go routes, request/response field inventory, and generated OpenAPI. JSON success uses HTTP 200 and `returnCode="1111"`. Failures use HTTP 4xx/5xx with `returnCode="0000"`, `code`, `message` and an optional `reference`. Image downloads return bytes; uploads use multipart field `file`.
