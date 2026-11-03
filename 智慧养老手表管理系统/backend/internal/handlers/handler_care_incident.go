@@ -243,18 +243,21 @@ func (h *Handler) careEvents(w http.ResponseWriter, r *http.Request) {
 	response.OK(w, map[string]any{"events": events, "total": total, "page": page, "pageSize": ps})
 }
 
+var incomingCareActions = map[string]string{"acknowledge": "acknowledged", "escalate": "escalated"}
+
+var careStateTransitions = map[string]map[string]string{
+	"received":       incomingCareActions,
+	"notifying":      incomingCareActions,
+	"notified":       incomingCareActions,
+	"escalated":      {"acknowledge": "acknowledged"},
+	"review_overdue": {"verify": "verified", "reopen": "in_progress"},
+	"acknowledged":   {"start": "in_progress", "escalate": "escalated"},
+	"in_progress":    {"resolve": "resolved", "escalate": "escalated"},
+	"resolved":       {"verify": "verified", "reopen": "in_progress"},
+}
+
 func nextCareState(before, action string) string {
-	allowed := map[string]map[string]string{
-		"received":       {"acknowledge": "acknowledged", "escalate": "escalated"},
-		"notifying":      {"acknowledge": "acknowledged", "escalate": "escalated"},
-		"notified":       {"acknowledge": "acknowledged", "escalate": "escalated"},
-		"escalated":      {"acknowledge": "acknowledged"},
-		"review_overdue": {"verify": "verified", "reopen": "in_progress"},
-		"acknowledged":   {"start": "in_progress", "escalate": "escalated"},
-		"in_progress":    {"resolve": "resolved", "escalate": "escalated"},
-		"resolved":       {"verify": "verified", "reopen": "in_progress"},
-	}
-	return allowed[before][action]
+	return careStateTransitions[before][action]
 }
 
 func persistCareTransition(ctx context.Context, tx *db.Transaction, id int64, next, action, actor, note string) error {
