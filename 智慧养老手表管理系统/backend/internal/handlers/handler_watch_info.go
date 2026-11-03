@@ -8,9 +8,6 @@ import (
 	"time"
 )
 
-// ---------------------------------------------------------------------------
-// ---------------------------------------------------------------------------
-
 // watchProfileParams 阈值校验（add/update 共用）：缺失/超范围 → 400"<key> 缺失或超出允许范围"；
 // 低值 >= 高值 → 400"低值必须小于高值"。
 func watchProfileParams(w http.ResponseWriter, m map[string]any) (deviceID int64, hrf, hrl, bpf, bpl int, ok bool) {
@@ -84,7 +81,6 @@ func (h *Handler) listMonitoringProfiles(w http.ResponseWriter, r *http.Request)
 		}
 		return map[string]any{
 			"deviceId": deviceID, "opTime": dateOrNil(opTime),
-			"device_id": deviceID, "op_time": dateOrNil(opTime),
 			"hrf": hrf, "bpf": bpf, "hrl": hrl, "bpl": bpl, "name": name,
 		}, nil
 	}, base+` LIMIT $2 OFFSET $3`, oldName, ps, (p-1)*ps)

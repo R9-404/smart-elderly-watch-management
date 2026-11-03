@@ -48,15 +48,7 @@ var (
 	secretHashRe = regexp.MustCompile(`^sha256\$[A-Za-z0-9_-]{43}$`)
 )
 
-// siteTimeZone 是机构所在地的时区，用于把「现场的今天」换算成 DATE 列的值。
-//
-// 数据库连接固定 time_zone='+00:00'、驱动 Loc=UTC，传进去的 time.Time 会先被
-// 换算成 UTC 瞬间再落库。若用 time.Date(..., time.Local) 构造日期，结果会随
-// 进程时区漂移：容器默认 UTC 时，北京时间 00:00–08:00 这段「今天」在 UTC 仍是
-// 前一天，日期列会静默写成昨天；宿主为东八区时又会被换算成前天 16:00。
-//
-// 固定 +8 而不是 time.Local：中国全境无夏令时，且不依赖部署环境；也不引入
-// time.LoadLocation，避免为了一个时区拖进 time/tzdata。
+// Map local calendar days to the UTC DATE representation independently of host time zone.
 var siteTimeZone = func() *time.Location {
 	if raw := strings.TrimSpace(os.Getenv("SITE_TZ_OFFSET_HOURS")); raw != "" {
 		if hours, err := strconv.ParseFloat(raw, 64); err == nil && hours >= -12 && hours <= 14 {

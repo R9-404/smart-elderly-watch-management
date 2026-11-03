@@ -40,6 +40,12 @@ func TestArchitectureWatchProfileContract(t *testing.T) {
 	if row["deviceId"] != float64(42) || row["opTime"] != "2026-10-01" {
 		t.Fatalf("threshold page cannot identify/edit its row: %+v", row)
 	}
+	if _, legacy := row["device_id"]; legacy {
+		t.Fatalf("removed device_id alias still exposed: %+v", row)
+	}
+	if _, legacy := row["op_time"]; legacy {
+		t.Fatalf("removed op_time alias still exposed: %+v", row)
+	}
 }
 
 func TestArchitectureFormattedRecordsAcrossDatabases(t *testing.T) {

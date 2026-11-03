@@ -47,6 +47,17 @@ func listLatestMeasurements[T any](h *Handler, w http.ResponseWriter, r *http.Re
 	})
 }
 
+func listScopedHistory[T any](h *Handler, w http.ResponseWriter, r *http.Request, sql, key string, scan func(dbstore.Rows) (T, error)) {
+	oldID, ok := h.readScopedOldID(w, r)
+	if !ok {
+		return
+	}
+	items, ok := queryRows(h, w, r.Context(), scan, sql, oldID)
+	if ok {
+		response.JSON(w, http.StatusOK, map[string]any{key: items})
+	}
+}
+
 func queryRows[T any](h *Handler, w http.ResponseWriter, ctx context.Context, scan func(dbstore.Rows) (T, error), sql string, args ...any) ([]T, bool) {
 	items, err := dbstore.QueryList(ctx, h.DB, scan, sql, args...)
 	return items, !internalError(w, err)

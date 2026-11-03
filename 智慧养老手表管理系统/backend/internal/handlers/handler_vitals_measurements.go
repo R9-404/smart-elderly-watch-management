@@ -13,18 +13,9 @@ func (h *Handler) listLatestVitals(w http.ResponseWriter, r *http.Request) {
 
 // POST /api/v1/vitals/history —— 家属查询自己老人的心率血压列表。
 func (h *Handler) listVitalHistory(w http.ResponseWriter, r *http.Request) {
-	oldID, ok := h.readScopedOldID(w, r)
-	if !ok {
-		return
-	}
-	sql := vitalRecordSelect +
-		` INNER JOIN (SELECT * FROM ratepre WHERE old_id=$1 ORDER BY create_time DESC, id DESC LIMIT 1) r ON r.old_id=o.old_id` +
-		` ORDER BY createTime DESC`
-	items, ok := queryRows(h, w, r.Context(), scanVitalRecord, sql, oldID)
-	if !ok {
-		return
-	}
-	response.JSON(w, http.StatusOK, map[string]any{"vitalRecords": items})
+	listScopedHistory(h, w, r, vitalRecordSelect+
+		` INNER JOIN (SELECT * FROM ratepre WHERE old_id=$1 ORDER BY create_time DESC, id DESC LIMIT 1) r ON r.old_id=o.old_id`+
+		` ORDER BY createTime DESC`, "vitalRecords", scanVitalRecord)
 }
 
 // POST /api/v1/vitals/chart —— 家属查询老人心率血压明细（图表用）。

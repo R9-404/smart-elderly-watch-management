@@ -44,18 +44,10 @@ func (h *Handler) listLatestActivity(w http.ResponseWriter, r *http.Request) {
 
 // POST /api/v1/activity/history —— 家属查询老人睡眠步数列表。
 func (h *Handler) listActivityHistory(w http.ResponseWriter, r *http.Request) {
-	oldID, ok := h.readScopedOldID(w, r)
-	if !ok {
-		return
-	}
-	items, ok := queryRows(h, w, r.Context(), scanActivityRecord, `SELECT o.name AS name, o.old_id AS oldId, o.sex AS sex,`+
+	listScopedHistory(h, w, r, `SELECT o.name AS name, o.old_id AS oldId, o.sex AS sex,`+
 		` w.step AS step, w.sleep AS sleep, w.sleep_sate AS sleepAlertState, TO_CHAR(w.create_time,'YYYY-MM-DD') AS createTime`+
 		` FROM oldperson o INNER JOIN `+ownedDailyRecords+` w ON w.device_id=o.device_id AND w.old_id=o.old_id`+
-		` WHERE o.old_id=$1 ORDER BY w.create_time DESC, w.id DESC LIMIT 1`, oldID)
-	if !ok {
-		return
-	}
-	response.JSON(w, http.StatusOK, map[string]any{"activityRecords": items})
+		` WHERE o.old_id=$1 ORDER BY w.create_time DESC, w.id DESC LIMIT 1`, "activityRecords", scanActivityRecord)
 }
 
 // POST /api/v1/activity/chart —— 家属查询老人睡眠明细（图表用）。

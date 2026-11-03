@@ -28,9 +28,6 @@ func (h *Handler) routeSocial(mux *http.ServeMux) {
 	mux.HandleFunc("GET /api/v1/image/download", h.imageDownload)
 }
 
-// ---------------------------------------------------------------------------
-// ---------------------------------------------------------------------------
-
 type noticeComment struct {
 	SaidID     *int64  `json:"saidId"`
 	Said       *string `json:"said"`
