@@ -65,7 +65,7 @@ MySQL 账号首次迁移需要业务库 DDL、索引、外键与触发器创建�
 
 ## 初始化与旧库导入
 
-MySQL 迁移使用连接级 `GET_LOCK` 和脚本 SHA-256；非空且无本项目迁移记录的库拒绝初始化。MySQL DDL 会隐式提交，因此采用可重复执行的语句、最后记录版本，不宣称整份 DDL 可回滚。[MySQL 官方说明](https://dev.mysql.com/doc/refman/8.4/en/implicit-commit.html)
+MySQL 迁移使用连接级 `GET_LOCK` 和脚本 SHA-256；非空且无本项目迁移记录的库拒绝初始化。MySQL DDL 会隐式提交，迁移使用可重复执行的语句，最后记录版本；DDL 不支持整份事务回滚。[MySQL 官方说明](https://dev.mysql.com/doc/refman/8.4/en/implicit-commit.html)
 
 PG 分析迁移使用事务及 advisory lock，只维护分析 schema，不修改旧业务 schema。
 
@@ -120,4 +120,4 @@ SELECT * FROM suining_analytics.care_summary ORDER BY source_id,state;
 
 MySQL 业务连接默认每条物理连接缓存最多 64 个预编译语句，减少重复 SQL 解析与大参数转义；20 条连接默认最多 1280 个服务器句柄/副本，须计入服务器语句预算。`MYSQL_STMT_CACHE_SIZE=0` 恢复插值/临时 prepare 路径；可设置 0..128。冷启动与 SQL 形状抖动可能变慢，最终延迟对照见 [PR #30](https://github.com/WatchTestCs/smart-elderly-watch-management/pull/30)。
 
-MySQL 业务连接初始化时将 session 默认隔离设为 READ COMMITTED；正常业务 BeginTx 省去重复 SET TRANSACTION 往返，显式会话变更后恢复原设置路径。裸 SQL() 连接也继承此默认，需要其他隔离的工具须显式指定。[历史性能测量记录](reliability/performance.md)；这些测量不构成当前提交的性能承诺。
+MySQL 业务连接初始化时将 session 默认隔离设为 READ COMMITTED；正常业务 BeginTx 省去重复 SET TRANSACTION 往返，显式会话变更后恢复原设置路径。裸 SQL() 连接也继承此默认，需要其他隔离的工具须显式指定。性能复现方法见[性能基线](reliability/performance.md)。

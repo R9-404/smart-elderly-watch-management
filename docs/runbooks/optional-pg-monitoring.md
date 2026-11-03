@@ -6,7 +6,7 @@
 
 - `app` 依赖 MySQL 健康；PG 的分析进程异步重试，不是应用启动门槛。
 - `prometheus` 可以独立运行；`/healthz` 仅表示进程存在，真实业务就绪以 `GET /api/v1/service/status` 等专用状态为准。
-- 当前仓库**已有** `deploy/alertmanager.yml` 和 Compose 可选 `paging` profile，不能再描述为“没有 Alertmanager 配置”。但默认启动**不会**自动启用 `paging`；存在配置文件不代表已联系真实值班人员。
+- `deploy/alertmanager.yml` 与可选 `paging` profile 已配置；默认启动不启用 `paging`。
 - `deploy/prometheus.yml` 包含 Alertmanager 目标；未启用 `paging` 时相关连接可能失败，不意味着外部告警已成功送达。
 
 ## 受控环境下的验证
@@ -39,7 +39,7 @@ docker compose --env-file deploy/platform.env -f deploy/platform.compose.yml --p
 
 核对 Prometheus 规则、Alertmanager 的健康/路由及真实受控接收端的接收记录，并验证断线、重复发送与恢复告警。独立 watchdog 与值班通道的故障域、凭据及顺序保证见 [滥用控制与独立监控](../reliability/abuse-and-monitoring.md)。
 
-**三级状态必须区分：** 告警规则触发、接收端 HTTP 2xx 接收、值班人员实际接手。任何一级都不等于 SOS 已被成功处置。没有真正连接的值班端时，不得宣称已经部署了自动求救通知链。
+通知状态依次核验：规则触发、接收端 HTTP 2xx、值班人员接手、人工处置完成。
 
 ## 恢复与升级边界
 
