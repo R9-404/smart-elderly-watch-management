@@ -20,12 +20,15 @@
 - 打通 SOS 紧急求助从接单、处置登记、另一名主管独立复核到关联告警关闭、总览刷新及分页履历查询的完整闭环。
 - 切换为 MySQL 业务主库加 PostgreSQL 异步分析库的双库架构，配套提供 Docker Compose 模板、旧版 PG 离线导入工具与分析投影回填命令，详见该版本对应的 Release 与源码标签。
 
-## Unreleased — documentation on preview
+## 未发布 · preview 分支变更
 
-- Add an English README with language navigation and the same platform, database, and signing boundaries as the Chinese overview.
-- Add contribution guidance, copyable issue/feature templates, support notes, and release-history navigation.
-- Use static license and preview-version badges; do not imply successful CI, audit certification, or a support SLA.
-- Documentation-only: no binary rebuild, new application version, or movement of existing release tags.
+以下改动仅存在于后续 `preview` 源码，**不属于 2.1.0 已发布安装包**；实际状态以对应提交和 CI 为准。
+
+- [PR #72](https://github.com/WatchTestCs/smart-elderly-watch-management/pull/72)：加强告警工单、绑定竞态、日期与模拟器请求的一致性回归。
+- [PR #73](https://github.com/WatchTestCs/smart-elderly-watch-management/pull/73)：模拟器跌倒事件在确认丢失后保留相同 `requestId` 重试。
+- 整理现行文档，优先使用代码生成的 OpenAPI 契约与单一穿戴端开发说明；保留历史发布记录和原始证据，不重写旧版本的验收结果。
+
+以上不构成新的发布、签名状态或生产环境验收结论。
 
 ## 2.0.2：切换至 Tauri / Go 与独立数据库
 
