@@ -62,16 +62,7 @@ func scanPositionRow(box *securestore.Box, row dbstore.Row) (map[string]any, err
 
 // POST /api/v1/position/select —— 全部老人最新位置分页查询（ADMIN）。
 func (h *Handler) positionSelect(w http.ResponseWriter, r *http.Request) {
-	m, ok := bodyMap(w, r)
-	if !ok {
-		return
-	}
-	name, present := vstr(m, "name")
-	if !present {
-		write400(w, "请求参数不完整")
-		return
-	}
-	p, ps, ok := pageFromBody(w, m)
+	name, p, ps, ok := namedPage(w, r)
 	if !ok {
 		return
 	}

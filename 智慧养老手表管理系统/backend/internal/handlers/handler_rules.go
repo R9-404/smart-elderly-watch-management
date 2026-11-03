@@ -31,13 +31,8 @@ func (h *Handler) rulePolicy(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	defer tx.Rollback(ctx)
-	var id int64
-	if err = tx.QueryRow(ctx, "SELECT device_id FROM device WHERE device_id=$1 FOR UPDATE", req.DeviceID).Scan(&id); err != nil {
-		if err == pgx.ErrNoRows {
-			response.JSON(w, 404, map[string]any{"message": "设备不存在"})
-		} else {
-			response.Error500(w, ref())
-		}
+	id := req.DeviceID
+	if !lockDeviceID(w, ctx, tx, id) {
 		return
 	}
 	var b []byte
@@ -71,10 +66,7 @@ func (h *Handler) rulePolicy(w http.ResponseWriter, r *http.Request) {
 		_, err = tx.Exec(ctx, "DELETE FROM rule_state WHERE device_id=$1", id)
 	}
 	if err == nil {
-		_, err = tx.Exec(ctx, "INSERT INTO care_access_audit(admin_id,action) VALUES($1,'rule_policy')", actor)
-	}
-	if err == nil {
-		err = tx.Commit(ctx)
+		err = commitCareChange(ctx, tx, actor, "rule_policy")
 	}
 	if internalError(w, err) {
 		return

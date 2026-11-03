@@ -31,16 +31,7 @@ func scanOldPersonRow(row dbstore.Rows) (map[string]any, error) {
 
 // POST /api/v1/residents/list —— 按姓名分页查询老人档案（ADMIN）。
 func (h *Handler) listResidents(w http.ResponseWriter, r *http.Request) {
-	m, ok := bodyMap(w, r)
-	if !ok {
-		return
-	}
-	name, present := vstr(m, "name")
-	if !present {
-		write400(w, "请求参数不完整")
-		return
-	}
-	p, ps, ok := pageFromBody(w, m)
+	name, p, ps, ok := namedPage(w, r)
 	if !ok {
 		return
 	}
@@ -61,16 +52,7 @@ func (h *Handler) listResidents(w http.ResponseWriter, r *http.Request) {
 
 // POST /api/v1/residents/details —— 老人详情（含家属/客户）分页查询（ADMIN）。
 func (h *Handler) getResidentDetails(w http.ResponseWriter, r *http.Request) {
-	m, ok := bodyMap(w, r)
-	if !ok {
-		return
-	}
-	name, present := vstr(m, "name")
-	if !present {
-		write400(w, "请求参数不完整")
-		return
-	}
-	p, ps, ok := pageFromBody(w, m)
+	name, p, ps, ok := namedPage(w, r)
 	if !ok {
 		return
 	}
@@ -115,4 +97,18 @@ func (h *Handler) getResidentDetails(w http.ResponseWriter, r *http.Request) {
 	response.OK(w, map[string]any{
 		"oldPersonDetails": list, "total": total, "page": p, "pageSize": ps,
 	})
+}
+
+func namedPage(w http.ResponseWriter, r *http.Request) (string, int, int, bool) {
+	m, ok := bodyMap(w, r)
+	if !ok {
+		return "", 0, 0, false
+	}
+	name, present := vstr(m, "name")
+	if !present {
+		write400(w, "请求参数不完整")
+		return "", 0, 0, false
+	}
+	page, size, ok := pageFromBody(w, m)
+	return name, page, size, ok
 }

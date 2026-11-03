@@ -1,10 +1,13 @@
 package handlers
 
 import (
+	"context"
+
 	"net/http"
 	"os"
 	"strconv"
 	"suining-care/internal/care"
+	"suining-care/internal/db"
 	"time"
 
 	"github.com/jackc/pgx/v5"
@@ -55,6 +58,14 @@ func (h *Handler) auditCareAccess(w http.ResponseWriter, r *http.Request, actor,
 		return false
 	}
 	return true
+}
+
+// commitCareChange records the audit in the same transaction as the mutation.
+func commitCareChange(ctx context.Context, tx *db.Transaction, actor int64, action string) error {
+	if _, err := tx.Exec(ctx, "INSERT INTO care_access_audit(admin_id,action) VALUES($1,$2)", actor, action); err != nil {
+		return err
+	}
+	return tx.Commit(ctx)
 }
 
 func (h *Handler) careDiagnostics(w http.ResponseWriter, r *http.Request) {

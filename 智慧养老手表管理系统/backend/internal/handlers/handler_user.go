@@ -98,18 +98,8 @@ func (h *Handler) createGuardian(w http.ResponseWriter, r *http.Request) {
 	if !ok {
 		return
 	}
-	name := str(m, "customerName")
-	ageStr, _ := vstr(m, "customerAge")
-	sex := str(m, "customerSex")
-	phone := str(m, "customerPhone")
-	addr := str(m, "customerAddress")
-	if name == "" || ageStr == "" || sex == "" || phone == "" || addr == "" {
-		response.Fail(w, "参数不完整")
-		return
-	}
-	age, err := strconv.Atoi(ageStr)
-	if err != nil || age < 0 || age > 150 {
-		write400(w, "年龄须为 0–150 岁的整数")
+	name, age, sex, phone, addr, ok := guardianFields(w, m)
+	if !ok {
 		return
 	}
 	ct, err := h.DB.Exec(r.Context(),
@@ -136,18 +126,8 @@ func (h *Handler) updateGuardian(w http.ResponseWriter, r *http.Request) {
 		response.Error500(w, ref())
 		return
 	}
-	name := str(m, "customerName")
-	ageStr, _ := vstr(m, "customerAge")
-	sex := str(m, "customerSex")
-	phone := str(m, "customerPhone")
-	addr := str(m, "customerAddress")
-	if name == "" || ageStr == "" || sex == "" || phone == "" || addr == "" {
-		response.Fail(w, "参数不完整")
-		return
-	}
-	age, err := strconv.Atoi(ageStr)
-	if err != nil || age < 0 || age > 150 {
-		write400(w, "年龄须为 0–150 岁的整数")
+	name, age, sex, phone, addr, ok := guardianFields(w, m)
+	if !ok {
 		return
 	}
 	ct, err := h.DB.Exec(r.Context(),
@@ -218,4 +198,22 @@ func lockCustomer(w http.ResponseWriter, r *http.Request, tx *dbstore.Transactio
 		return false
 	}
 	return true
+}
+
+func guardianFields(w http.ResponseWriter, m map[string]any) (string, int, string, string, string, bool) {
+	name := str(m, "customerName")
+	ageStr, _ := vstr(m, "customerAge")
+	sex := str(m, "customerSex")
+	phone := str(m, "customerPhone")
+	addr := str(m, "customerAddress")
+	if name == "" || ageStr == "" || sex == "" || phone == "" || addr == "" {
+		response.Fail(w, "参数不完整")
+		return "", 0, "", "", "", false
+	}
+	age, err := strconv.Atoi(ageStr)
+	if err != nil || age < 0 || age > 150 {
+		write400(w, "年龄须为 0–150 岁的整数")
+		return "", 0, "", "", "", false
+	}
+	return name, age, sex, phone, addr, true
 }

@@ -206,7 +206,8 @@ func (h *Handler) careTransition(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *Handler) careEvents(w http.ResponseWriter, r *http.Request) {
-	if _, ok := careAdmin(w, r); !ok {
+	actor, ok := careAdmin(w, r)
+	if !ok {
 		return
 	}
 	m, ok := bodyMap(w, r)
@@ -219,8 +220,7 @@ func (h *Handler) careEvents(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	id, _ := strconv.ParseInt(idStr, 10, 64)
-	actor, ok := careAdmin(w, r)
-	if !ok || !h.auditCareAccess(w, r, actor, "incident_events", &id) {
+	if !h.auditCareAccess(w, r, actor, "incident_events", &id) {
 		return
 	}
 	page, ps, ok := strictPage(w, m)

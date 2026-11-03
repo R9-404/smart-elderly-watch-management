@@ -51,50 +51,18 @@ func rewriteSQLCodeSegments(query string, rewrite func(string) (string, error)) 
 	var out strings.Builder
 	codeStart := 0
 	for i := 0; i < len(query); {
-		if strings.HasPrefix(query[i:], "--") || query[i] == '#' {
+		end, err := protectedSQLTokenEnd(query, i)
+		if err != nil {
+			return "", err
+		}
+		if end != i {
 			code, err := rewrite(query[codeStart:i])
 			if err != nil {
 				return "", err
 			}
 			out.WriteString(code)
-			end := strings.IndexByte(query[i:], '\n')
-			if end < 0 {
-				out.WriteString(query[i:])
-				return out.String(), nil
-			}
-			end += i + 1
 			out.WriteString(query[i:end])
 			i, codeStart = end, end
-			continue
-		}
-		if strings.HasPrefix(query[i:], "/*") {
-			code, err := rewrite(query[codeStart:i])
-			if err != nil {
-				return "", err
-			}
-			out.WriteString(code)
-			end := strings.Index(query[i+2:], "*/")
-			if end < 0 {
-				return "", errors.New("unterminated SQL block comment")
-			}
-			end += i + 4
-			out.WriteString(query[i:end])
-			i, codeStart = end, end
-			continue
-		}
-		if query[i] == '\'' || query[i] == '"' || query[i] == '`' {
-			code, err := rewrite(query[codeStart:i])
-			if err != nil {
-				return "", err
-			}
-			out.WriteString(code)
-			end, err := quotedSQLEnd(query, i)
-			if err != nil {
-				return "", err
-			}
-			out.WriteString(query[i:end])
-			i = end
-			codeStart = i
 			continue
 		}
 		i++
@@ -110,32 +78,11 @@ func rewriteSQLCodeSegments(query string, rewrite func(string) (string, error)) 
 func rewriteDialectExpressions(query string) (string, error) {
 	var out strings.Builder
 	for i := 0; i < len(query); {
-		if strings.HasPrefix(query[i:], "--") || query[i] == '#' {
-			end := strings.IndexByte(query[i:], '\n')
-			if end < 0 {
-				out.WriteString(query[i:])
-				break
-			}
-			end += i + 1
-			out.WriteString(query[i:end])
-			i = end
-			continue
+		end, err := protectedSQLTokenEnd(query, i)
+		if err != nil {
+			return "", err
 		}
-		if strings.HasPrefix(query[i:], "/*") {
-			end := strings.Index(query[i+2:], "*/")
-			if end < 0 {
-				return "", errors.New("unterminated SQL block comment")
-			}
-			end += i + 4
-			out.WriteString(query[i:end])
-			i = end
-			continue
-		}
-		if query[i] == '\'' || query[i] == '"' || query[i] == '`' {
-			end, err := quotedSQLEnd(query, i)
-			if err != nil {
-				return "", err
-			}
+		if end != i {
 			out.WriteString(query[i:end])
 			i = end
 			continue
@@ -197,4 +144,28 @@ func quotedSQLEnd(query string, start int) (int, error) {
 		}
 	}
 	return 0, errors.New("unterminated SQL quoted value")
+}
+
+// protectedSQLTokenEnd skips a comment or quoted token. Ordinary SQL returns start.
+func protectedSQLTokenEnd(query string, start int) (int, error) {
+	switch query[start] {
+	case '\'', '"', '`':
+		return quotedSQLEnd(query, start)
+	case '/':
+		if strings.HasPrefix(query[start:], "/*") {
+			end := strings.Index(query[start+2:], "*/")
+			if end < 0 {
+				return 0, errors.New("unterminated SQL block comment")
+			}
+			return start + end + 4, nil
+		}
+	case '-', '#':
+		if query[start] == '#' || strings.HasPrefix(query[start:], "--") {
+			if end := strings.IndexByte(query[start:], '\n'); end >= 0 {
+				return start + end + 1, nil
+			}
+			return len(query), nil
+		}
+	}
+	return start, nil
 }

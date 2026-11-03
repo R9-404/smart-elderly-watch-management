@@ -100,10 +100,7 @@ func (h *Handler) fenceSave(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 	if err == nil {
-		_, err = tx.Exec(ctx, "INSERT INTO care_access_audit(admin_id,action) VALUES($1,'fence_save')", actor)
-	}
-	if err == nil {
-		err = tx.Commit(ctx)
+		err = commitCareChange(ctx, tx, actor, "fence_save")
 	}
 	if internalError(w, err) {
 		return

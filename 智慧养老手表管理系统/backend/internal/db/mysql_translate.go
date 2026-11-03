@@ -57,49 +57,13 @@ func compileMySQLQuery(query string) (queryPlan, error) {
 	var positions []int
 	requiredArgs := 0
 	for i := 0; i < len(query); {
-		// SQL comments must not bind parameters or rewrite operators.
-		if strings.HasPrefix(query[i:], "--") || query[i] == '#' {
-			end := strings.IndexByte(query[i:], '\n')
-			if end < 0 {
-				out = append(out, query[i:]...)
-				break
-			}
-			out = append(out, query[i:i+end+1]...)
-			i += end + 1
-			continue
+		end, err := protectedSQLTokenEnd(query, i)
+		if err != nil {
+			return queryPlan{}, err
 		}
-		if strings.HasPrefix(query[i:], "/*") {
-			end := strings.Index(query[i+2:], "*/")
-			if end < 0 {
-				return queryPlan{}, errors.New("unterminated SQL block comment")
-			}
-			end += i + 4
+		if end != i {
 			out = append(out, query[i:end]...)
 			i = end
-			continue
-		}
-		if query[i] == '\'' || query[i] == '"' || query[i] == '`' {
-			quote := query[i]
-			out = append(out, quote)
-			i++
-			for i < len(query) {
-				c := query[i]
-				out = append(out, c)
-				i++
-				if c == '\\' && i < len(query) {
-					out = append(out, query[i])
-					i++
-					continue
-				}
-				if c == quote {
-					if i < len(query) && query[i] == quote {
-						out = append(out, query[i])
-						i++
-						continue
-					}
-					break
-				}
-			}
 			continue
 		}
 		// PostgreSQL regex operators are domain-owned. Reject a leaked operator

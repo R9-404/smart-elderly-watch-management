@@ -1,12 +1,15 @@
 package handlers
 
 import (
+	"net/http"
+
 	"context"
 	"crypto/rand"
 	"crypto/sha256"
 	"crypto/subtle"
 	"encoding/base64"
 	"errors"
+	"suining-care/internal/response"
 	"time"
 
 	"github.com/jackc/pgx/v5"
@@ -201,4 +204,15 @@ func saveWatchProfileUpsert(ctx context.Context, q deviceQueries, mysql bool, de
 		return 0, err
 	}
 	return ct.RowsAffected(), nil
+}
+
+// lockDeviceID holds the device row lock until the caller finishes its transaction.
+func lockDeviceID(w http.ResponseWriter, ctx context.Context, tx *dbstore.Transaction, deviceID int64) bool {
+	var id int64
+	err := tx.QueryRow(ctx, "SELECT device_id FROM device WHERE device_id=$1 FOR UPDATE", deviceID).Scan(&id)
+	if err == pgx.ErrNoRows {
+		response.JSON(w, http.StatusNotFound, map[string]any{"message": "设备不存在"})
+		return false
+	}
+	return !internalError(w, err)
 }
