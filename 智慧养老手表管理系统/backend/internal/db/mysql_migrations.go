@@ -62,8 +62,14 @@ func MigrateMySQL(ctx context.Context, database *Database) error {
 			return err
 		}
 		// Trigger statements use a single SET body, so no compound delimiters.
-		for _, statement := range strings.Split(string(data), ";") {
+		for index, statement := range strings.Split(string(data), ";") {
 			if strings.TrimSpace(statement) == "" {
+				continue
+			}
+			if name == "mysql/0021_user_phone_protection.sql" && index == 0 {
+				if err := ensureUserPhoneExpansion(ctx, conn, statement); err != nil {
+					return fmt.Errorf("MySQL migration %s: %w", name, err)
+				}
 				continue
 			}
 			if _, err = conn.ExecContext(ctx, statement); err != nil {

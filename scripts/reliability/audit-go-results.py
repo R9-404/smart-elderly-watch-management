@@ -40,7 +40,7 @@ def audit(path, mode):
         failures.append({"error": "missing or truncated test stream (<100 passing tests)"})
     required = {"TestCareSOSOutboxAuditAndState", "TestCareAdminTransitionsAndFamilyIsolation", "TestCareReceiptRequiresTrustedGatewaySignature", "TestProtectedAdministratorHTTP"}
     if mode == "mysql":
-        required |= {"TestCapabilitiesRollbackAndReapply", "TestMySQLMigrationLineEndingsAndTampering", "TestAdministratorPhoneMySQL", "TestProtectUserPhonesCommandMySQL", "TestHighCardinalityHardCaps256Clients", "TestKeyRotationAndRetirementFailClosed", "TestRekeyMySQL", "TestProjectionRekeyCommandUsesMySQLSource", "TestImageS3TwoInstancesAndRealRestore", "TestCareFullHTTPChainAfterRealGatewayTimeout"}
+        required |= {"TestCapabilitiesRollbackAndReapply", "TestUserPhoneExpansionRestart", "TestMySQLMigrationLineEndingsAndTampering", "TestAdministratorPhoneMySQL", "TestProtectUserPhonesCommandMySQL", "TestHighCardinalityHardCaps256Clients", "TestKeyRotationAndRetirementFailClosed", "TestRekeyMySQL", "TestProjectionRekeyCommandUsesMySQLSource", "TestImageS3TwoInstancesAndRealRestore", "TestCareFullHTTPChainAfterRealGatewayTimeout"}
     else:
         required.add("TestProjectionRekeyPostgres")
     for name in sorted(required - passed):
