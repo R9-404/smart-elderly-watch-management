@@ -29,7 +29,7 @@ export const deviceAlertMethods = {
         _this.alertDialog.recordId = d.recordId === undefined ? null : d.recordId
       }).catch(function (error) {
         _this.alertDialog.loading = false
-        _this.$message({ type: 'error', message: apiErrorMessage(error, '读取异常详情失败') })
+        _this.$message.error(apiErrorMessage(error, '读取异常详情失败'))
       })
     },
     // 消除红点
@@ -43,15 +43,13 @@ export const deviceAlertMethods = {
       }).then(function (response) {
         _this.alertDialog.resolving = false
         if (response.data.returnCode === '1111') {
-          _this.$message({ type: 'success', message: '已处理：' + (_this.alertDialog.reason || '异常') + '，红点已消除' })
+          _this.$message.success('已处理：' + (_this.alertDialog.reason || '异常') + '，红点已消除')
           _this.alertDialog.visible = false
           _this.loadDevices()
-        } else {
-          _this.$message({ type: 'error', message: response.data.message || '处理失败' })
         }
       }).catch(function (error) {
         _this.alertDialog.resolving = false
-        _this.$message({ type: 'error', message: apiErrorMessage(error, '处理失败') })
+        _this.$message.error(apiErrorMessage(error, '处理失败'))
       })
     },
     // 工作台里的"已处理"
@@ -60,11 +58,9 @@ export const deviceAlertMethods = {
       this.post('resolveAlert', { deviceId: row.deviceId, kind: row.kind, recordId: row.recordId || '' })
         .then(function (response) {
           if (response.data.returnCode === '1111') {
-            _this.$message({ type: 'success', message: '已处理，红点已消除' })
+            _this.$message.success('已处理，红点已消除')
             _this.loadDevices()
             _this.openWorkbench()
-          } else {
-            _this.$message({ type: 'error', message: response.data.message || '处理失败' })
           }
         }).catch(function (error) {
           _this.$message.error(apiErrorMessage(error, '请求未完成，请重试'))

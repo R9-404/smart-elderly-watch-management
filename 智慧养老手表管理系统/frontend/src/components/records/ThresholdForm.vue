@@ -1,6 +1,5 @@
 <template>
 <el-form ref="form" label-width="80px" :model="draft" :rules="rules" >
-
         <el-form-item label="手表Id" prop="deviceId">
           <el-input v-model="draft.deviceId" :disabled="editing"></el-input>
         </el-form-item>

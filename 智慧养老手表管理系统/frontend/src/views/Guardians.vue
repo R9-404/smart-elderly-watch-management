@@ -1,17 +1,14 @@
 <template>
   <div class="roles" v-loading="isLoading" element-loading-text="正在加载监护人信息…" :aria-busy="isLoading">
-    
     <div class="sys-research">
       <form class="row-search" role="search" @submit.prevent="searchCustomers()">
         <div class="search-field">
-          
           <label class="table-search-label" for="search-customer">监护人姓名</label>
           <el-input id="search-customer"
             placeholder="按监护人姓名查找"
             v-model="searchText"
             class="input-with-select">
             <template #append><el-button aria-label="查询监护人姓名"
-              
               icon="el-icon-search"
               native-type="submit"></el-button></template>
           </el-input>
@@ -19,10 +16,8 @@
         <div class="toolbar-actions">
           <el-button plain @click="customerDialogVisible = true">添加监护人</el-button>
         </div>
-		
       </form>
     </div>
-    
     <el-dialog
       title="监护人添加"
       v-model="customerDialogVisible"
@@ -47,14 +42,12 @@
 		<el-form-item label="地址" prop="customerAddress">
 		<el-input v-model="customerForm.customerAddress"></el-input>
 		</el-form-item>
-		
       </el-form>
       <template #footer><span  class="dialog-footer">
       <el-button @click="customerDialogVisible = false">取 消</el-button>
       <el-button type="primary" @click="addRoles()" :loading="saving">确 定</el-button>
     </span></template>
     </el-dialog>
-
     <el-dialog
       title="监护人编辑"
       v-model="oldEditDialogVisible"
@@ -87,13 +80,11 @@
       <el-button type="primary" @click="editRole()" :loading="saving">确 定</el-button>
     </span></template>
     </el-dialog>
-
     <el-alert v-if="mutationError" :title="mutationError" type="error" :closable="false" show-icon />
     <div v-if="loadError" class="collection-feedback" role="alert"><span>{{ loadError }}</span><el-button plain :loading="isLoading" @click="searchCustomers(true)">重新加载</el-button></div>
     <el-table v-if="!mobileLayout && !loadError" class="adaptive-record-table" :data="customerList"
     style="width: 100%" border>
     <template #empty><div  class="care-empty-state"><strong>暂无监护人信息</strong><span>添加监护人或调整搜索条件后，信息会显示在这里。</span></div></template>
-
       <el-table-column type="index" width="100" align="center"></el-table-column>
       <el-table-column prop="customerName" label="姓名" width="170" align="center"></el-table-column>
       <el-table-column prop="customerAge" label="年龄" width="170" align="center"></el-table-column>
@@ -107,7 +98,6 @@
           </el-button>
           <el-button size="small" plain type="danger" icon="el-icon-delete" @click="deleteRole(scope.row.customerId)">删除
           </el-button>
-          
         </template>
       </el-table-column>
     </el-table>
@@ -118,7 +108,6 @@
 <el-button size="small" plain type="danger" icon="el-icon-delete" @click="deleteRole(scope.row.customerId)">删除
           </el-button></template>
     </record-cards>
-    
     <div v-if="!loadError" style="margin-top: 10px;text-align: center">
       <pager-bar
         @size-change="handleSizeChange"
@@ -128,7 +117,6 @@
         :total="total" />
     </div>
   </div>
-
 </template>
 
 <script setup lang="ts">

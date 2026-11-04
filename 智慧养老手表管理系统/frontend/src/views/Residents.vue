@@ -1,17 +1,14 @@
 <template>
   <div class="roles" v-loading="isLoading" element-loading-text="正在加载老人档案…" :aria-busy="String(isLoading)">
-    
     <div class="sys-research">
       <form class="row-search" role="search" @submit.prevent="searchOldPersons">
         <div class="search-field">
-          
           <label class="table-search-label" for="search-person">长者姓名</label>
           <el-input id="search-person"
             placeholder="按长者姓名查找"
             v-model="searchText"
             class="input-with-select">
             <template #append><el-button aria-label="查询长者姓名"
-              
               icon="el-icon-search"
               native-type="submit"></el-button></template>
           </el-input>
@@ -19,10 +16,8 @@
         <div class="toolbar-actions">
           <el-button plain @click="oldDialogVisible = true">添加老人</el-button>
         </div>
-		
       </form>
     </div>
-    
     <el-dialog
       title="老人添加"
       v-model="oldDialogVisible"
@@ -35,7 +30,6 @@
       <el-button type="primary" @click="addOldPersons('addoldFormRef')">确 定</el-button>
     </span></template>
     </el-dialog>
-
     <el-dialog
       title="角色编辑"
       v-model="oldEditDialogVisible"
@@ -47,12 +41,10 @@
       <el-button type="primary" @click="editOldPerson">确 定</el-button>
     </span></template>
     </el-dialog>
-
     <div v-if="loadError" class="collection-feedback" role="alert"><span>{{ loadError }}</span><el-button plain :loading="isLoading" @click="searchOldPersons(true)">重新加载</el-button></div>
     <el-table v-if="!mobileLayout && !loadError" class="adaptive-record-table" :data="personDetailList"
     style="width: 100%" border>
     <template #empty><div  class="care-empty-state"><strong>暂无老人档案</strong><span>添加老人或调整搜索条件后，档案会显示在这里。</span></div></template>
-
 	<el-table-column type="expand">
 			  <template #default="prop" >
 				<p>家属姓名:{{prop.row.familyName}}</p><p>家属性别:{{prop.row.familySex}}</p>
@@ -60,11 +52,8 @@
 				<p>家属地址:{{prop.row.familyAddress}}</p><p>过敏:{{prop.row.warn}}</p>
 				<p>喜好食物:{{prop.row.foodLike}}</p><p>忌口食物:{{prop.row.foodHate}}</p>
 				<p>常用药物:{{prop.row.drag}}</p><p>病史:{{prop.row.illness}}</p>
-				
 			  </template>
-	  
 	</el-table-column>
-      
       <el-table-column type="index" width="100" align="center"></el-table-column>
       <el-table-column prop="name" label="姓名" width="100" align="center"></el-table-column>
       <el-table-column prop="bothdate" label="出生日期" width="120" align="center"></el-table-column>
@@ -72,10 +61,8 @@
 	  <el-table-column prop="phone" label="电话" width="120" align="center"></el-table-column>
 	  <el-table-column prop="room" label="房间" width="100" align="center"></el-table-column>
 	  <el-table-column prop="beTime" label="入院时间" width="100" align="center"></el-table-column>
-	  
 		<el-table-column prop="customerName" label="监护人" width="100" align="center"></el-table-column>
 		<el-table-column prop="deviceId" label="手表编号" width="100" align="center"></el-table-column>
-
       <el-table-column label="操作" width="200" align="center" fixed="right">
         <template #default="scope" >
           <el-button size="small" plain type="primary" icon="el-icon-edit"
@@ -83,7 +70,6 @@
           </el-button>
           <el-button size="small" plain type="danger" icon="el-icon-delete" @click="deleteOldPerson(scope.row.oldId)">删除
           </el-button>
-          
         </template>
       </el-table-column>
     </el-table>
@@ -94,7 +80,6 @@
 <el-button size="small" plain type="danger" icon="el-icon-delete" @click="deleteOldPerson(scope.row.oldId)">删除
           </el-button></template>
     </record-cards>
-    
     <div v-if="!loadError" style="margin-top: 10px;text-align: center">
       <pager-bar
         @size-change="handleSizeChange"
@@ -104,7 +89,6 @@
         :total="total" />
     </div>
   </div>
-
 </template>
 
 <script>

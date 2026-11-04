@@ -38,7 +38,6 @@
 				  <el-button type="primary" :loading="isProfileSaving" @click="editFamily">确 定</el-button>
 				</span></template>
 				</el-dialog>
-
 				<el-dialog
 				  title="修改密码"
 				  v-model="passwordEditDialogVisible"
@@ -63,7 +62,6 @@
 				  <el-button type="primary" :loading="isPasswordSaving" @click="editPassword('passwordEditForm')">确 定</el-button>
 				</span></template>
 				</el-dialog>
-
 			  </div>
 </template>
 <style scoped>
@@ -195,8 +193,6 @@ export default {
               this.messageEditDialogVisible = false
               this.$message.success('个人资料已保存')
               this.searchFamily()
-            } else {
-              this.$message.error(response.data.message || '资料未能保存，请检查后重试')
             }
           }).catch((error) => { this.$message.error(apiErrorMessage(error, '资料暂时无法保存，请稍后重试')) }).then(() => { this.isProfileSaving = false })
         })
@@ -210,8 +206,6 @@ export default {
           if (response.data.returnCode === '1111') {
             this.$message.success('头像已更新')
             this.searchFamily()
-          } else {
-            this.$message.error('头像未能更新，请重试')
           }
         }).catch((error) => { this.$message.error(apiErrorMessage(error, '头像暂时无法更新，请稍后重试')) })
       },
@@ -229,8 +223,6 @@ export default {
             if (response.data.returnCode === '1111') {
               this.resetForm(formName)
               this.$message.success('修改密码成功')
-            } else {
-              this.$message.error(response.data.message || '修改密码失败，请检查原密码后重试')
             }
           }).catch((error) => {
             this.$message.error(apiErrorMessage(error, '密码暂时无法修改，请稍后重试'))

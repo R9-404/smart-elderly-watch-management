@@ -1,12 +1,10 @@
 <template>
   <div class="roles">
     <div class="record-heading"><h2>最近上报记录</h2><el-button link :loading="isLoading" @click="searchposition">刷新记录 <i class="el-icon-refresh" aria-hidden="true"></i></el-button></div>
-
     <el-alert v-if="loadError" :title="loadError" type="error" :closable="false" show-icon></el-alert>
     <el-table v-if="!mobileLayout" class="desktop-records" v-loading="isLoading" :data="positionList"
     style="width: 100%" border>
     <template #empty><div  class="position-empty">{{ loadError ? '位置记录暂时无法加载' : '暂无位置记录' }}</div></template>
-
 	  <el-table-column prop="name" label="长者" width="150" align="center"></el-table-column>
 	  <el-table-column prop="status" label="安全状态" width="200" align="center">
 		  <template #default="scope" >
@@ -20,7 +18,6 @@
 	  <el-table-column prop="beTime" label="记录时间" width="190" align="center"></el-table-column>
       <el-table-column label="查看" width="170" align="center">
       	<template #default="scope" >
-
         <el-button size="small" plain type="success" @click="showLocation(scope.row)">
           地图查看
         </el-button>
@@ -43,7 +40,6 @@
     <div v-else-if="mobileLayout && !isLoading" class="family-record-empty">{{ loadError || '暂时没有位置和安全记录。' }}</div>
     <position-map :selection="selectedLocation" />
   </div>
-
 </template>
 
 <script>

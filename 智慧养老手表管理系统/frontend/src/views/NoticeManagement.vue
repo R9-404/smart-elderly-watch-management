@@ -29,7 +29,6 @@
       </div>
     </section>
     <el-dialog title="展示图片预览" v-model="previewVisible"><img class="gallery-preview" :src="previewUrl" alt="选中的展示图片"></el-dialog>
-
     <details class="upload-panel"><summary class="image-maintenance-summary">更多展示图片设置<span>公告附图请在公告编辑中添加</span></summary><div class="image-maintenance-body">
       <div class="upload-heading"><div><h2>公告图片</h2><p>维护独立的展示图片，JPG 格式，单张不超过8MB。</p></div></div>
       <el-upload ref="galleryUpload" class="upload-demo" :disabled="gallerySaving" :on-change="galleryChanged" :on-error="galleryError" action="api/v1/image/saveImage" :with-credentials="true" :headers="$uploadHeaders" :on-preview="handlePreview" :on-remove="handleRemove" :on-success="handleAvatarSuccess" :before-upload="beforeAvatarUpload" multiple :limit="10" :file-list="fileList2" list-type="picture">

@@ -1,22 +1,18 @@
 <template>
   <div class="roles">
-
     <div class="sys-research">
       <form class="row-search" role="search" @submit.prevent="searchOlds">
         <div class="search-field">
-          
           <label class="table-search-label" for="search-vitals">长者姓名</label>
           <el-input id="search-vitals"
             placeholder="按长者姓名查找"
             v-model="searchText"
             class="input-with-select">
             <template #append><el-button aria-label="查询长者姓名"
-              
               icon="el-icon-search"
               native-type="submit"></el-button></template>
           </el-input>
         </div>
-
 		<el-badge :value="this.rateCount" :hidden="this.rateCount === 0" class="item">
 		  <el-button size="small" :type="Number(rateCount) > 0 ? 'danger' : 'default'" plain @click="showAlertByKind('rate')">心率异常</el-button>
 		</el-badge>
@@ -26,14 +22,11 @@
 		<el-button size="small" plain type="primary" @click="openWorkbench">只看待处理异常</el-button>
       </form>
     </div>
-
     <el-table v-if="!mobileLayout" class="adaptive-record-table" :data="oldsList"
     style="width: 100%" border>
     <template #empty><div  class="care-empty-state"><strong>暂无健康记录</strong><span>最新上报的心率与血压数据会显示在这里。</span></div></template>
-
       <el-table-column type="index" width="150" align="center"></el-table-column>
       <el-table-column prop="name" label="姓名" width="180" align="center"></el-table-column>
-			
       <el-table-column prop="sex" label="性别" width="150" align="center"></el-table-column>
 			<el-table-column prop="preState" label="血压状态" width="150" align="center">
 				<template #default="scope" >
@@ -75,7 +68,6 @@
             查看健康详情
           </el-button></template>
     </record-cards>
-
     <div style="margin-top: 10px;text-align: center">
       <pager-bar
         @size-change="handleSizeChange"
@@ -84,16 +76,13 @@
         :page-size="pageSize"
         :total="total" />
     </div>
-
     <HealthAlertDialog :dialog="alertDialog" @resolve="resolveAlert" />
-
     <el-dialog title="健康记录详情" v-model="detailsVisible" @opened="resizeCharts" @closed="disposeCharts">
       <el-alert v-if="chartError" :title="chartError" type="warning" :closable="false" show-icon></el-alert>
       <div v-loading="chartLoading" class="record-chart-content"><div id="myChart" ref="mychart" class="record-chart"></div><div id="myChartTwo" ref="mychartTwo" class="record-chart"></div></div>
       <template #footer><div  class="dialog-footer"><el-button type="primary" @click="detailsVisible = false">关闭详情</el-button></div></template>
     </el-dialog>
   </div>
-
 </template>
 
 <script>
@@ -167,12 +156,12 @@ export default {
         }
       })
       if (list.length === 0) {
-        this.$message({ type: 'success', message: '当前没有待处理的异常' })
+        this.$message.success('当前没有待处理的异常')
         return
       }
       this.oldsList = list
       this.total = list.length
-      this.$message({ type: 'info', message: '已筛选出 ' + list.length + ' 条待处理异常，点「查看原因」了解处理办法' })
+      this.$message.info('已筛选出 ' + list.length + ' 条待处理异常，点「查看原因」了解处理办法')
     },
 
 

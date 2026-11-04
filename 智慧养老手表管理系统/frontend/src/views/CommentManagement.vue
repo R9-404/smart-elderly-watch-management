@@ -1,6 +1,5 @@
 <template>
   <div class="roles" v-loading="isLoading" element-loading-text="正在加载评论…" :aria-busy="String(isLoading)">
-
     <el-dialog
       title="评论回复"
       v-model="watchEditDialogVisible"
@@ -21,20 +20,16 @@
       <el-button type="primary" @click="editSaid">确 定</el-button>
     </span></template>
     </el-dialog>
-
     <div v-if="loadError" class="collection-feedback" role="alert"><span>{{ loadError }}</span><el-button plain :loading="isLoading" @click="searchSaid(true)">重新加载</el-button></div>
     <el-table v-if="!mobileLayout && !loadError" class="adaptive-record-table" :data="saidList"
     style="width: 100%" >
     <template #empty><div  class="care-empty-state"><strong>暂无评论</strong><span>收到的评论和回复会显示在这里。</span></div></template>
-
       <el-table-column prop="personName" label="作者" width="100" align="center"></el-table-column>
-	  
       <el-table-column prop="said" label="评论" width="160" align="center"></el-table-column>
 			<el-table-column prop="saidTime" label="评论时间" width="180" align="center"></el-table-column>
 			<el-table-column prop="back" label="回复" width="160" align="center"></el-table-column>
 			<el-table-column prop="backTime" label="回复时间" width="180" align="center"></el-table-column>
 			<el-table-column prop="title" label="文章标题" width="160" align="center"></el-table-column>
-	  
       <el-table-column label="操作" align="center">
         <template #default="scope" >
           <el-button v-if="scope.row.back==null" size="small" plain type="primary" icon="el-icon-edit"
@@ -42,7 +37,6 @@
           </el-button>
           <el-button size="small" plain type="danger" icon="el-icon-delete" @click="deleteSaid(scope.row.saidId)">删除
           </el-button>
-          
         </template>
       </el-table-column>
     </el-table>
@@ -53,7 +47,6 @@
 <el-button size="small" plain type="danger" icon="el-icon-delete" @click="deleteSaid(scope.row.saidId)">删除
           </el-button></template>
     </record-cards>
-    
     <div v-if="!loadError" style="margin-top: 10px;text-align: center">
       <pager-bar
         @size-change="handleSizeChange"
@@ -63,7 +56,6 @@
         :total="total" />
     </div>
   </div>
-
 </template>
 
 <script>

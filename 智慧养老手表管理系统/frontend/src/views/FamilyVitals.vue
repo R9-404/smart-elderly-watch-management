@@ -2,11 +2,9 @@
   <div class="roles">
     <div class="record-heading"><h2>最近上报记录</h2><el-button link :loading="isLoading" @click="searchOlds">刷新记录 <i class="el-icon-refresh" aria-hidden="true"></i></el-button></div>
     <el-alert v-if="loadError" :title="loadError" type="error" :closable="false" show-icon></el-alert>
-
     <el-table v-if="!mobileLayout" v-loading="isLoading" class="desktop-records" :data="oldsList"
     style="width: 100%" border>
     <template #empty><div  class="care-empty-state"><strong>暂无健康记录</strong><span>老人的最新心率与血压状态会显示在这里。</span></div></template>
-
 			<el-table-column prop="name" label="长者" width="180" align="center"></el-table-column>
 			<el-table-column prop="preState" label="血压状态" width="170" align="center">
 				<template #default="scope" >
@@ -21,7 +19,6 @@
 			<el-table-column prop="createTime" label="记录时间" width="210" align="center"></el-table-column>
       <el-table-column label="查看" width="190" align="center">
         <template #default="scope" >
-
           <el-button size="small" plain type="success" icon="el-icon-check" @click="showDetails(scope.row)">
             详细情况
           </el-button>
@@ -40,21 +37,16 @@
       </article>
     </section>
     <div v-else-if="mobileLayout" class="family-record-empty">{{ isLoading ? '正在加载健康记录…' : loadError || '暂时没有心率或血压记录。' }}</div>
-
     <el-dialog :title="chartName ? chartName + '的健康详情' : '心率与血压详情'" width="92%" v-model="detailsVisible" @opened="resizeCharts" @closed="disposeCharts" >
       <el-alert v-if="chartError" :title="chartError" type="warning" :closable="false" show-icon></el-alert><el-button v-if="chartError" link @click="showDetails({ name: chartName })">重新加载详情</el-button><div v-loading="chartLoading" class="health-chart-grid">
-
 	  <div v-show="!chartError" id="myChart" ref="mychart" class="rate-chart"></div>
-
 		<div v-show="!chartError" id="myChartTwo" ref="mychartTwo" class="rate-chart"></div>
-
       </div>
       <template #footer><div  class="dialog-footer">
         <el-button type="primary" @click="detailsVisible = false">关闭详情</el-button>
       </div></template>
     </el-dialog>
   </div>
-
 </template>
 
 <script>

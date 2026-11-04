@@ -1,17 +1,14 @@
 <template>
   <div class="roles" v-loading="isLoading" element-loading-text="正在加载家属账号…" :aria-busy="String(isLoading)">
-    
     <div class="sys-research">
       <form class="row-search" role="search" @submit.prevent="searchfamily">
         <div class="search-field">
-          
           <label class="table-search-label" for="search-family">家属姓名</label>
           <el-input id="search-family"
             placeholder="按家属姓名查找"
             v-model="searchText"
             class="input-with-select">
             <template #append><el-button aria-label="查询家属姓名"
-              
               icon="el-icon-search"
               native-type="submit"></el-button></template>
           </el-input>
@@ -19,10 +16,8 @@
         <div class="toolbar-actions">
           <el-button plain @click="customerDialogVisible = true">添加家属</el-button>
         </div>
-		
       </form>
     </div>
-    
     <el-dialog
       title="家属添加"
       v-model="customerDialogVisible"
@@ -34,7 +29,6 @@
       <el-button type="primary" @click="addFamily('addfamilyFormRef')">确 定</el-button>
     </span></template>
     </el-dialog>
-
     <el-dialog
       title="家属编辑"
       v-model="oldEditDialogVisible"
@@ -45,12 +39,10 @@
       <el-button type="primary" @click="editFamily">确 定</el-button>
     </span></template>
     </el-dialog>
-
     <div v-if="loadError" class="collection-feedback" role="alert"><span>{{ loadError }}</span><el-button plain :loading="isLoading" @click="searchfamily(true)">重新加载</el-button></div>
     <el-table v-if="!mobileLayout && !loadError" class="adaptive-record-table" :data="familyList"
     style="width: 100%" border>
     <template #empty><div  class="care-empty-state"><strong>暂无家属账号</strong><span>添加家属或调整搜索条件后，账号会显示在这里。</span></div></template>
-
       <el-table-column type="index" width="100" align="center"></el-table-column>
 	  <el-table-column prop="name" label="姓名" width="140" align="center"></el-table-column>
 	  <el-table-column prop="oldId" label="老人编号" width="140" align="center"></el-table-column>
@@ -66,7 +58,6 @@
           </el-button>
           <el-button size="small" plain type="danger" icon="el-icon-delete" @click="deleteFamily(scope.row.familyId)">删除
           </el-button>
-          
         </template>
       </el-table-column>
     </el-table>
@@ -77,7 +68,6 @@
 <el-button size="small" plain type="danger" icon="el-icon-delete" @click="deleteFamily(scope.row.familyId)">删除
           </el-button></template>
     </record-cards>
-    
     <div v-if="!loadError" style="margin-top: 10px;text-align: center">
       <pager-bar
         @size-change="handleSizeChange"
@@ -87,7 +77,6 @@
         :total="total" />
     </div>
   </div>
-
 </template>
 
 <script>

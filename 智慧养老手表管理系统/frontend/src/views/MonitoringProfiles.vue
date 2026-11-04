@@ -1,17 +1,14 @@
 <template>
   <div class="roles" v-loading="isLoading" element-loading-text="正在加载监测阈值档案…" :aria-busy="String(isLoading)">
-    
     <div class="sys-research">
       <form class="row-search" role="search" @submit.prevent="searchWatchs">
         <div class="search-field">
-          
           <label class="table-search-label" for="search-watch">长者姓名</label>
           <el-input id="search-watch"
             placeholder="按长者姓名查找"
             v-model="searchText"
             class="input-with-select">
             <template #append><el-button aria-label="查询长者姓名"
-              
               icon="el-icon-search"
               native-type="submit"></el-button></template>
           </el-input>
@@ -21,7 +18,6 @@
         </div>
       </form>
     </div>
-    
     <el-dialog
       title="设备添加"
       v-model="watchDialogVisible"
@@ -33,7 +29,6 @@
       <el-button type="primary" @click="addWatchs('addwatchFormRef')">确 定</el-button>
     </span></template>
     </el-dialog>
-
     <el-dialog
       title="设备编辑"
       v-model="watchEditDialogVisible"
@@ -44,12 +39,10 @@
       <el-button type="primary" @click="editWatch">确 定</el-button>
     </span></template>
     </el-dialog>
-
     <div v-if="loadError" class="collection-feedback" role="alert"><span>{{ loadError }}</span><el-button plain :loading="isLoading" @click="searchWatchs(true)">重新加载</el-button></div>
     <el-table v-if="!mobileLayout && !loadError" class="adaptive-record-table" :data="watchsList"
     style="width: 100%" border>
     <template #empty><div  class="care-empty-state"><strong>暂无监测阈值档案</strong><span>添加手表或调整搜索条件后，档案会显示在这里。</span></div></template>
-
       <el-table-column prop="deviceId" label="手表ID" width="100" align="center"></el-table-column>
       <el-table-column prop="name" label="佩戴老人" width="160" align="center"></el-table-column>
       <el-table-column prop="bpf" label="血压高值" width="160" align="center"></el-table-column>
@@ -57,7 +50,6 @@
 			<el-table-column prop="hrf" label="心率高值" width="160" align="center"></el-table-column>
 			<el-table-column prop="hrl" label="心率低值" width="160" align="center"></el-table-column>
 			<el-table-column prop="opTime" label="启用时间" width="160" align="center"></el-table-column>
-	  
       <el-table-column label="操作" align="center">
         <template #default="scope" >
           <el-button size="small" plain type="primary" icon="el-icon-edit"
@@ -65,7 +57,6 @@
           </el-button>
           <el-button size="small" plain type="danger" icon="el-icon-delete" @click="deleteRole(scope.row.deviceId)">删除
           </el-button>
-          
         </template>
       </el-table-column>
     </el-table>
@@ -76,7 +67,6 @@
 <el-button size="small" plain type="danger" icon="el-icon-delete" @click="deleteRole(scope.row.deviceId)">删除
           </el-button></template>
     </record-cards>
-    
     <div v-if="!loadError" style="margin-top: 10px;text-align: center">
       <pager-bar
         @size-change="handleSizeChange"
@@ -86,7 +76,6 @@
         :total="total" />
     </div>
   </div>
-
 </template>
 
 <script>

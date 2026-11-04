@@ -1,35 +1,27 @@
 <template>
   <div class="roles">
-    
     <div class="sys-research">
       <form class="row-search" role="search" @submit.prevent="searchposition">
-		  
         <div class="search-field">
-          
           <label class="table-search-label" for="search-position">长者姓名</label>
           <el-input id="search-position"
             placeholder="按长者姓名查找"
             v-model="searchText"
             class="input-with-select">
             <template #append><el-button aria-label="查询长者姓名"
-              
               icon="el-icon-search"
               native-type="submit"></el-button></template>
           </el-input>
         </div>
-        
 				<el-badge :value="this.num" class="item">
 				  <el-button size="small">紧急告警</el-button>
 				</el-badge>
-				
       </form>
     </div>
-
     <el-alert v-if="loadError" :title="loadError" type="error" :closable="false" show-icon></el-alert>
     <el-table v-if="!mobileLayout" class="adaptive-record-table" v-loading="isLoading" :data="positionList"
     style="width: 100%" border>
     <template #empty><div  class="position-empty">{{ loadError ? '位置记录暂时无法加载' : '暂无位置记录' }}</div></template>
-
       <el-table-column  width="100" type="index" align="center"></el-table-column>
       <el-table-column prop="name" label="姓名" width="140" align="center"></el-table-column>
       <el-table-column prop="sex" label="性别" width="100" align="center"></el-table-column>
@@ -65,7 +57,6 @@
       			详细情况
       		</el-button></template>
     </record-cards>
-    
     <div style="margin-top: 10px;text-align: center">
       <pager-bar
         @size-change="handleSizeChange"
@@ -76,7 +67,6 @@
     </div>
     <position-map :selection="selectedLocation" />
   </div>
-	
 </template>
 
 <script>
@@ -136,13 +126,11 @@ export default {
       }).then(function () {
         requestClient.post('api/v1/locations/alerts/resolve-latest', {'oldId': row.oldId}).then(function (response) {
           if (response.data.returnCode === '1111') {
-            _this.$message({type: 'success', message: '已处理，告警红点已消除'})
-          } else {
-            _this.$message({type: 'error', message: response.data.message || '处理失败'})
+            _this.$message.success('已处理，告警红点已消除')
           }
           _this.searchposition()
         }).catch(function (error) {
-          _this.$message({type: 'error', message: '处理失败'})
+          _this.$message.error('处理失败')
         })
       }).catch(function () {})
     },

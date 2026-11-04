@@ -14,13 +14,11 @@ export const deviceAdminMethods = {
       this.post('create', params).then(function (response) {
         if (response.data.returnCode === '1111') {
           _this.createdDevice = response.data
-          _this.$message({ type: 'success', message: '设备登记成功' })
+          _this.$message.success('设备登记成功')
           _this.loadDevices()
-        } else {
-          _this.$message({ type: 'error', message: response.data.message || '登记失败' })
         }
       }).catch(function (error) {
-        _this.$message({ type: 'error', message: apiErrorMessage(error, '登记失败') })
+        _this.$message.error(apiErrorMessage(error, '登记失败'))
       }).then(function () { _this.creating = false })
     },
     closeCreateDialog () {
@@ -51,11 +49,11 @@ export const deviceAdminMethods = {
     createBindCode () {
       var _this = this
       if (!this.bindOldId) {
-        this.$message({ type: 'warning', message: '请先选择要绑定的老人' })
+        this.$message.warning('请先选择要绑定的老人')
         return
       }
       if (!/^\d+$/.test(this.bindExpireDays)) {
-        this.$message({ type: 'warning', message: '有效天数只能填数字' })
+        this.$message.warning('有效天数只能填数字')
         return
       }
       this.post('createBindCode', {
@@ -66,8 +64,6 @@ export const deviceAdminMethods = {
         if (response.data.returnCode === '1111') {
           _this.newBindCode = response.data
           _this.loadBindCodes(_this.bindOldId)
-        } else {
-          _this.$message({ type: 'error', message: response.data.message || '生成失败' })
         }
       }).catch(function (error) {
         _this.$message.error(apiErrorMessage(error, '请求未完成，请重试'))
@@ -77,10 +73,8 @@ export const deviceAdminMethods = {
       var _this = this
       this.post('deleteBindCode', { id: row.id }).then(function (response) {
         if (response.data.returnCode === '1111') {
-          _this.$message({ type: 'success', message: '已作废' })
+          _this.$message.success('已作废')
           _this.loadBindCodes(_this.bindOldId)
-        } else {
-          _this.$message({ type: 'error', message: response.data.message || '作废失败' })
         }
       }).catch(function (error) {
         _this.$message.error(apiErrorMessage(error, '请求未完成，请重试'))
@@ -97,8 +91,6 @@ export const deviceAdminMethods = {
           if (response.data.returnCode === '1111') {
             _this.$alert('新密钥：' + response.data.secret, '密钥已重置', { confirmButtonText: '知道了' })
             _this.loadDevices()
-          } else {
-            _this.$message({ type: 'error', message: response.data.message || '重置失败' })
           }
         })
       }).catch(function (error) { if (error !== 'cancel' && error !== 'close') _this.$message.error(apiErrorMessage(error, '设备操作未完成，请重试')) })
@@ -112,10 +104,8 @@ export const deviceAdminMethods = {
       }).then(function () {
         return _this.post('unbind', { deviceId: row.deviceId }).then(function (response) {
           if (response.data.returnCode === '1111') {
-            _this.$message({ type: 'success', message: '已解绑' })
+            _this.$message.success('已解绑')
             _this.loadDevices()
-          } else {
-            _this.$message({ type: 'error', message: response.data.message || '解绑失败' })
           }
         })
       }).catch(function (error) { if (error !== 'cancel' && error !== 'close') _this.$message.error(apiErrorMessage(error, '设备操作未完成，请重试')) })
@@ -129,10 +119,8 @@ export const deviceAdminMethods = {
       }).then(function () {
         return _this.post('delete', { deviceId: row.deviceId }).then(function (response) {
           if (response.data.returnCode === '1111') {
-            _this.$message({ type: 'success', message: '已删除' })
+            _this.$message.success('已删除')
             _this.loadDevices()
-          } else {
-            _this.$message({ type: 'error', message: response.data.message || '删除失败' })
           }
         })
       }).catch(function (error) { if (error !== 'cancel' && error !== 'close') _this.$message.error(apiErrorMessage(error, '设备操作未完成，请重试')) })
@@ -140,9 +128,9 @@ export const deviceAdminMethods = {
     async copy (text) {
       try {
         await copyText(text)
-        this.$message({ type: 'success', message: '已复制：' + text })
+        this.$message.success('已复制：' + text)
       } catch {
-        this.$message({ type: 'warning', message: '复制失败，请手动记录：' + text })
+        this.$message.warning('复制失败，请手动记录：' + text)
       }
     }
 }

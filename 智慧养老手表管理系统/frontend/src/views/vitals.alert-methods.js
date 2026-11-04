@@ -29,7 +29,7 @@ export const healthAlertMethods = {
         }
       })
       if (!target) {
-        this.$message({ type: 'success', message: '当前没有未处理的' + (kind === 'rate' ? '心率' : '血压') + '异常' })
+        this.$message.success('当前没有未处理的' + (kind === 'rate' ? '心率' : '血压') + '异常')
         return
       }
       this.loadAlertDetail(null, target.name, target.oldId, kind)
@@ -78,16 +78,14 @@ export const healthAlertMethods = {
         { recordId: this.alertDialog.recordId, kind: kind }).then(function (response) {
           _this.alertDialog.resolving = false
           if (response.data.returnCode === '1111') {
-            _this.$message({ type: 'success', message: '已处理，红点已消除' })
+            _this.$message.success('已处理，红点已消除')
             _this.alertDialog.visible = false
             _this.searchOlds()
             _this.getCount()
-          } else {
-            _this.$message({ type: 'error', message: response.data.message || '处理失败' })
           }
         }).catch(function (error) {
           _this.alertDialog.resolving = false
-          _this.$message({ type: 'error', message: apiErrorMessage(error, '处理失败') })
+          _this.$message.error(apiErrorMessage(error, '处理失败'))
         })
     },
     // 表格里直接点"标记已处理"
@@ -101,11 +99,11 @@ export const healthAlertMethods = {
         tasks.push(axios.post('api/v1/vitals/alerts/resolve', { recordId: row.recordId, kind: 'pre' }))
       }
       Promise.all(tasks).then(function () {
-        _this.$message({ type: 'success', message: '已处理，红点已消除' })
+        _this.$message.success('已处理，红点已消除')
         _this.searchOlds()
         _this.getCount()
       }).catch(function (error) {
-        _this.$message({ type: 'error', message: apiErrorMessage(error, '处理失败') })
+        _this.$message.error(apiErrorMessage(error, '处理失败'))
       })
     }
 }

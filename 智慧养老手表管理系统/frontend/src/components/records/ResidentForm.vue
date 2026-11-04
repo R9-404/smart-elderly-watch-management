@@ -6,7 +6,6 @@
 <el-form-item v-if="editing" label="年龄" prop="oldId" style="display: none;">
               <el-input v-model="draft.oldId"></el-input>
             </el-form-item>
-
     <el-form-item label="性别" prop="sex">
     <el-radio-group v-model="draft.sex">
       <el-radio value="男">男</el-radio>
@@ -35,12 +34,9 @@
     <el-input v-model="draft.drag"></el-input>
     </el-form-item>
     <el-form-item label="出生日期" prop="bothdate">
-
       <el-date-picker type="date" placeholder="选择日期" value-format="YYYY-MM-DD" v-model="draft.bothdate" style="width: 100%;"></el-date-picker>
-
     </el-form-item>
     <el-form-item label="监护人" prop="customerId">
-
         <el-select class="guardian-select" v-model="draft.customerId" placeholder="请选择监护人" :loading="customerLoading" :aria-busy="String(customerLoading)">
         <el-option v-for="item in options"
       :key="item.customerId"
@@ -49,8 +45,6 @@
       </el-option>
       </el-select>
           <p v-if="customerError" role="alert">{{ customerError }} <el-button plain :loading="customerLoading" @click="$emit('retry-guardians')">重新加载监护人</el-button></p>
-
-
     </el-form-item>
         <p v-if="!editing">建档后可在设备管理中关联手表。</p>
 <el-form-item v-if="editing" label="手表编号" prop="deviceId">

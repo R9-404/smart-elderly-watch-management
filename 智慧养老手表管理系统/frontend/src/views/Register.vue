@@ -11,7 +11,6 @@
           <div class="register-brand-row"><div class="register-brand"><img class="register-mark" :src="brandLogo" :srcset="brandLogoSrcset" sizes="64px" width="64" height="64" alt="" aria-hidden="true" decoding="async"><span>岁宁</span></div><el-button class="register-text-toggle" link :aria-label="largeText ? '切换为标准字号' : '切换为更大字号'" :aria-pressed="String(largeText)" @click="toggleTextSize">{{ largeText ? '标准字' : '大字' }}</el-button></div>
           <div class="register-sub">创建家属账号 · 需要管理员发放的邀请码</div>
         </div>
-
         <database-notice />
         <el-form
           label-position="top"
@@ -31,38 +30,30 @@
             </el-input>
             <div v-if="codeMessage" :class="codeOk ? 'tip-ok' : 'tip-error'">{{ codeMessage }}</div>
           </el-form-item>
-
           <el-form-item label="姓名" prop="familyName" for="register-familyName">
             <el-input id="register-familyName" aria-label="姓名" v-model="registerForm.familyName" maxlength="10" placeholder="请输入您的姓名"></el-input>
           </el-form-item>
-
           <el-form-item label="与老人关系" prop="familyRelation" for="register-familyRelation">
             <el-input id="register-familyRelation" aria-label="与老人关系" v-model="registerForm.familyRelation" maxlength="10" placeholder="如：儿子、女儿"></el-input>
           </el-form-item>
-
           <el-form-item label="性别" prop="familySex">
             <el-radio-group v-model="registerForm.familySex" aria-label="性别">
               <el-radio label="男">男</el-radio>
               <el-radio label="女">女</el-radio>
             </el-radio-group>
           </el-form-item>
-
           <el-form-item label="手机号" prop="familyPhone" for="register-familyPhone">
             <el-input id="register-familyPhone" aria-label="手机号" v-model="registerForm.familyPhone" inputmode="tel" autocomplete="tel" maxlength="11" placeholder="用于登录的手机号"></el-input>
           </el-form-item>
-
           <el-form-item label="密码" prop="familyPassword" for="register-familyPassword">
             <el-input :type="showPassword ? 'text' : 'password'" autocomplete="new-password" id="register-familyPassword" aria-label="密码" v-model="registerForm.familyPassword" placeholder="12-20位，须包含字母和数字"><template #suffix><button  type="button" class="password-visibility" :aria-label="showPassword ? '隐藏密码' : '显示密码'" :aria-pressed="String(showPassword)" @click="showPassword = !showPassword"><i class="el-icon-view" aria-hidden="true"></i></button></template></el-input>
           </el-form-item>
-
           <el-form-item label="确认密码" prop="confirmPassword" for="register-confirmPassword">
             <el-input :type="showConfirmPassword ? 'text' : 'password'" autocomplete="new-password" id="register-confirmPassword" aria-label="确认密码" v-model="registerForm.confirmPassword" placeholder="请再次输入密码"><template #suffix><button  type="button" class="password-visibility" :aria-label="showConfirmPassword ? '隐藏确认密码' : '显示确认密码'" :aria-pressed="String(showConfirmPassword)" @click="showConfirmPassword = !showConfirmPassword"><i class="el-icon-view" aria-hidden="true"></i></button></template></el-input>
           </el-form-item>
-
           <el-form-item label="联系地址" prop="familyAddress" for="register-familyAddress">
             <el-input id="register-familyAddress" aria-label="联系地址" v-model="registerForm.familyAddress" maxlength="20" placeholder="选填"></el-input>
           </el-form-item>
-
           <el-form-item>
             <el-button type="primary" class="green" :loading="submitting" @click="submitForm">创建账号</el-button>
             <el-button @click="goLogin">返回登录</el-button>
@@ -182,9 +173,6 @@ export default {
           } else {
             this.codeMessage = '邀请码有效，绑定老人：' + data.oldPersonName + '（剩余 ' + data.remainDays + ' 天）'
           }
-        } else {
-          this.codeOk = false
-          this.codeMessage = data.message ? data.message : '邀请码无效'
         }
       }).catch((error) => {
         this.codeOk = false
@@ -197,10 +185,7 @@ export default {
           return false
         }
         if (!this.codeOk) {
-          this.$message({
-            type: 'warning',
-            message: '请先验证邀请码是否可用'
-          })
+          this.$message.warning('请先验证邀请码是否可用')
           return false
         }
         this.submitting = true
@@ -217,28 +202,15 @@ export default {
           this.submitting = false
           var data = response.data
           if (data.returnCode === '1111') {
-            this.$message({
-              type: 'success',
-              message: '注册成功！已绑定老人：' + data.oldPersonName + '，请使用手机号登录'
-            })
+            this.$message.success('注册成功！已绑定老人：' + data.oldPersonName + '，请使用手机号登录')
             localStorage.setItem('login_phone', this.registerForm.familyPhone)
             setTimeout(() => {
               this.$router.push({ path: '/sign-in' })
             }, 1500)
-          } else {
-            this.$message({
-              type: 'error',
-              message: data.message ? data.message : '注册失败，请稍后重试'
-            })
-            // 邀请码被占用或过期时重新校验一次，避免用户重复提交
-            this.checkCode()
           }
         }).catch((error) => {
           this.submitting = false
-          this.$message({
-            type: 'error',
-            message: apiErrorMessage(error, '注册失败，请检查后端服务是否已启动')
-          })
+          this.$message.error(apiErrorMessage(error, '注册失败，请检查后端服务是否已启动'))
         })
       })
     },
