@@ -9,7 +9,7 @@ it.each(['addOldPersons', 'editOldPerson'])('%s sends editable fields and the se
   const draft = { ...fields, oldId: 7, beTime: 'old', familyName: 'display', deviceId: 3, customerName: 'display' }
   const post = vi.spyOn(axios, 'post').mockResolvedValue({ data: { returnCode: '1111' } })
   const validate = (done: (valid: boolean) => void) => done(true)
-  const page = { oldForm: draft, oldEditForm: draft, $refs: { addoldFormRef: { validate }, editoldFormRef: { validate } }, $message: vi.fn(), addCustomerList: vi.fn(), searchOldPersons: vi.fn() }
+  const page = { oldForm: draft, oldEditForm: draft, $refs: { addoldFormRef: { validate }, editoldFormRef: { validate } }, $message: Object.assign(vi.fn(), { success: vi.fn(), error: vi.fn() }), addCustomerList: vi.fn(), searchOldPersons: vi.fn() }
   try {
     residentCommandMethods[method as keyof typeof residentCommandMethods].call(page)
     await flushPromises()
