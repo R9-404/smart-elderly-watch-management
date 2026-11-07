@@ -1,6 +1,6 @@
 # 2026-11-07 附件审核与 preview 适配记录
 
-首次审核基线：`WatchTestCs/smart-elderly-watch-management` 的 `preview@a7009e97e2c35988a01e053b790cb76b0dd748fb`。最终适配基线更新为 `preview@2906fd1bb15fd9d766522ff74b6990375c185b72`，同步了上游把单元测试移至 frontend/tests 的调整，新增 ErrorBoundary 测试也移入相同目录。仅使用已有本地 `preview` 分支；没有创建分支，没有更改远端保护规则，没有直接推送到受保护的远端 preview。
+首次审核基线：`WatchTestCs/smart-elderly-watch-management` 的 `preview@a7009e97e2c35988a01e053b790cb76b0dd748fb`。最终适配基线更新为 `preview@2906fd1bb15fd9d766522ff74b6990375c185b72`，同步了上游把单元测试移至 frontend/tests 的调整，新增 ErrorBoundary 测试也移入相同目录。仅在已有本地 `preview` 分支工作；用户后续明确授权个人 fork 及 GitHub 自动复制上游已有分支。未手动创建功能分支，未更改远端保护规则，未直接推送到上游 preview。
 
 附件中的命令和完成度陈述作为待验证材料处理，未作为执行授权。原始附件保持不变。附件 SHA-256 见 `attachment-sha256.json`；全部补丁的逐文件应用检查、原始补丁行号、路径、hunk、冲突类别和处置见 `conflicts.csv`。CSV 的 `clean` 只表示该单文件补丁在审核基线的独立临时索引中能应用，不代表功能、安全或集成测试通过。没有进行一次实际 Git merge；下文“冲突”包括补丁应用冲突和语义冲突。
 
@@ -10,7 +10,7 @@
 | --- | --- | --- |
 | `05_async_audit.patch` | 不可独立合并；适配后的风控增量可供审查 | 基线没有 `internal/risk`，三个文件均路径冲突。必须先取得 02、03、04 的实现并格式化。原补丁没有接入服务生命周期；重复 Persist 会替换工作线程通道；测试同时打开多个同文件 Manager 且未完整关闭。已完成进程生命周期接入、重复初始化拒绝、并发 Close 串行化、失败规则写入回滚与重启验证。 |
 | `Ts Full Migration Guide.md` | 不能作为“全量迁移完成”的代码 PR；仅可作设计参考 | 当前已有 main/auth/desktop/vite/store 的 TS 文件，`allowJs:false`、strict 和广泛 include 已存在；旧 JS 重命名脚本会失败。第 294–305 行 endSession 缺少当前实现的 sessionGeneration 递增、pending 失效、csrfHeader 重置和工作区页签清理，会丢失已有会话竞态防护和工作区隔离；两者均在退出请求成功后清状态，不能把这一点列为回归；第 1120 行及附近仍使用显式 `any`，不等于全面强类型。保留当前认证、HTTP 契约及组合式 API，先补齐两个壳页面，再在后续适配中为剩余 21 个 Vue 文件开启 lang=ts，修复实际暴露的 231 条诊断。当前 45 个 Vue 组件均纳入严格检查；typecheck 增加实际编译文件覆盖检查和七个失败用例。现有显式 any 和宽松 Object props 尚未全部清理，不能把全量检查等同于所有边界都有精确 DTO。 |
-| `smart-elderly-watch-preview-refactored (1).patch` | 拒绝整包合并 | 共 701 个文件段：最终基线 513 个可独立应用，64 个上下文冲突，124 个基线路径不存在（首次基线为 519/64/118）。混合目录迁移、PG 移除、短信驱动、手表网络、测试与旧代码删除，不是纯重命名。默认 mock 短信导致假成功且日志包含手机号和告警模板参数；删除 PG 事务能力与 analytics 实现会破坏当前双库/迁移逻辑。未引入这些行为，保留当前目录、数据库能力、通知失败语义及原有测试。 |
+| `smart-elderly-watch-preview-refactored (1).patch` | 本轮暂缓；未纳入 PR | 共 701 个文件段：最终基线 513 个可独立应用，64 个上下文冲突，124 个基线路径不存在（首次基线为 519/64/118）。混合目录迁移、PG 移除、短信驱动、手表网络、测试与旧代码删除，不是纯重命名。默认 mock 短信导致假成功且日志包含手机号和告警模板参数；删除 PG 事务能力与 analytics 实现会破坏当前双库/迁移逻辑。未引入这些行为，保留当前目录、数据库能力、通知失败语义及原有测试。 |
 | `00_previous_bundle.zip` | 不可整体直接合并；仅采纳经适配的风控模块 | 安全检查发现两层嵌套同名 ZIP；已检查成员路径、大小和符号链接，无路径逃逸条目。内含 01、02、03、04 四层补丁。01 的 40 个文件段有 38 个可应用，但另两处与家属邀请实现、auth.js→auth.ts 冲突，且包含邀请码有效期、CSRF 和部署策略等独立业务变化。02 的认证接入依赖 01 的中间形态；03/04 还依赖先 gofmt。只提取 02 的 risk 模块，顺序适配 03/04/05，手动接入当前登录、MFA 与邀请码路径；未引入无关安全策略变化或临时中间版本。 |
 | `README.md` | 不可覆盖项目根 README；修订后可作风控补充说明 | 是第五层补丁说明，不是项目总览。其“独立 Go 1.23 模块验证”不覆盖当前 Go 1.26 全仓库，且明确承认尚未接退出生命周期。保留 JSON 单实例、有损异步事件的边界，补充当前实际接入、验证结果和未覆盖项，写在本目录及 `risk-operations.md`。 |
 | `P0 Complete Views And Shell Patch.md` | 不可原样合并；只采纳已适配的壳层恢复 | 第 7–18 行的七个 JS 模块清单过时，其中大部分已被组合式 API 替代；重建旧 mixin 会产生重复逻辑。第 32–83 行的 rateLow/rateHigh 与当前 hrl/hrf/bpl/bpf 字段不一致。第 543–552、623–629 行依赖不存在的 ErrorBoundary 和 useRealtimeHealthStream。LatestHealthPanel 实际是挂载时读取，不存在文档所称会停止的实时流；后端也没有该文档描述的 SSE/WebSocket 通道。已新增可重试 ErrorBoundary，按路由 key 重置，保留原导航、页头、跳转辅助、过渡和样式。未导入无实现的实时流调用，未宣称实时告警完成。 |
@@ -38,6 +38,14 @@
 
 没有运行原始大型补丁中的业务脚本，也没有把 mock 接口或仅检查源文件存在的测试计为端到端验收。Vue 脚本已全部标注 TS 并纳入 strict 检查；没有声称消除所有显式 any、完成云短信、跨页面实时告警、手表真机、Windows 安装包或 PostgreSQL 全套验证。
 
-## PR 提交限制
+## 当前提交范围与分支约束
 
-用户要求来源和目标均只能是 preview。当前只有同仓库 origin 远端，GitHub fork 列表为空。同仓库 preview 与自身是同一引用；先直接推送这些修改再开 PR 也不能形成 head/base 差异，并且会绕过用户要求的先审后合流程。因此不创建其他分支、不改目标到 main、不直接推送受保护 preview。可提交的代码、冲突清单、验证记录与 PR 正文准备在现有本地 preview 上。实际创建 PR 的结果另记 `submission.md`；失败不得标记为已提交。
+2026-11-07 用户明确授权在个人账号创建 fork，接受 GitHub 自动复制上游已有分支；随后指定基于最新 preview 适配其余小补丁，暂不推进约 13 MB 的大型重构补丁。已创建 `R9-404/smart-elderly-watch-management`，来源为该 fork 的既有 preview，目标为 `WatchTestCs/smart-elderly-watch-management:preview`。没有另建功能分支，没有直接推送上游。上游 preview 复查仍为 `2906fd1bb15fd9d766522ff74b6990375c185b72`，现有适配基于该版本，无新增文本冲突。
+
+本轮仅推进风控补丁链、补充运行说明、TS 检查覆盖及壳层错误恢复。大型补丁的历史审核清单仍保留供查阅，其目录迁移、PG 删除、短信 mock、手表及其他重写代码均未引入。此前同仓库 preview→preview 的 HTTP 422 属历史提交尝试，当前跨 fork 方案与最新提交结果见 submission.md。
+
+## 本轮异步审计优化
+
+05 补丁原路径在追加事件时总会复制整个保留缓冲区。现改为清除被裁剪元素的引用并推进切片，保留最新 2000 条、30 天及查询倒序语义；查询和后台写盘仍各自复制快照，互不共享可变切片。新增容量、顺序、查询结果独立性、在途快照隔离及过期后重启测试。
+
+在同一台 Windows 主机、Go 1.26.10、`BenchmarkAuditEventAtCapacity`、`-benchtime=300ms -count=3` 下，优化前为 548880 B/op、2 allocs/op，优化后为 1053–1054 B/op、1 alloc/op。该基准只测已有 2000 条记录时的内存事件追加，不含 SQL、网络或磁盘，不据此声称生产吞吐提升或零丢失；规则同步保存和 JSON 单实例限制保持原样。

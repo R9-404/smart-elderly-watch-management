@@ -250,7 +250,10 @@ func (m *Manager) trimEventsLocked() {
 	if len(m.events)-first > 2000 {
 		first = len(m.events) - 2000
 	}
-	m.events = append([]Event(nil), m.events[first:]...)
+	// Drop references to expired records without copying the whole live buffer.
+	// History and persistence snapshots already own independent copies.
+	clear(m.events[:first])
+	m.events = m.events[first:]
 }
 
 func (m *Manager) RecordDenied(ip, account, detail string, signals ...string) {
