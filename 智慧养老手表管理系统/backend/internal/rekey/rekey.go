@@ -41,6 +41,8 @@ type Column struct {
 type Report struct {
 	Version               int      `json:"version"`
 	Mode                  string   `json:"mode"`
+	Scope                 string   `json:"scope"`
+	SourceRef             string   `json:"source_ref,omitempty"`
 	ActiveKey             string   `json:"active_key"`
 	StartedAt             string   `json:"started_at"`
 	FinishedAt            string   `json:"finished_at"`
@@ -57,7 +59,7 @@ type Report struct {
 // with bounded pages and binary compare-and-swap. It never logs row values or
 // keys and never authorizes retirement based on a live scan alone.
 func Run(ctx context.Context, pool *sql.DB, current, previous *securestore.Box, options Options) (report Report, err error) {
-	report = Report{Version: 1, Mode: "scan", ActiveKey: current.ActiveKeyID(), StartedAt: time.Now().UTC().Format(time.RFC3339Nano), Stage: "validation",
+	report = Report{Version: 1, Mode: "scan", Scope: "mysql_registered_fields", ActiveKey: current.ActiveKeyID(), StartedAt: time.Now().UTC().Format(time.RFC3339Nano), Stage: "validation",
 		Exclusions: []string{"plaintext fields and lookup-index migration", "blob objects and their references", "MySQL binary logs, replicas and PostgreSQL projections/WAL", "backups and rollback binaries", "writer key-version barrier and independent review"}}
 	defer func() { report.FinishedAt = time.Now().UTC().Format(time.RFC3339Nano) }()
 	if pool == nil || current.ActiveKeyID() == "" || !current.SameLookupKey(previous) {
@@ -248,13 +250,16 @@ func walk(ctx context.Context, pool *sql.DB, box *securestore.Box, t target, opt
 	}
 }
 
-func readPage(ctx context.Context, pool *sql.DB, query string, args []any, keyCount int) ([]item, error) {
+func readPage(ctx context.Context, pool *sql.DB, query string, args []any, keyCount int) (page []item, err error) {
 	rows, err := pool.QueryContext(ctx, query, args...)
 	if err != nil {
 		return nil, err
 	}
-	defer rows.Close()
-	var page []item
+	defer func() {
+		if closeErr := rows.Close(); err == nil && closeErr != nil {
+			page, err = nil, closeErr
+		}
+	}()
 	bytes := 0
 	for rows.Next() {
 		keys, dest := keyDestinations(keyCount)
@@ -270,7 +275,10 @@ func readPage(ctx context.Context, pool *sql.DB, query string, args []any, keyCo
 			break
 		}
 	}
-	return page, rows.Err()
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return page, nil
 }
 
 // compareSwap deliberately compares bytes, including case and trailing spaces,
