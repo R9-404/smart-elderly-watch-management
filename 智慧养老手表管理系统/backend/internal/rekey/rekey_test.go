@@ -56,16 +56,16 @@ func TestConvertAuthenticatesAndPreservesScope(t *testing.T) {
 		want        Counts
 		change      bool
 	}{
-		{"old", oldValue, true, Counts{OldKey: 1}, true},
-		{"legacy", sealed(t, legacy, plain, target.scope), true, Counts{Legacy: 1}, true},
-		{"active", active, true, Counts{Active: 1}, false},
-		{"null", "", false, Counts{Empty: 1}, false},
-		{"empty", "", true, Counts{Empty: 1}, false},
-		{"plaintext", plain, true, Counts{Plaintext: 1}, false},
-		{"wrong scope", sealed(t, old, plain, "session"), true, Counts{Invalid: 1}, false},
-		{"missing key", strings.Replace(oldValue, "v2:A:", "v2:MISSING:", 1), true, Counts{Invalid: 1}, false},
-		{"corrupt active", active[:len(active)-3] + "***", true, Counts{Invalid: 1}, false},
-		{"bad base64", "sne1:v2:B:***", true, Counts{Invalid: 1}, false},
+		{"old", oldValue, true, Counts{Values: 1, OldKey: 1}, true},
+		{"legacy", sealed(t, legacy, plain, target.scope), true, Counts{Values: 1, Legacy: 1}, true},
+		{"active", active, true, Counts{Values: 1, Active: 1}, false},
+		{"null", "", false, Counts{Values: 1, Empty: 1}, false},
+		{"empty", "", true, Counts{Values: 1, Empty: 1}, false},
+		{"plaintext", plain, true, Counts{Values: 1, Plaintext: 1}, false},
+		{"wrong scope", sealed(t, old, plain, "session"), true, Counts{Values: 1, Invalid: 1}, false},
+		{"missing key", strings.Replace(oldValue, "v2:A:", "v2:MISSING:", 1), true, Counts{Values: 1, Invalid: 1}, false},
+		{"corrupt active", active[:len(active)-3] + "***", true, Counts{Values: 1, Invalid: 1}, false},
+		{"bad base64", "sne1:v2:B:***", true, Counts{Values: 1, Invalid: 1}, false},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			for _, apply := range []bool{false, true} {
@@ -92,12 +92,12 @@ func TestJSONWrapperAndCompositeTOTP(t *testing.T) {
 			continue
 		}
 		keys := []any{"ADMIN", int64(9)}
-		if target.jsonEnvelope {
+		if target.format == ruleEnvelope {
 			keys = []any{int64(1), int64(2), "heart_rate"}
 		}
 		scope := target.fieldScope(keys)
 		value := sealed(t, old, "private", scope)
-		if target.jsonEnvelope {
+		if target.format == ruleEnvelope {
 			wrapped, _ := json.Marshal(map[string]any{"encrypted": value, "future": map[string]int{"revision": 7}})
 			value = string(wrapped)
 		}
@@ -106,7 +106,7 @@ func TestJSONWrapperAndCompositeTOTP(t *testing.T) {
 		if err != nil || !change || counts.OldKey != 1 {
 			t.Fatal("conversion rejected valid scoped envelope")
 		}
-		if target.jsonEnvelope {
+		if target.format == ruleEnvelope {
 			var wrapper map[string]json.RawMessage
 			if json.Unmarshal([]byte(replacement), &wrapper) != nil || string(wrapper["future"]) != `{"revision":7}` {
 				t.Fatal("JSON metadata was lost")
@@ -124,7 +124,7 @@ func TestJSONWrapperAndCompositeTOTP(t *testing.T) {
 			}
 		}
 	}
-	jsonTarget := target{table: "rule_state", jsonEnvelope: true, scope: "rule-evidence"}
+	jsonTarget := target{table: "rule_state", format: ruleEnvelope, scope: "rule-evidence"}
 	for _, value := range []string{`null`, `not json`, `{"encrypted":2}`, `{"encrypted":"plaintext"}`} {
 		var counts Counts
 		_, change, err := convert(current, jsonTarget, nil, sql.NullString{String: value, Valid: true}, true, &counts)
