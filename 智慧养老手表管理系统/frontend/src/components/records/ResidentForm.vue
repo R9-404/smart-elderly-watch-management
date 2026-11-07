@@ -60,16 +60,19 @@
       </el-form>
 </template>
 
-<script setup>
+<script setup lang="ts">
+import type { PropType } from 'vue'
+import type { GuardianOption } from '../../api/viewModels'
+import type { FormInstance } from 'element-plus'
 import { ref } from 'vue'
 defineProps({
   draft: { type: Object, required: true },
-  rules: Object, editing: Boolean, options: Array, customerLoading: Boolean, customerError: String
+  rules: Object, editing: Boolean, options: Array as PropType<GuardianOption[]>, customerLoading: Boolean, customerError: String
 })
 const emit = defineEmits(['retry-guardians'])
-const form = ref(null)
+const form = ref<FormInstance | null>(null)
 defineExpose({
-  validate: (...args) => form.value?.validate(...args),
-  resetFields: (...args) => form.value?.resetFields(...args)
+  validate: (...args: Parameters<FormInstance['validate']>) => form.value?.validate(...args),
+  resetFields: (...args: Parameters<FormInstance['resetFields']>) => form.value?.resetFields(...args)
 })
 </script>

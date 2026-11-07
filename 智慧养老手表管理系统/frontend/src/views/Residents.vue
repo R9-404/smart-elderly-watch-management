@@ -1,8 +1,8 @@
 <template>
-  <div class="roles" v-loading="isLoading" element-loading-text="正在加载老人档案…" :aria-busy="String(isLoading)">
+  <div class="roles" v-loading="isLoading" element-loading-text="正在加载老人档案…" :aria-busy="isLoading">
     
     <div class="sys-research">
-      <form class="row-search" role="search" @submit.prevent="loadResidents">
+      <form class="row-search" role="search" @submit.prevent="loadResidents()">
         <div class="search-field">
           
           <label class="table-search-label" for="search-person">长者姓名</label>
@@ -32,7 +32,7 @@
       <ResidentForm :draft="oldForm" :rules="rules" ref="addoldFormRef" :options="options" :customer-loading="customerLoading" :customer-error="customerError" @retry-guardians="addCustomerList" />
       <template #footer><span  class="dialog-footer">
       <el-button @click="oldDialogVisible = false">取 消</el-button>
-      <el-button type="primary" @click="createResident('addoldFormRef')">确 定</el-button>
+      <el-button type="primary" @click="createResident()">确 定</el-button>
     </span></template>
     </el-dialog>
 
@@ -105,7 +105,9 @@
   </div>
 
 </template>
-<script setup>
+<script setup lang="ts">
+import type { FormInstance, FormRules } from 'element-plus'
+import type { ResidentRecord, GuardianOption, RecordId } from '../api/viewModels'
 import { Delete, Edit, Search } from '@element-plus/icons-vue'
 import { reactive, ref } from 'vue'
 import { ElMessage } from 'element-plus'
@@ -124,7 +126,7 @@ const mobileLayout = useCollectionLayout(900)
 const {
   records: personDetailList, isLoading, loadError, total, pageSize, currentPage,
   load: loadResidents, handleSizeChange, changePage
-} = usePagedRecords({
+} = usePagedRecords<ResidentRecord, { name: string }>({
   path: 'api/v1/residents/details',
   responseKey: 'oldPersonDetails',
   buildQuery: () => ({ name: searchText.value }),
@@ -139,30 +141,30 @@ const emptyResident = () => ({
 const oldDialogVisible = ref(false)
 const oldEditDialogVisible = ref(false)
 const oldForm = reactive(emptyResident())
-const oldEditForm = ref({ ...emptyResident(), oldId: '', customerName: '', deviceId: '' })
-const addoldFormRef = ref(null)
-const editoldFormRef = ref(null)
-const options = ref([])
+const oldEditForm = ref<ResidentRecord>({ ...emptyResident(), oldId: '', customerName: '', deviceId: '' })
+const addoldFormRef = ref<FormInstance | null>(null)
+const editoldFormRef = ref<FormInstance | null>(null)
+const options = ref<GuardianOption[]>([])
 const customerLoading = ref(false)
 const customerError = ref('')
 
-const checkPhone = (_rule, value, callback) => {
+const checkPhone = (_rule: unknown, value: unknown, callback: (error?: Error) => void) => {
   if (!value) return callback(new Error('电话号码不能为空'))
   if (!/^1[3-9]\d{9}$/.test(String(value))) return callback(new Error('电话号码格式不正确'))
   callback()
 }
-const rules = { phone: [{ validator: checkPhone, trigger: 'blur' }] }
+const rules: FormRules = { phone: [{ validator: checkPhone, trigger: 'blur' }] }
 
 async function addCustomerList() {
   if (customerLoading.value) return
   customerLoading.value = true
   customerError.value = ''
   try {
-    const residents = []
+    const residents: GuardianOption[] = []
     let page = 1
     let total = 0
     do {
-      const { data } = await requestClient.post('api/v1/guardians/list', { customerName: '', page, pageSize: 100 })
+      const { data } = await requestClient.post<{ customers: GuardianOption[]; total: number }>('api/v1/guardians/list', { customerName: '', page, pageSize: 100 })
       if (!Array.isArray(data.customers)) throw new Error('invalid guardians')
       total = data.total ?? data.customers.length
       if (!Number.isInteger(total) || total < 0 || (!data.customers.length && residents.length < total)) {
@@ -181,19 +183,19 @@ async function addCustomerList() {
 }
 
 function createResident() {
-  addoldFormRef.value?.validate(valid => {
+  addoldFormRef.value?.validate(async valid => {
     if (!valid) return
-    return writeRecord('api/v1/residents/create', editableResident(oldForm), '添加老人成功', async () => {
+    await writeRecord('api/v1/residents/create', editableResident(oldForm), '添加老人成功', async () => {
       oldDialogVisible.value = false
       await loadResidents(true)
     })
   })
 }
 function editOldPerson() {
-  editoldFormRef.value?.validate(valid => {
+  editoldFormRef.value?.validate(async valid => {
     if (!valid) return
     const draft = oldEditForm.value
-    return writeRecord('api/v1/residents/update', {
+    await writeRecord('api/v1/residents/update', {
       ...editableResident(draft), oldId: draft.oldId
     }, '编辑老人信息成功', async () => {
       oldEditDialogVisible.value = false
@@ -201,13 +203,13 @@ function editOldPerson() {
     })
   })
 }
-function deleteOldPerson(oldId) {
+function deleteOldPerson(oldId: RecordId) {
   return deleteRecord('api/v1/residents/delete', { oldId }, '此操作将永久删除该长者信息，是否继续？', () => loadResidents(true))
 }
 function closeRoleAddDialog() {
   addoldFormRef.value?.resetFields()
 }
-function handleeditOldPerson(_index, row) {
+function handleeditOldPerson(_index: number, row: ResidentRecord) {
   oldEditForm.value = { ...row }
   oldEditDialogVisible.value = true
 }

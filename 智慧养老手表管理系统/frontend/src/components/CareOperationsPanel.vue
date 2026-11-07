@@ -26,7 +26,7 @@
       <p>主管可配置护理员或审计员。护理员可接单及记录处置；只有主管可复核关闭。</p>
       <div v-for="person in staff" :key="person.id" class="care-staff-row">
         <span>{{ person.name || '管理员' }}（编号 {{ person.id }}）</span>
-        <el-select :model-value="person.duty" :aria-label="'岗位：'+person.id" @change="duty => assign(person,duty)">
+        <el-select :model-value="person.duty" :aria-label="'岗位：'+person.id" @change="assign(person, $event)">
           <el-option label="主管" value="supervisor" />
           <el-option label="护理员" value="caregiver" />
           <el-option label="审计员" value="auditor" />
@@ -42,25 +42,27 @@
   </section>
   <SecurityPanel />
 </template>
-<script setup>
+<script setup lang="ts">
+import type { Envelope } from '../api/client'
+import type { CareDiagnostics, CareStaff, CareAccess } from '../api/viewModels'
 import { apiErrorMessage } from '../api/httpContract'
 import {ref,onMounted,onBeforeUnmount} from 'vue'
 import axios from 'axios'
 import SecurityPanel from './SecurityPanel.vue'
-const diagnostics=ref(null)
-const staff=ref([])
-const accesses=ref([])
+const diagnostics=ref<CareDiagnostics | null>(null)
+const staff=ref<CareStaff[]>([])
+const accesses=ref<CareAccess[]>([])
 const authorized=ref(false)
 const forbidden=ref(false)
 const showAudit=ref(false)
 const loading=ref(false)
 const error=ref('')
-const post=(url,body={})=>axios.post('api/v1/care/'+url,body,{withCredentials:true})
+const post=<T>(url: string,body: Record<string, unknown>={})=>axios.post<T>('api/v1/care/'+url,body,{withCredentials:true})
 async function refresh(){
   if(loading.value)return
   loading.value=true
   try{
-    const {data}=await post('diagnostics')
+    const {data}=await post<CareDiagnostics>('diagnostics')
     diagnostics.value=data
     authorized.value=true
     forbidden.value=false
@@ -69,25 +71,25 @@ async function refresh(){
   }catch(e){
     authorized.value=false
     diagnostics.value=null
-    if(e?.response?.status===403){forbidden.value=true;error.value=''}
+    if(axios.isAxiosError(e) && e.response?.status===403){forbidden.value=true;error.value=''}
     else{error.value=apiErrorMessage(e, '服务诊断暂不可用')}
   }finally{loading.value=false}
 }
 async function loadStaff(){
-  try{const {data}=await post('staff');staff.value=data.staff||[]}
+  try{const {data}=await post<{ staff: CareStaff[] }>('staff');staff.value=data.staff||[]}
   catch(cause){staff.value=[];error.value=apiErrorMessage(cause, '人员权限列表未能加载')}
 }
-async function assign(person,duty){
+async function assign(person: CareStaff,duty: unknown){
   if(person.duty===duty)return
-  try{error.value='';await post('assignDuty',{adminId:String(person.id),duty});await loadStaff()}
+  try{error.value='';await post<Envelope>('assignDuty',{adminId:String(person.id),duty});await loadStaff()}
   catch(cause){error.value=apiErrorMessage(cause, '岗位更改失败');await loadStaff()}
 }
 async function ifAudit(){
   if(!showAudit.value)return
-  try{const {data}=await post('accessAudit');accesses.value=data.accesses||[]}
+  try{const {data}=await post<{ accesses: CareAccess[] }>('accessAudit');accesses.value=data.accesses||[]}
   catch(cause){error.value=apiErrorMessage(cause, '审计记录暂不可用')}
 }
-let timer
+let timer: ReturnType<typeof setInterval> | undefined
 onMounted(()=>{refresh();timer=setInterval(()=>{if(!document.hidden)refresh()},15000)})
 onBeforeUnmount(()=>clearInterval(timer))
 </script>

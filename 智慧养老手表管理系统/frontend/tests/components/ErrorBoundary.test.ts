@@ -1,7 +1,7 @@
 import { defineComponent, h, nextTick } from 'vue'
 import { mount } from '@vue/test-utils'
 import { expect, it } from 'vitest'
-import ErrorBoundary from '../../src/components/ErrorBoundary.vue'
+import ErrorBoundary from '@/components/ErrorBoundary.vue'
 
 it('contains a child render failure and remounts it on retry', async () => {
   let broken = true

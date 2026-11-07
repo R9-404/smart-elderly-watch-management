@@ -31,6 +31,12 @@ npm run build
 
 ## 测试与静态资源
 
+所有 45 个 Vue 组件的脚本均纳入 TypeScript strict 检查。`npm run typecheck` 会先验证实际编译文件覆盖范围，拒绝未标注 TS 的 Vue 脚本、src 内 JS、缩小 include 和关闭严格检查，再执行 vue-tsc。该检查不等于所有运行时接口均已校验，也不宣称已移除现有显式 any。
+
+```powershell
+npm run typecheck
+```
+
 单元测试统一放在 `tests/`，与源码目录 `src/` 分离；子目录镜像 `src/` 结构，被测模块一律通过 `@/` 别名引用，不写相对路径：
 
 ```powershell

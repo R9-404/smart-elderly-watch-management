@@ -1,24 +1,26 @@
 <template>
   <section class="position-map" aria-label="位置地图">
     <div class="position-map-heading">
-      <div><h2>位置地图</h2><p>{{ valid ? `${selection.name || '长者'} · ${selection.lng}，${selection.lat}` : '选择一条位置记录，在此查看。' }}</p></div>
+      <div><h2>位置地图</h2><p>{{ valid && selection ? `${selection.name || '长者'} · ${selection.lng}，${selection.lat}` : '选择一条位置记录，在此查看。' }}</p></div>
       <el-button v-if="valid && !online" @click="enableTiles">加载在线地图</el-button>
       <el-button v-if="online" link @click="disableTiles">关闭在线地图</el-button>
     </div>
     <div ref="canvas" class="position-map-canvas" :class="{ 'has-location': valid }" role="region" aria-label="可缩放的位置地图"></div>
-    <p v-if="valid" class="position-map-note">{{ describePositionContext(selection) }}</p>
+    <p v-if="valid && selection" class="position-map-note">{{ describePositionContext(selection) }}</p>
     <p class="position-map-note" role="status">{{ message }}</p>
   </section>
 </template>
 
-<script setup>
+<script setup lang="ts">
 import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue'
-import L from 'leaflet'
+import L, { type Map, type CircleMarker, type TileLayer, type LatLngTuple } from 'leaflet'
+import type { PositionContext } from '../utils/positionContext'
 import 'leaflet/dist/leaflet.css'
 import { describePositionContext } from '../utils/positionContext'
 
-const props = defineProps({ selection: { type: Object, default: null } })
-const canvas = ref(null)
+interface MapSelection extends PositionContext { lng?: number | string | null; lat?: number | string | null; name?: string | null }
+const props = withDefaults(defineProps<{ selection?: MapSelection | null }>(), { selection: null })
+const canvas = ref<HTMLElement | null>(null)
 const online = ref(false)
 const failed = ref(false)
 const valid = computed(() => {
@@ -28,12 +30,15 @@ const valid = computed(() => {
 })
 const message = computed(() => !valid.value ? '暂无可用坐标。' : failed.value ? '在线地图加载失败；位置标记与原始坐标仍可查看。' :
   online.value ? '坐标以设备上报为准，地图仅作参考。' : '所选上报坐标已标记。在线底图按需加载，需要网络连接。')
-let map, marker, tiles, observer
+let map: Map | null = null
+let marker: CircleMarker | null = null
+let tiles: TileLayer | null = null
+let observer: ResizeObserver | undefined
 function updateLocation () {
   if (!map) return
   if (marker) { marker.remove(); marker = null }
-  if (!valid.value) { disableTiles(); return }
-  const point = [Number(props.selection.lat), Number(props.selection.lng)]
+  if (!valid.value || !props.selection) { disableTiles(); return }
+  const point: LatLngTuple = [Number(props.selection.lat), Number(props.selection.lng)]
   map.setView(point, 15, { animate: false })
   marker = L.circleMarker(point, { radius: 9, color: '#fff', weight: 3, fillColor: '#215c4a', fillOpacity: 1 }).addTo(map)
   const label = document.createElement('span')
@@ -57,6 +62,7 @@ function disableTiles () {
   failed.value = false
 }
 onMounted(() => {
+  if (!canvas.value) return
   map = L.map(canvas.value, { scrollWheelZoom: false, attributionControl: true, zoomControl: false }).setView([30, 110], 5)
   L.control.zoom({ zoomInTitle: '放大地图', zoomOutTitle: '缩小地图' }).addTo(map)
   // Links are disabled in the desktop shell; retain readable attribution locally.
