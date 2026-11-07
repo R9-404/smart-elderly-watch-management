@@ -31,7 +31,7 @@
   </aside>
 </template>
 
-<script setup lang="ts">
+<script setup>
 import { ArrowDown, ArrowUp, Clock, Document, Menu, Message, User } from '@element-plus/icons-vue'
 import { computed, ref, watch } from 'vue'
 import { useRoute } from 'vue-router'
@@ -40,8 +40,8 @@ import { authState } from '@/auth'
 const route = useRoute()
 const expanded = ref(false)
 const restrictedDuty = computed(() => authState.account?.role === 'ADMIN' &&
-  ['caregiver', 'auditor'].includes(authState.account.duty || ''))
-const groups: Record<string, string[]> = {
+  ['caregiver', 'auditor'].includes(authState.account.duty))
+const groups = {
   health: ['/operations/vitals', '/operations/activity', '/operations/locations', '/operations/life'],
   records: ['/operations/residents', '/operations/guardians', '/operations/monitoring-profiles', '/operations/families', '/operations/invitations'],
   service: ['/operations/notices/new', '/operations/notices', '/operations/comments', '/operations/notices/edit', '/operations/notices/detail']

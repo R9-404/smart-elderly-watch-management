@@ -35,10 +35,10 @@
     </el-dialog>
 </template>
 
-<script setup lang="ts">
+<script setup>
 import { CircleCheckFilled } from '@element-plus/icons-vue'
 import { useRouter } from 'vue-router'
 defineProps({ dialog: { type: Object, required: true } })
-const emit = defineEmits<{ resolve: [kind: 'rate' | 'pre'] }>()
+const emit = defineEmits(['resolve'])
 const router = useRouter()
 </script>

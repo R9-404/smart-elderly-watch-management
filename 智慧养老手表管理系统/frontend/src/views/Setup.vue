@@ -22,10 +22,9 @@
   </main>
 </template>
 
-<script setup lang="ts">
-import type { FormInstance, FormRules } from 'element-plus'
+<script setup>
 import { ArrowRight } from '@element-plus/icons-vue'
-import { reactive, ref, useTemplateRef } from 'vue'
+import { reactive, ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { apiErrorMessage } from '../api/httpContract'
 import axios from 'axios'
@@ -33,11 +32,11 @@ import { loadSession } from '../auth'
 import { createAdministrator } from '../desktop'
 
 const router = useRouter()
-const form = useTemplateRef<FormInstance>('form')
+const form = ref(null)
 const account = reactive({ name: '', phone: '', password: '' })
 const busy = ref(false)
 const error = ref('')
-const rules: FormRules = {
+const rules = {
   name: [{ required: true, message: '请输入称呼', trigger: 'blur' }],
   phone: [{ pattern: /^1\d{10}$/, required: true, message: '请输入有效的 11 位手机号', trigger: 'blur' }],
   password: [{ pattern: /^(?=.*[A-Za-z])(?=.*\d).{12,20}$/, required: true, message: '请设置 12–20 位含字母和数字的密码', trigger: 'blur' }]

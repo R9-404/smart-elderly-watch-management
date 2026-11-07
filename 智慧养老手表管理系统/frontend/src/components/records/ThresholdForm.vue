@@ -19,13 +19,12 @@
       </el-form>
 </template>
 
-<script setup lang="ts">
-import type { FormInstance } from 'element-plus'
-import { useTemplateRef } from 'vue'
+<script setup>
+import { ref } from 'vue'
 defineProps({ draft: { type: Object, required: true }, rules: Object, editing: Boolean })
-const form = useTemplateRef<FormInstance>('form')
+const form = ref(null)
 defineExpose({
-  validate: (...args: Parameters<FormInstance['validate']>) => form.value?.validate(...args),
-  resetFields: (...args: Parameters<FormInstance['resetFields']>) => form.value?.resetFields(...args)
+  validate: (...args) => form.value?.validate(...args),
+  resetFields: (...args) => form.value?.resetFields(...args)
 })
 </script>

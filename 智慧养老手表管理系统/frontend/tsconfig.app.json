@@ -1,22 +1,10 @@
 {
-  "extends": "@vue/tsconfig/tsconfig.dom.json",
+  "extends": "./tsconfig.base.json",
   "compilerOptions": {
-    "target": "ES2025",
-    "lib": [
-      "ES2025",
-      "DOM"
-    ],
     "types": [
       "vite/client"
     ],
-    "rootDir": "./src",
-    "allowJs": false,
-    "isolatedModules": true,
-    "paths": {
-      "@/*": [
-        "./src/*"
-      ]
-    }
+    "rootDir": "./src"
   },
   "include": [
     "src/**/*.ts",

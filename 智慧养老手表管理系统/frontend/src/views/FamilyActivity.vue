@@ -53,8 +53,7 @@
 
 </template>
 
-<script setup lang="ts">
-import type { ActivityRecord } from '../api/viewModels'
+<script setup>
 import { Check, Refresh } from '@element-plus/icons-vue'
 import { computed, onBeforeUnmount, onMounted, ref } from 'vue'
 import { authState } from '../auth'
@@ -70,11 +69,11 @@ const {
   primaryChartElement, secondaryChartElement, showRecordDetails, resizeCharts, disposeCharts
 } = useRecordCharts()
 const oldId = computed(() => String(authState.account?.oldId ?? ''))
-const stepList = ref<ActivityRecord[]>([])
+const stepList = ref([])
 const isLoading = ref(false)
 const loadError = ref('')
 const reads = createLatestRead(
-  (query: { oldId: string }, signal) => api.post<{ activityRecords: ActivityRecord[] }>('api/v1/activity/history', query, { signal }),
+  (query, signal) => api.post('api/v1/activity/history', query, { signal }),
   ({ data }) => {
     stepList.value = Array.isArray(data.activityRecords) ? data.activityRecords : []
     loadError.value = ''
@@ -86,18 +85,18 @@ const reads = createLatestRead(
   loading => { isLoading.value = loading }
 )
 function searchStep() { return reads.run({ oldId: oldId.value }) }
-function stateLabel(value: unknown) {
+function stateLabel(value) {
   if (value === 1 || value === '1') return '异常'
   if (value === 0 || value === '0') return '正常'
   return '暂无状态'
 }
-function stateClass(value: unknown) {
+function stateClass(value) {
   if (value === 1 || value === '1') return 'status-danger'
   if (value === 0 || value === '0') return 'status-normal'
   return 'unknown-state'
 }
-function showDetails(row: { name: string | null }) {
-  return showRecordDetails('activity', oldId.value, row.name || '')
+function showDetails(row) {
+  return showRecordDetails('activity', oldId.value, row.name)
 }
 onMounted(() => { void searchStep() })
 onBeforeUnmount(reads.dispose)

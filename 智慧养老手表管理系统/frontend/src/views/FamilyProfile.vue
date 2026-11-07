@@ -42,7 +42,7 @@
 				<el-dialog
 				  title="修改密码"
 				  v-model="passwordEditDialogVisible"
-          :close-on-click-modal="!isPasswordSaving" :close-on-press-escape="!isPasswordSaving" :show-close="!isPasswordSaving" @closed="resetForm()"
+          :close-on-click-modal="!isPasswordSaving" :close-on-press-escape="!isPasswordSaving" :show-close="!isPasswordSaving" @closed="resetForm('passwordEditForm')"
 				  width="92%" class="profile-dialog">
 				  <el-form label-width="80px" class="demo-ruleForm" status-icon :rules="rules2" ref="passwordEditFormRef" :model="passwordEditForm">
 				    <el-form-item label="原密码" for="profile-old-password" prop="oldPassword" >
@@ -56,8 +56,8 @@
 						</el-form-item>
 				  </el-form>
 				  <template #footer><span  class="dialog-footer">
-				  <el-button :disabled="isPasswordSaving" @click="resetForm()">取 消</el-button>
-				  <el-button type="primary" :loading="isPasswordSaving" @click="editPassword()">确 定</el-button>
+				  <el-button :disabled="isPasswordSaving" @click="resetForm('passwordEditForm')">取 消</el-button>
+				  <el-button type="primary" :loading="isPasswordSaving" @click="editPassword('passwordEditForm')">确 定</el-button>
 				</span></template>
 				</el-dialog>
 
@@ -81,12 +81,9 @@
 @media (max-width: 600px) { .profile-card { padding: 24px; } .profile-summary { align-items: flex-start; gap: 16px; } .profile-avatar { width: 64px; height: 64px; flex-basis: 64px; font-size: 28px; } .profile-identity h2 { font-size: 24px; } .profile-actions { gap: 10px; } .profile-actions :deep(.el-button) { width: 100%; } .profile-actions > * { flex: 1 0 100%; } .profile-actions :deep(.el-upload) { display: block; } .profile-details { grid-template-columns: 1fr; } }
 html.large-text .care-family .profile-identity span, html.large-text .care-family .profile-details dd { font-size: 21px; }
 </style>
-<script setup lang="ts">
-import type { FormInstance, FormRules } from 'element-plus'
-import { computed, nextTick, onMounted, reactive, ref, useTemplateRef } from 'vue'
+<script setup>
+import { computed, nextTick, onMounted, reactive, ref } from 'vue'
 import { ElMessage } from 'element-plus'
-import type { FamilyProfile } from '../api/viewModels'
-import type { Envelope } from '../api/client'
 import { api, accepted } from '../api/client'
 import { apiErrorMessage } from '../api/httpContract'
 import { authState } from '../auth'
@@ -106,13 +103,13 @@ const messageEditForm = reactive({
 const passwordEditForm = reactive({
   familyPassword: '', familyPassword2: '', oldPassword: ''
 })
-const profileEditFormRef = useTemplateRef<FormInstance>('profileEditFormRef')
-const passwordEditFormRef = useTemplateRef<FormInstance>('passwordEditFormRef')
+const profileEditFormRef = ref(null)
+const passwordEditFormRef = ref(null)
 const personName = computed(() => authState.account?.displayName || '')
 const familyPhone = computed(() => authState.account?.phone || '')
 const familyTouPic = ref('')
-const familyProfile = ref<FamilyProfile>({})
-const profileRules: FormRules = {
+const familyProfile = ref({})
+const profileRules = {
   familyName: [
     { required: true, whitespace: true, message: '请输入姓名', trigger: 'blur' },
     { max: 10, message: '姓名最多10个字符', trigger: 'blur' }
@@ -120,17 +117,17 @@ const profileRules: FormRules = {
   familySex: [{ required: true, message: '请选择性别', trigger: 'change' }],
   familyAddress: [{ max: 20, message: '地址最多20个字符', trigger: 'blur' }]
 }
-function validatePass(_rule: unknown, value: string, callback: (error?: Error) => void) {
+function validatePass(_rule, value, callback) {
   if (!value) return callback(new Error('请输入密码'))
   if (passwordEditForm.familyPassword2) passwordEditFormRef.value?.validateField('familyPassword2')
   callback()
 }
-function validatePass2(_rule: unknown, value: string, callback: (error?: Error) => void) {
+function validatePass2(_rule, value, callback) {
   if (!value) return callback(new Error('请再次输入密码'))
   if (value !== passwordEditForm.familyPassword) return callback(new Error('两次输入密码不一致!'))
   callback()
 }
-const rules2: FormRules = {
+const rules2 = {
   oldPassword: [{ required: true, message: '请输入原密码', trigger: 'blur' }],
   familyPassword: [
     { validator: validatePass, trigger: 'blur' },
@@ -145,7 +142,7 @@ async function searchFamily() {
   isProfileLoading.value = true
   profileLoadError.value = ''
   try {
-    const { data } = await api.post<{ familyDto2: FamilyProfile | null }>('api/v1/family/selectTwo', { familyPhone: familyPhone.value })
+    const { data } = await api.post('api/v1/family/selectTwo', { familyPhone: familyPhone.value })
     familyProfile.value = data?.familyDto2 || {}
     const profile = familyProfile.value
     if (profile.familyName && authState.account) authState.account.displayName = profile.familyName
@@ -162,7 +159,7 @@ async function editFamily() {
   if (!valid) return
   isProfileSaving.value = true
   try {
-    const { data } = await api.post<Envelope>('api/v1/family/updateTwo', { ...messageEditForm })
+    const { data } = await api.post('api/v1/family/updateTwo', { ...messageEditForm })
     accepted(data)
     messageEditDialogVisible.value = false
     ElMessage.success('个人资料已保存')
@@ -171,13 +168,13 @@ async function editFamily() {
     ElMessage.error(apiErrorMessage(error, '资料暂时无法保存，请稍后重试'))
   } finally { isProfileSaving.value = false }
 }
-async function handleAvatarSuccess(res: { returnCode?: string; filename?: string } | null) {
+async function handleAvatarSuccess(res) {
   if (!res || res.returnCode !== '1111' || !res.filename) {
     ElMessage.error('头像上传未成功，请重试')
     return
   }
   try {
-    const { data } = await api.post<Envelope>('api/v1/family/updateTouPic', {
+    const { data } = await api.post('api/v1/family/updateTouPic', {
       familyTouPic: res.filename, familyPhone: familyPhone.value
     })
     accepted(data)
@@ -187,7 +184,7 @@ async function handleAvatarSuccess(res: { returnCode?: string; filename?: string
     ElMessage.error(apiErrorMessage(error, '头像暂时无法更新，请稍后重试'))
   }
 }
-function handleAvatarError(error: unknown) {
+function handleAvatarError(error) {
   ElMessage.error(apiErrorMessage(error, '头像暂时无法上传，请稍后重试'))
 }
 async function editPassword() {
@@ -196,7 +193,7 @@ async function editPassword() {
   if (!valid) return
   isPasswordSaving.value = true
   try {
-    const { data } = await api.post<Envelope>('api/v1/family/updatePassword', {
+    const { data } = await api.post('api/v1/family/updatePassword', {
       familyPhone: familyPhone.value,
       oldPassword: passwordEditForm.oldPassword,
       familyPassword: passwordEditForm.familyPassword
@@ -226,7 +223,7 @@ function resetForm() {
   passwordEditDialogVisible.value = false
   passwordEditFormRef.value?.resetFields()
 }
-function beforeAvatarUpload(file: File) {
+function beforeAvatarUpload(file) {
   const validType = ['image/jpeg', 'image/png'].includes(file.type)
   const validSize = file.size < 2 * 1024 * 1024
   if (!validType) ElMessage.error('请选择 JPG 或 PNG 格式的头像')

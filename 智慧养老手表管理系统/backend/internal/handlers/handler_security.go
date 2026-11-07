@@ -120,9 +120,6 @@ func (h *Handler) factorLogin(w http.ResponseWriter, r *http.Request, m map[stri
 			if internalError(w, tx.Commit(ctx)) {
 				return false
 			}
-			if h.Risk != nil {
-				h.Risk.FailedLogin(h.clientIP(r), phone, riskSignals(r)...)
-			}
 			response.JSON(w, 401, map[string]any{"code": "MFA_REQUIRED", "message": "请输入有效的动态验证码或未使用的恢复码"})
 			return false
 		}

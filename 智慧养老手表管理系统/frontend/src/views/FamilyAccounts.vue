@@ -93,7 +93,7 @@
 
 <script setup lang="ts">
 import { Delete, Edit, Search } from '@element-plus/icons-vue'
-import { reactive, ref, useTemplateRef } from 'vue'
+import { reactive, ref } from 'vue'
 import { ElMessage } from 'element-plus'
 import { usePagedRecords } from '@/composables/usePagedRecords'
 import { writeRecord, deleteRecord } from '@/composables/recordActions'
@@ -122,7 +122,7 @@ const familyForm = reactive({
   familyPhone: '', familyAddress: '', oldPhone: ''
 })
 const familyEditForm = ref<FamilyRow>({})
-const addfamilyFormRef = useTemplateRef<InstanceType<typeof FamilyForm>>('addfamilyFormRef')
+const addfamilyFormRef = ref<{ resetFields: () => void } | null>(null)
 function checkPhone(_rule: unknown, value: string, callback: (error?: Error) => void) {
   if (!value) return callback(new Error('电话号码不能为空'))
   if (!/^1[3-9]\d{9}$/.test(String(value))) return callback(new Error('电话号码格式不正确'))

@@ -46,8 +46,7 @@
 
 </template>
 
-<script setup lang="ts">
-import type { LocationRecord } from '../api/viewModels'
+<script setup>
 import { Refresh } from '@element-plus/icons-vue'
 import { computed, ref, onMounted, onBeforeUnmount } from 'vue'
 import { authState } from '../auth'
@@ -60,12 +59,12 @@ import { describePositionContext } from '../utils/positionContext'
 
 const mobileLayout = useCollectionLayout()
 const oldId = computed(() => String(authState.account?.oldId ?? ''))
-const positionList = ref<LocationRecord[]>([])
+const positionList = ref([])
 const isLoading = ref(false)
 const loadError = ref('')
-const selectedLocation = ref<LocationRecord | null>(null)
+const selectedLocation = ref(null)
 const reads = createLatestRead(
-  (query: { oldId: string }, signal) => api.post<{ positionDtos: LocationRecord[] }>('api/v1/position/selectFamily', query, { signal }),
+  (query, signal) => api.post('api/v1/position/selectFamily', query, { signal }),
   ({ data }) => {
     positionList.value = Array.isArray(data.positionDtos) ? data.positionDtos : []
     loadError.value = ''
@@ -77,7 +76,7 @@ const reads = createLatestRead(
   loading => { isLoading.value = loading }
 )
 function searchposition() { return reads.run({ oldId: oldId.value }) }
-function showLocation(row: LocationRecord) { selectedLocation.value = { ...row } }
+function showLocation(row) { selectedLocation.value = { ...row } }
 onMounted(() => { void searchposition() })
 onBeforeUnmount(reads.dispose)
 </script>

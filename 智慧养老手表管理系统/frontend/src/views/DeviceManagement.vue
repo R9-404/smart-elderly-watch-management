@@ -162,16 +162,13 @@
   </div>
 </template>
 
-<script setup lang="ts">
+<script setup>
 import { ArrowDown, CircleCheckFilled, Plus } from '@element-plus/icons-vue'
 import { useCollectionLayout } from '../composables/useCollectionLayout'
 import { useDevices } from '../composables/useDevices'
 import HarmonyWatchSetup from '../components/HarmonyWatchSetup.vue'
-import { useTemplateRef } from 'vue'
-import type { FormInstance } from 'element-plus'
 
 const mobileLayout = useCollectionLayout()
-const createFormRef = useTemplateRef<FormInstance>('createFormRef')
 const {
   deviceList, deviceTotal, currentPage, pageSize,
   deviceDetailVisible, detailDevice, deviceQuery, deviceState,

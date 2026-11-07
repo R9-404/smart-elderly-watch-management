@@ -17,7 +17,7 @@
   </header>
 </template>
 
-<script setup lang="ts">
+<script setup>
 import { computed, onMounted, ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { ElMessage, ElMessageBox } from 'element-plus'

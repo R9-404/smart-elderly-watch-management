@@ -7,7 +7,6 @@ import (
 	"suining-care/internal/blob"
 	dbstore "suining-care/internal/db"
 	"suining-care/internal/ratelimit"
-	"suining-care/internal/risk"
 	"sync"
 
 	"suining-care/internal/config"
@@ -28,8 +27,6 @@ type Handler struct {
 	imageManager *blob.Manager
 	imageError   error
 	clientIP     func(*http.Request) string
-	// Risk is process-owned and opt-in; nil preserves existing authentication.
-	Risk *risk.Manager
 }
 
 func New(pool *dbstore.Database, sessions *session.Store, cfg config.Config) *Handler {
@@ -43,7 +40,6 @@ func New(pool *dbstore.Database, sessions *session.Store, cfg config.Config) *Ha
 
 // Routes 注册全部路由。各组在自己的文件中通过 h.route 注册。
 func (h *Handler) Routes(mux *http.ServeMux) {
-	h.routeRisk(mux)
 	h.routeAuth(mux)            // 登录/session/setup/desktop
 	h.routeUser(mux)            // 用户/客户
 	h.routeFamily(mux)          // 家属/邀请码

@@ -16,14 +16,14 @@
 </template>
 <script setup lang="ts">
 import { Plus } from '@element-plus/icons-vue'
-import { computed, onMounted, ref, watch, useTemplateRef } from 'vue'
+import { computed, onMounted, ref, watch } from 'vue'
 import { onBeforeRouteLeave, onBeforeRouteUpdate, useRoute, useRouter } from 'vue-router'
-import { ElMessage, ElMessageBox, type FormInstance } from 'element-plus'
+import { ElMessage, ElMessageBox } from 'element-plus'
 import { api, accepted, type Envelope } from '../api/client'
 import { apiErrorMessage } from '../api/httpContract'
 import { authState } from '../auth'
 
-const { editing = false } = defineProps<{ editing?: boolean }>()
+const props = withDefaults(defineProps<{ editing?: boolean }>(), { editing: false })
 const route = useRoute()
 const router = useRouter()
 const uploadHeaders = computed(() => ({ [authState.csrfHeader]: authState.csrfToken }))
@@ -34,7 +34,7 @@ const saving = ref(false)
 const loadError = ref('')
 const saveError = ref('')
 const baseline = ref(JSON.stringify({ title: '', textMain: '', names: [] as string[] }))
-const editorForm = useTemplateRef<FormInstance>('editorForm')
+const editorForm = ref<any>(null)
 const rules = {
   title: [{ required: true, whitespace: true, message: '请输入公告标题', trigger: 'blur' }],
   textMain: [{ required: true, whitespace: true, message: '请输入公告正文', trigger: 'blur' }]
@@ -121,21 +121,21 @@ async function submit() {
     textMain: form.value.textMain.trim(),
     fileListName: successfulAttachments.value.map(file => file.name)
   }
-  if (editing) params.textId = route.query.textId
+  if (props.editing) params.textId = route.query.textId
   try {
     const { data } = await api.post<Envelope>(
-      editing ? 'api/v1/notices/update' : 'api/v1/notices/create', params
+      props.editing ? 'api/v1/notices/update' : 'api/v1/notices/create', params
     )
     accepted(data)
     baseline.value = signature.value
-    ElMessage.success(editing ? '公告已保存' : '公告已发布')
+    ElMessage.success(props.editing ? '公告已保存' : '公告已发布')
     await router.push('/operations/notices')
   } catch (error) {
     saveError.value = apiErrorMessage(error, '公告暂时未能保存，内容已保留，请稍后重试。')
   } finally { saving.value = false }
 }
-onMounted(() => { if (editing) void loadNotice() })
-watch(() => route.query.textId, () => { if (editing) void loadNotice() })
+onMounted(() => { if (props.editing) void loadNotice() })
+watch(() => route.query.textId, () => { if (props.editing) void loadNotice() })
 </script>
 <style scoped>
 .notice-editor { display: grid; grid-template-columns: minmax(0, 1.45fr) minmax(260px, 1fr); gap: 24px; align-items: start; }

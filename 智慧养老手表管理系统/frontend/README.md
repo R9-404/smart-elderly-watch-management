@@ -20,6 +20,8 @@
 
 ```powershell
 npm ci
+# 仅生成或检查 API 类型时需要；应用开发和构建仍使用根目录的 TS 6
+npm run api:tools:ci
 npm run dev
 # 构建生产静态产物至 dist/
 npm run build
@@ -31,17 +33,19 @@ npm run build
 
 ## 测试与静态资源
 
-所有 45 个 Vue 组件的脚本均纳入 TypeScript strict 检查。`npm run typecheck` 会先验证实际编译文件覆盖范围，拒绝未标注 TS 的 Vue 脚本、src 内 JS、缩小 include 和关闭严格检查，再执行 vue-tsc。该检查不等于所有运行时接口均已校验，也不宣称已移除现有显式 any。
-
-```powershell
-npm run typecheck
-```
-
 单元测试统一放在 `tests/`，与源码目录 `src/` 分离；子目录镜像 `src/` 结构，被测模块一律通过 `@/` 别名引用，不写相对路径：
 
 ```powershell
 npm test
+npm run typecheck
+npm run typecheck:stable
+npm run api:check
+npm run test:api-drift
 ```
+
+应用与测试固定使用 TypeScript 6.0.3。app、Node 和测试分别通过项目配置检查，SFC 范围检查使用 Vue 解析器及真实 `vue-tsc --showConfig` 输出，不依赖 TypeScript Compiler API。当前 44 个 SFC 中有 21 个使用 TS 脚本、1 个仅含模板，另有 22 个既有 JS 脚本记录在 `scripts/sfc-typecheck-baseline.json`，尚未完成严格类型迁移；新增组件及已迁移组件不得退回 JS。
+
+API 类型仍由 Go OpenAPI 和官方 `openapi-typescript` 生成。其 7.13.0 版本要求 TS 5，因此固定安装在 `tools/openapi/` 独立工具目录及锁文件中，避免与应用 TS 6 的 peer 约束冲突。`api:check` 检查已提交生成结果，`test:api-drift` 使用真实 `tsc` CLI 和临时源码副本验证四种不兼容变更会使消费端编译失败；执行这两个命令还需要 Go 1.26.10。工具目录不会进入浏览器产物。
 
 端到端测试位于 `qa/`，基于 Playwright：
 
@@ -57,9 +61,3 @@ npm --prefix qa test
 ## API v1 路径与会话切换说明
 
 所有浏览器、桌面端与手表端请求统一使用 `/api/v1/` 前缀，后端已停止接收无版本号的 `/api/` 请求。服务端会话 Cookie 名称已更新为 `SUINING_SESSION`，升级后旧会话需重新登录。
-
-## TypeScript 6 与 Vue 3.5
-
-前端锁定 TypeScript 6.0.3、Vue 3.5.45，继承 @vue/tsconfig 0.9.1。应用、Node 构建工具及测试分别配置 rootDir、types 与 include；根 tsconfig.json 是项目引用入口。请用 npm run typecheck 检查三个实际项目，使用 npm run typecheck:stable 同时复查稳定类型排序，不要把根配置无输入的检查当作完整检查。两个命令都会校验应用全部 Vue/TS 文件和解析后的严格选项，CI 同时执行。
-
-Vite 的浏览器运行目标保持现有配置；TS 标准库类型本身不会为浏览器补齐原生 API。此次现代化保留模板、样式和组件协议，说明与验证见 ../../docs/reviews/2026-11-07-attachments/ts6-upgrade.md。

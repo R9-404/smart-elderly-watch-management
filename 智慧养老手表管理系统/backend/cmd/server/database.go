@@ -23,7 +23,6 @@ import (
 	"suining-care/internal/observability"
 	"suining-care/internal/ratelimit"
 	"suining-care/internal/response"
-	"suining-care/internal/risk"
 	"suining-care/internal/rules"
 	"suining-care/internal/securestore"
 	"suining-care/internal/session"
@@ -36,7 +35,6 @@ type databaseService struct {
 	analytics    analytics.State
 	limiter      atomic.Pointer[ratelimit.Limiter]
 	desktopToken string
-	risk         *risk.Manager
 	// configErr 记录启动阶段的配置错误。它一旦非空，watchDatabase 不再进入
 	// 重连循环，服务状态接口也会把原因暴露出来，避免前端一直显示"正在自动连接"。
 	configErr error
@@ -194,7 +192,6 @@ func watchDatabase(ctx context.Context, cfg config.Config, sessions *session.Sto
 				}
 				mux := http.NewServeMux()
 				h := handlers.New(pool, sessions, cfg)
-				h.Risk = service.risk
 				h.Analytics = &service.analytics
 				h.Routes(mux)
 				observability.Default.SetRouteResolver(func(r *http.Request) string { _, pattern := mux.Handler(r); return pattern })

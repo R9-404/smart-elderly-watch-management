@@ -1,8 +1,9 @@
 {
-  "extends": "./tsconfig.app.json",
+  "extends": "./tsconfig.base.json",
   "compilerOptions": {
     "types": [
       "vite/client",
+      "vitest/globals",
       "node"
     ],
     "rootDir": "."
