@@ -21,14 +21,14 @@
 
 <script setup lang="ts">
 import { ArrowRight } from '@element-plus/icons-vue'
-import { computed, nextTick, ref, watch } from 'vue'
+import { computed, nextTick, watch, useTemplateRef } from 'vue'
 import ErrorBoundary from '@/components/ErrorBoundary.vue'
 import { useRoute } from 'vue-router'
 import FamilySlider from '@/components/FamilySlider.vue'
 import NavTop from '@/components/Header.vue'
 
 const route = useRoute()
-const workspaceMain = ref<HTMLElement | null>(null)
+const workspaceMain = useTemplateRef<HTMLElement>('workspaceMain')
 const pagesWithoutIntro = ['/family-portal/overview', '/family-portal/notice']
 const descriptions: Record<string, string> = {
   '/family-portal/vitals': '查看家人最近上报的心率与单项血压记录。',

@@ -33,7 +33,7 @@ jobs:
       - name: Install locked dependencies
         run: npm ci
 
-      - name: Unit tests and incremental TypeScript checks
+      - name: Unit tests and TypeScript 6 checks
         shell: bash
         run: |
           mkdir -p ../../evidence/ci/frontend
@@ -43,6 +43,7 @@ jobs:
           status=0
           npm test 2>&1 | tee ../../evidence/ci/frontend/test.txt || status=1
           npm run typecheck 2>&1 | tee ../../evidence/ci/frontend/typecheck.txt || status=1
+          npm run typecheck:stable 2>&1 | tee ../../evidence/ci/frontend/typecheck-stable.txt || status=1
           exit "$status"
 
       - name: Build production frontend

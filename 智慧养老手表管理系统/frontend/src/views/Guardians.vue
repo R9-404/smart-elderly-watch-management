@@ -133,7 +133,7 @@
 <script setup lang="ts">
 import { Delete, Edit, Search } from '@element-plus/icons-vue'
 import { useCollectionLayout } from '@/composables/useCollectionLayout'
-import { onMounted, ref } from 'vue'
+import { onMounted, useTemplateRef } from 'vue'
 import { ElMessage, ElMessageBox, type FormInstance } from 'element-plus'
 import RecordCards from '@/components/RecordCards.vue'
 import { api } from '../api/client'
@@ -142,8 +142,8 @@ import { useCustomers, validAge, validPhone } from '../composables/useCustomers'
 const mobileLayout = useCollectionLayout(900)
 const state = useCustomers(api)
 const { searchText, customerDialogVisible, oldEditDialogVisible, customerForm, oldEditForm, isLoading, saving, loadError, mutationError, total, pageSize, currentPage, customerList, searchCustomers, handleEditRole, closeRoleAddDialog, handleSizeChange, changePage } = state
-const addcustomerFormRef = ref<FormInstance>()
-const editCustomerFormRef = ref<FormInstance>()
+const addcustomerFormRef = useTemplateRef<FormInstance>('addcustomerFormRef')
+const editCustomerFormRef = useTemplateRef<FormInstance>('editCustomerFormRef')
 const rules = {
  customerPhone: [{ validator: (_rule: unknown, value: unknown, done: (err?: Error) => void) => done(validPhone(value) ? undefined : new Error('请输入有效的 11 位手机号')), trigger: 'blur' }],
  customerAge: [{ validator: (_rule: unknown, value: unknown, done: (err?: Error) => void) => done(validAge(value) ? undefined : new Error('请输入 0–150 岁的整数年龄')), trigger: 'blur' }]

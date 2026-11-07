@@ -59,9 +59,9 @@
 </style>
 <script setup lang="ts">
 import { Plus, Search, UploadFilled } from '@element-plus/icons-vue'
-import { computed, ref } from 'vue'
+import { computed, ref, useTemplateRef } from 'vue'
 import { useRouter } from 'vue-router'
-import { ElMessage, ElMessageBox } from 'element-plus'
+import { ElMessage, ElMessageBox, type UploadInstance } from 'element-plus'
 import { usePagedRecords } from '@/composables/usePagedRecords'
 import { api, accepted, type Envelope } from '../api/client'
 import { apiErrorMessage } from '../api/httpContract'
@@ -86,7 +86,7 @@ const gallerySaving = ref(false)
 const previewVisible = ref(false)
 const previewUrl = ref('')
 const fileList2 = ref<Record<string, any>[]>([])
-const galleryUpload = ref<any>(null)
+const galleryUpload = useTemplateRef<UploadInstance>('galleryUpload')
 function handleEdit(_index: number, row: NoticeRow) {
   void router.push({ path: '/operations/notices/edit', query: { textId: row.textId } })
 }

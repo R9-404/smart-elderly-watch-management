@@ -22,7 +22,7 @@
 - GitHub 随后的实际合并检测为 mergeable=true，无文本合并冲突；mergeable_state=blocked，草稿、检查或审查门禁仍适用，不能据此宣称可立即合并。
 - Preview CI、Desktop Contract 已实际启动，Security 首次检查成功；最终状态以当前 PR head 的 checks 为准，旧 head 的结果不能替代新提交验证。
 
-本次补充提交仅更新提交记录，前后端 648 个已跟踪文件的 index 指纹保持与 fork-validation.json 中本地测试对象一致。PR 正文为 PR_BODY.md；本地验证见 validation.md 和 fork-validation.json。提交 PR 不等于远端 CI 或全部产品验收通过。
+5b004aa 当时仅更新提交记录，前后端 648 个已跟踪文件的 index 指纹与该阶段 fork-validation.json 中的本地测试对象一致。后续用户授权的 TS 6 / Vue 升级将继续推送到同一 PR，新增验证另见 ts6-validation.json 与 ts6-upgrade.md。PR 正文为 PR_BODY.md；本地验证见 validation.md 和 fork-validation.json。提交 PR 不等于远端 CI 或全部产品验收通过。
 
 
 ## 历史：同仓库尝试

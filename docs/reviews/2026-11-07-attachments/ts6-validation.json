@@ -1,0 +1,73 @@
+{
+  "baseline_before_upgrade": "5b004aab6a762b4f997a7eb4152d62b030955732",
+  "upstream_preview": "2906fd1bb15fd9d766522ff74b6990375c185b72",
+  "working_tree_changes": true,
+  "attachment": {
+    "name": "Ts 6 0 3 Upgrade Prompts.md",
+    "sha256": "a49529df8c6c1a22bea1d98984ac8019e2c43fdd408fade4f6e0947ff2612116"
+  },
+  "versions": {
+    "typescript": "6.0.3",
+    "vue": "3.5.45",
+    "vue-tsc": "3.3.13",
+    "@vue/tsconfig": "0.9.1",
+    "@types/node": "26.6.5"
+  },
+  "frontend": {
+    "numPassedTests": 97,
+    "numFailedTests": 0,
+    "success": true
+  },
+  "typecheck": {
+    "normal": "passed: app/node/test projects",
+    "stable": "passed: all three projects with --stableTypeOrdering",
+    "vue_components": 45,
+    "template_ref_attributes": 28,
+    "use_template_ref_calls": 24,
+    "gate_tests": 14,
+    "ci_step_added": true
+  },
+  "contracts": {
+    "baseline": "5b004aab6a762b4f997a7eb4152d62b030955732",
+    "components": 45,
+    "templates_styles_and_compiled_props_emits_expose_unchanged": true,
+    "mismatches": [],
+    "normalization": "SFC line endings normalized; compiled props/emits/expose AST ignores quote style and source positions."
+  },
+  "npm_ci": "passed: locked dependency installation",
+  "npm_audit_all": {
+    "info": 0,
+    "low": 0,
+    "moderate": 5,
+    "high": 0,
+    "critical": 0,
+    "total": 5
+  },
+  "npm_audit_production": {
+    "info": 0,
+    "low": 0,
+    "moderate": 0,
+    "high": 0,
+    "critical": 0,
+    "total": 0
+  },
+  "vite_build": "passed with existing >500 kB chunk warning",
+  "backend_unchanged_since": "5b004aab6a762b4f997a7eb4152d62b030955732",
+  "frontend_index_signature": {
+    "files": 219,
+    "algorithm": "SHA-256 over sorted git ls-files --stage -z entries for frontend/; each entry followed by NUL",
+    "sha256": "fd685e914254a7ee63b9007cc4cb79fcbdce3d954ce18d92990a109ded412e2f"
+  },
+  "workflow_sha256": "a5d6b588f2b64721015f8292c65881f105f392098a24c2f23724831503c54ce5",
+  "raw_log_sha256": {
+    "ts6-upgrade-final-frontend-tests.json": "8a7d09116a4c4e558948d0e3dc0f9cd85d64d357e44ed958f9a928436e00e0fd",
+    "ts6-contract-check.json": "35091efa7283ad0341f8fec9651c1e8ba136b1faa64de793af81ec32eb4995ba",
+    "ts6-npm-audit.json": "5d00aa5cf50e26f528a96eb7e8eee4130689773e1d46ce723d176fdbbc0a4938",
+    "ts6-npm-production-audit.json": "2ac015928e56e5700226a9193053776aef48c0b0ee7784c686ea80ef5f387d8a"
+  },
+  "limits": [
+    "Existing explicit any and broad Object props were not comprehensively redesigned.",
+    "Contract comparison and unit tests do not constitute every real-user path, hardware or production acceptance.",
+    "Remote CI must be evaluated on the current PR head, not on the pre-upgrade commit."
+  ]
+}

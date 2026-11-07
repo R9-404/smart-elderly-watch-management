@@ -1,4 +1,4 @@
-import { nextTick, onBeforeUnmount, onMounted, ref, shallowRef, watch } from 'vue'
+import { nextTick, onBeforeUnmount, onMounted, ref, watch, useTemplateRef } from 'vue'
 import type { EChartsType } from 'echarts/core'
 import { api } from '../api/client'
 import { apiErrorMessage } from '../api/httpContract'
@@ -27,8 +27,8 @@ export function useRecordCharts() {
   const chartLoading = ref(false)
   const chartError = ref('')
   const chartName = ref('')
-  const primaryChartElement = shallowRef<HTMLElement | null>(null)
-  const secondaryChartElement = shallowRef<HTMLElement | null>(null)
+  const primaryChartElement = useTemplateRef<HTMLElement>('primaryChartElement')
+  const secondaryChartElement = useTemplateRef<HTMLElement>('secondaryChartElement')
   const charts: EChartsType[] = []
   let frame: number | null = null
   let observer: ResizeObserver | null = null

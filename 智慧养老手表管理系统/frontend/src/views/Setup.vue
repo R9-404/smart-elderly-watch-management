@@ -25,7 +25,7 @@
 <script setup lang="ts">
 import type { FormInstance, FormRules } from 'element-plus'
 import { ArrowRight } from '@element-plus/icons-vue'
-import { reactive, ref } from 'vue'
+import { reactive, ref, useTemplateRef } from 'vue'
 import { useRouter } from 'vue-router'
 import { apiErrorMessage } from '../api/httpContract'
 import axios from 'axios'
@@ -33,7 +33,7 @@ import { loadSession } from '../auth'
 import { createAdministrator } from '../desktop'
 
 const router = useRouter()
-const form = ref<FormInstance | null>(null)
+const form = useTemplateRef<FormInstance>('form')
 const account = reactive({ name: '', phone: '', password: '' })
 const busy = ref(false)
 const error = ref('')

@@ -83,7 +83,7 @@ html.large-text .care-family .profile-identity span, html.large-text .care-famil
 </style>
 <script setup lang="ts">
 import type { FormInstance, FormRules } from 'element-plus'
-import { computed, nextTick, onMounted, reactive, ref } from 'vue'
+import { computed, nextTick, onMounted, reactive, ref, useTemplateRef } from 'vue'
 import { ElMessage } from 'element-plus'
 import type { FamilyProfile } from '../api/viewModels'
 import type { Envelope } from '../api/client'
@@ -106,8 +106,8 @@ const messageEditForm = reactive({
 const passwordEditForm = reactive({
   familyPassword: '', familyPassword2: '', oldPassword: ''
 })
-const profileEditFormRef = ref<FormInstance | null>(null)
-const passwordEditFormRef = ref<FormInstance | null>(null)
+const profileEditFormRef = useTemplateRef<FormInstance>('profileEditFormRef')
+const passwordEditFormRef = useTemplateRef<FormInstance>('passwordEditFormRef')
 const personName = computed(() => authState.account?.displayName || '')
 const familyPhone = computed(() => authState.account?.phone || '')
 const familyTouPic = ref('')

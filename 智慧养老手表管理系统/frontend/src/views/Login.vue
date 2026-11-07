@@ -43,7 +43,7 @@
 <script setup lang="ts">
 import type { FormInstance, FormRules } from 'element-plus'
 import { Iphone, Setting, View } from '@element-plus/icons-vue'
-import { onMounted, reactive, ref } from 'vue'
+import { onMounted, reactive, ref, useTemplateRef } from 'vue'
 import { useRouter } from 'vue-router'
 import { apiErrorMessage } from '../api/httpContract'
 import axios from 'axios'
@@ -59,7 +59,7 @@ const mfaRequired = ref(false)
 const errorMessage = ref('')
 const largeText = ref(localStorage.getItem('large_text') === 'true')
 const loginForm = reactive({ phone: registeredPhone, password: '', otp: '', recoveryCode: '' })
-const loginFormRef = ref<FormInstance | null>(null)
+const loginFormRef = useTemplateRef<FormInstance>('loginFormRef')
 const rules: FormRules = {
   phone: [
     { required: true, message: '请输入手机号', trigger: 'blur' },

@@ -89,7 +89,7 @@
 
 <script setup lang="ts">
 import { Delete, Edit, Search } from '@element-plus/icons-vue'
-import { ref } from 'vue'
+import { ref, useTemplateRef } from 'vue'
 import { usePagedRecords } from '@/composables/usePagedRecords'
 import { writeRecord, deleteRecord } from '@/composables/recordActions'
 import { useCollectionLayout } from '@/composables/useCollectionLayout'
@@ -115,8 +115,8 @@ const watchDialogVisible = ref(false)
 const watchEditDialogVisible = ref(false)
 const watchForm = ref(emptyForm())
 const watchEditForm = ref(emptyForm())
-const addwatchFormRef = ref<any>(null)
-const editwatchFormRef = ref<any>(null)
+const addwatchFormRef = useTemplateRef<InstanceType<typeof ThresholdForm>>('addwatchFormRef')
+const editwatchFormRef = useTemplateRef<InstanceType<typeof ThresholdForm>>('editwatchFormRef')
 const rules = {
   deviceId: [{ required: true, message: '请输入手表Id', trigger: 'blur' }],
   bpf: [{ validator: checkThreshold, trigger: 'blur' }],

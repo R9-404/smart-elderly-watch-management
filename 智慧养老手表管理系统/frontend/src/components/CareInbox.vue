@@ -63,7 +63,7 @@ import { createLatestRead } from '../composables/latestRead'
 import CareOperationsPanel from './CareOperationsPanel.vue'
 import store from '../store'
 
-const emit = defineEmits(['verified'])
+const emit = defineEmits<{ verified: [] }>()
 const tasks = ref<CareTask[]>([])
 const error = ref('')
 const loading = ref(false)

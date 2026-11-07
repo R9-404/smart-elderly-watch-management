@@ -20,7 +20,7 @@ interface RecordField {
   handled?: string
 }
 
-const props = withDefaults(defineProps<{
+const { records, fields, label, emptyTitle = '暂无记录', titleKey = 'name', keyField = 'oldId', timeKey = '' } = defineProps<{
   records: TRecord[]
   fields: RecordField[]
   label: string
@@ -28,16 +28,11 @@ const props = withDefaults(defineProps<{
   titleKey?: string
   keyField?: string
   timeKey?: string
-}>(), {
-  emptyTitle: '暂无记录',
-  titleKey: 'name',
-  keyField: 'oldId',
-  timeKey: ''
-})
+}>()
 defineSlots<{ actions(props: { row: TRecord; $index: number }): any }>()
 const slots = useSlots()
-const primaryFields = computed(() => props.fields.slice(0, 4))
-const extraFields = computed(() => props.fields.slice(4))
+const primaryFields = computed(() => fields.slice(0, 4))
+const extraFields = computed(() => fields.slice(4))
 function valueOf(row: TRecord, field: RecordField): unknown {
   const value = row[field.key]
   if (field.state) {

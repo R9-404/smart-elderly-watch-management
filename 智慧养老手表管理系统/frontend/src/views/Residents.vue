@@ -109,7 +109,7 @@
 import type { FormInstance, FormRules } from 'element-plus'
 import type { ResidentRecord, GuardianOption, RecordId } from '../api/viewModels'
 import { Delete, Edit, Search } from '@element-plus/icons-vue'
-import { reactive, ref } from 'vue'
+import { reactive, ref, useTemplateRef } from 'vue'
 import { ElMessage } from 'element-plus'
 import { usePagedRecords } from '@/composables/usePagedRecords'
 import { useCollectionLayout } from '@/composables/useCollectionLayout'
@@ -142,8 +142,8 @@ const oldDialogVisible = ref(false)
 const oldEditDialogVisible = ref(false)
 const oldForm = reactive(emptyResident())
 const oldEditForm = ref<ResidentRecord>({ ...emptyResident(), oldId: '', customerName: '', deviceId: '' })
-const addoldFormRef = ref<FormInstance | null>(null)
-const editoldFormRef = ref<FormInstance | null>(null)
+const addoldFormRef = useTemplateRef<InstanceType<typeof ResidentForm>>('addoldFormRef')
+const editoldFormRef = useTemplateRef<InstanceType<typeof ResidentForm>>('editoldFormRef')
 const options = ref<GuardianOption[]>([])
 const customerLoading = ref(false)
 const customerError = ref('')

@@ -26,7 +26,7 @@
 
 <script setup lang="ts">
 import { ArrowRight } from '@element-plus/icons-vue'
-import { computed, nextTick, onMounted, ref, watch } from 'vue'
+import { computed, nextTick, onMounted, watch, useTemplateRef } from 'vue'
 import ErrorBoundary from '@/components/ErrorBoundary.vue'
 import { useRoute, useRouter, type RouteLocationNormalizedLoaded } from 'vue-router'
 import Slider from '@/components/Slider.vue'
@@ -35,7 +35,7 @@ import store from '@/store'
 
 const route = useRoute()
 const router = useRouter()
-const workspaceMain = ref<HTMLElement | null>(null)
+const workspaceMain = useTemplateRef<HTMLElement>('workspaceMain')
 const openTab = computed(() => store.state.openTab)
 const activeIndex = computed({
   get: () => store.state.activeIndex,

@@ -77,7 +77,7 @@
 <script setup lang="ts">
 import type { FormInstance, FormRules } from 'element-plus'
 import { View } from '@element-plus/icons-vue'
-import { onMounted, reactive, ref, watch } from 'vue'
+import { onMounted, reactive, ref, watch, useTemplateRef } from 'vue'
 import { useRouter } from 'vue-router'
 import { ElMessage } from 'element-plus'
 import { apiErrorMessage } from '../api/httpContract'
@@ -99,7 +99,7 @@ const registerForm = reactive({
   code: '', familyName: '', familyRelation: '', familySex: '男',
   familyPhone: '', familyPassword: '', confirmPassword: '', familyAddress: ''
 })
-const registerFormRef = ref<FormInstance | null>(null)
+const registerFormRef = useTemplateRef<FormInstance>('registerFormRef')
 function checkPhone(_rule: unknown, value: string, callback: (error?: Error) => void) {
   if (!value) return callback(new Error('手机号不能为空'))
   if (!/^1\d{10}$/.test(value)) return callback(new Error('手机号格式不正确'))

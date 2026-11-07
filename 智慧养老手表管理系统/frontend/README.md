@@ -57,3 +57,9 @@ npm --prefix qa test
 ## API v1 路径与会话切换说明
 
 所有浏览器、桌面端与手表端请求统一使用 `/api/v1/` 前缀，后端已停止接收无版本号的 `/api/` 请求。服务端会话 Cookie 名称已更新为 `SUINING_SESSION`，升级后旧会话需重新登录。
+
+## TypeScript 6 与 Vue 3.5
+
+前端锁定 TypeScript 6.0.3、Vue 3.5.45，继承 @vue/tsconfig 0.9.1。应用、Node 构建工具及测试分别配置 rootDir、types 与 include；根 tsconfig.json 是项目引用入口。请用 npm run typecheck 检查三个实际项目，使用 npm run typecheck:stable 同时复查稳定类型排序，不要把根配置无输入的检查当作完整检查。两个命令都会校验应用全部 Vue/TS 文件和解析后的严格选项，CI 同时执行。
+
+Vite 的浏览器运行目标保持现有配置；TS 标准库类型本身不会为浏览器补齐原生 API。此次现代化保留模板、样式和组件协议，说明与验证见 ../../docs/reviews/2026-11-07-attachments/ts6-upgrade.md。

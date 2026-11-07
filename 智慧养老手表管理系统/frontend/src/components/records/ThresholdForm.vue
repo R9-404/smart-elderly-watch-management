@@ -21,9 +21,9 @@
 
 <script setup lang="ts">
 import type { FormInstance } from 'element-plus'
-import { ref } from 'vue'
+import { useTemplateRef } from 'vue'
 defineProps({ draft: { type: Object, required: true }, rules: Object, editing: Boolean })
-const form = ref<FormInstance | null>(null)
+const form = useTemplateRef<FormInstance>('form')
 defineExpose({
   validate: (...args: Parameters<FormInstance['validate']>) => form.value?.validate(...args),
   resetFields: (...args: Parameters<FormInstance['resetFields']>) => form.value?.resetFields(...args)

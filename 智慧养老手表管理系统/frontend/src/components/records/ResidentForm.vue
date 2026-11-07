@@ -64,13 +64,13 @@
 import type { PropType } from 'vue'
 import type { GuardianOption } from '../../api/viewModels'
 import type { FormInstance } from 'element-plus'
-import { ref } from 'vue'
+import { useTemplateRef } from 'vue'
 defineProps({
   draft: { type: Object, required: true },
   rules: Object, editing: Boolean, options: Array as PropType<GuardianOption[]>, customerLoading: Boolean, customerError: String
 })
-const emit = defineEmits(['retry-guardians'])
-const form = ref<FormInstance | null>(null)
+const emit = defineEmits<{ 'retry-guardians': [] }>()
+const form = useTemplateRef<FormInstance>('form')
 defineExpose({
   validate: (...args: Parameters<FormInstance['validate']>) => form.value?.validate(...args),
   resetFields: (...args: Parameters<FormInstance['resetFields']>) => form.value?.resetFields(...args)

@@ -12,19 +12,19 @@
 </template>
 
 <script setup lang="ts">
-import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue'
+import { computed, onBeforeUnmount, onMounted, ref, watch, useTemplateRef } from 'vue'
 import L, { type Map, type CircleMarker, type TileLayer, type LatLngTuple } from 'leaflet'
 import type { PositionContext } from '../utils/positionContext'
 import 'leaflet/dist/leaflet.css'
 import { describePositionContext } from '../utils/positionContext'
 
 interface MapSelection extends PositionContext { lng?: number | string | null; lat?: number | string | null; name?: string | null }
-const props = withDefaults(defineProps<{ selection?: MapSelection | null }>(), { selection: null })
-const canvas = ref<HTMLElement | null>(null)
+const { selection = null } = defineProps<{ selection?: MapSelection | null }>()
+const canvas = useTemplateRef<HTMLDivElement>('canvas')
 const online = ref(false)
 const failed = ref(false)
 const valid = computed(() => {
-  const value = props.selection
+  const value = selection
   return value && value.lng != null && value.lat != null && String(value.lng).trim() !== '' && String(value.lat).trim() !== '' &&
     Number.isFinite(Number(value.lng)) && Number.isFinite(Number(value.lat)) && Math.abs(Number(value.lng)) <= 180 && Math.abs(Number(value.lat)) <= 90
 })
@@ -37,12 +37,12 @@ let observer: ResizeObserver | undefined
 function updateLocation () {
   if (!map) return
   if (marker) { marker.remove(); marker = null }
-  if (!valid.value || !props.selection) { disableTiles(); return }
-  const point: LatLngTuple = [Number(props.selection.lat), Number(props.selection.lng)]
+  if (!valid.value || !selection) { disableTiles(); return }
+  const point: LatLngTuple = [Number(selection.lat), Number(selection.lng)]
   map.setView(point, 15, { animate: false })
   marker = L.circleMarker(point, { radius: 9, color: '#fff', weight: 3, fillColor: '#215c4a', fillOpacity: 1 }).addTo(map)
   const label = document.createElement('span')
-  label.textContent = props.selection.name || '最近上报位置'
+  label.textContent = selection.name || '最近上报位置'
   marker.bindTooltip(label, { direction: 'top', permanent: true, offset: [0, -12] })
 }
 function enableTiles () {
@@ -71,7 +71,7 @@ onMounted(() => {
   observer.observe(canvas.value)
   updateLocation()
 })
-watch(() => props.selection, updateLocation)
+watch(() => selection, updateLocation)
 onBeforeUnmount(() => { observer?.disconnect(); disableTiles(); map?.remove(); map = null })
 </script>
 
