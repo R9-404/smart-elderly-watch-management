@@ -27,7 +27,7 @@ it('shows separate sources, zero values and original sampling intervals', async 
     expect(cards[2].text()).toContain('深睡')
     expect(cards[2].text()).toContain(new Date(sample.start).toLocaleString('zh-CN', { timeZoneName: 'short' }))
     expect(view.text()).not.toContain('今日步数')
-    expect(post.mock.calls[0][0]).toBe('api/v1/health/latest')
+    expect(post.mock.calls[0][0]).toBe('/api/v1/health/latest')
     expect(post.mock.calls[0][1]).toEqual({})
   } finally { view.unmount() }
 })

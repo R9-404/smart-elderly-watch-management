@@ -8,7 +8,7 @@
         <div class="profile-avatar"><img v-if="imageUrl" :src="imageUrl" alt="当前账号头像" @error="imageUrl = ''"><span v-else>{{ (familyProfile.familyName || personName || '家').slice(0, 1) }}</span></div>
         <div class="profile-identity"><p>家属账号</p><h2>{{ familyProfile.familyName || personName || '个人资料' }}</h2><span>在这里管理您的联系资料与账号。</span></div>
       </div>
-      <div class="profile-actions"><el-button type="primary" @click="handleeditMessage">修改资料</el-button><el-button plain @click="handleeditPassword">修改密码</el-button><el-upload class="avatar-uploader" action="api/v1/image/saveImage" :headers="uploadHeaders" :show-file-list="false" :with-credentials="true" :on-success="handleAvatarSuccess" :on-error="handleAvatarError" :before-upload="beforeAvatarUpload"><el-button plain>更换头像</el-button></el-upload></div>
+      <div class="profile-actions"><el-button type="primary" @click="handleeditMessage">修改资料</el-button><el-button plain @click="handleeditPassword">修改密码</el-button><el-upload class="avatar-uploader" action="/api/v1/image/saveImage" :headers="uploadHeaders" :show-file-list="false" :with-credentials="true" :on-success="handleAvatarSuccess" :on-error="handleAvatarError" :before-upload="beforeAvatarUpload"><el-button plain>更换头像</el-button></el-upload></div>
       <dl class="profile-details"><div><dt>姓名</dt><dd>{{ familyProfile.familyName || '暂未填写' }}</dd></div><div><dt>性别</dt><dd>{{ familyProfile.familySex || '暂未填写' }}</dd></div><div><dt>手机号</dt><dd>{{ familyPhone || '暂未提供' }}</dd></div><div><dt>联系地址</dt><dd>{{ familyProfile.familyAddress || '暂未填写' }}</dd></div></dl>
     </section>
 <el-dialog
@@ -45,9 +45,6 @@
           :close-on-click-modal="!isPasswordSaving" :close-on-press-escape="!isPasswordSaving" :show-close="!isPasswordSaving" @closed="resetForm('passwordEditForm')"
 				  width="92%" class="profile-dialog">
 				  <el-form label-width="80px" class="demo-ruleForm" status-icon :rules="rules2" ref="passwordEditFormRef" :model="passwordEditForm">
-				    <el-form-item label="" prop="familyPhone" style="display: none; ">
-				    <el-input v-model="passwordEditForm.familyPhone"></el-input>
-				    </el-form-item>
 				    <el-form-item label="原密码" for="profile-old-password" prop="oldPassword" >
 				    <el-input id="profile-old-password" type="password" aria-label="原密码" autocomplete="current-password" v-model="passwordEditForm.oldPassword"></el-input>
 				    </el-form-item>
@@ -104,12 +101,12 @@ const messageEditForm = reactive({
   familyId: '', familyPhone: '', familyName: '', familySex: '', familyAddress: ''
 })
 const passwordEditForm = reactive({
-  familyPhone: '', familyPassword: '', familyPassword2: '', oldPassword: ''
+  familyPassword: '', familyPassword2: '', oldPassword: ''
 })
 const profileEditFormRef = ref(null)
 const passwordEditFormRef = ref(null)
-const personName = ref(localStorage.getItem('user_name') || '')
-const familyPhone = ref(localStorage.getItem('familyPhone') || '')
+const personName = computed(() => authState.account?.displayName || '')
+const familyPhone = computed(() => authState.account?.phone || '')
 const familyTouPic = ref('')
 const familyProfile = ref({})
 const profileRules = {
@@ -148,11 +145,10 @@ async function searchFamily() {
     const { data } = await api.post('api/v1/family/selectTwo', { familyPhone: familyPhone.value })
     familyProfile.value = data?.familyDto2 || {}
     const profile = familyProfile.value
-    if (profile.familyName) localStorage.setItem('user_name', profile.familyName)
-    if (profile.familyTouPic) localStorage.setItem('familyTouPic', profile.familyTouPic)
+    if (profile.familyName && authState.account) authState.account.displayName = profile.familyName
     familyTouPic.value = profile.familyTouPic || ''
     imageUrl.value = familyTouPic.value && familyTouPic.value !== 'undefined' && familyTouPic.value !== 'null'
-      ? 'api/v1/image/download?name=' + encodeURIComponent(familyTouPic.value) : ''
+      ? '/api/v1/image/download?name=' + encodeURIComponent(familyTouPic.value) : ''
   } catch (error) {
     profileLoadError.value = apiErrorMessage(error, '个人资料暂时无法加载，请重试。')
   } finally { isProfileLoading.value = false }
@@ -221,7 +217,6 @@ async function handleeditMessage() {
   profileEditFormRef.value?.clearValidate()
 }
 function handleeditPassword() {
-  passwordEditForm.familyPhone = familyPhone.value
   passwordEditDialogVisible.value = true
 }
 function resetForm() {

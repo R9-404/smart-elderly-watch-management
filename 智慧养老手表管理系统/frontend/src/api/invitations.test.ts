@@ -7,6 +7,6 @@ it('preserves invitation routes, payloads and cookies', async () => {
   const cases = [['checkCode', { code: 'abc' }], ['join', { code: 'abc' }], ['list', { page: 2, pageSize: 10, state: 'used' }], ['oldPersonList', {}], ['create', { oldId: 7, createUser: 'operator' }], ['delete', { id: 9 }]] as const
   for (const [name, body] of cases) {
     await (invitations[name] as Function)(body)
-    expect(post).toHaveBeenLastCalledWith(`api/v1/inviteCode/${name}`, body, { withCredentials: true, signal: undefined })
+    expect(post).toHaveBeenLastCalledWith(`/api/v1/inviteCode/${name}`, body, { withCredentials: true, signal: undefined })
   }
 })

@@ -48,7 +48,8 @@
 
 <script setup>
 import { Refresh } from '@element-plus/icons-vue'
-import { ref, onMounted, onBeforeUnmount } from 'vue'
+import { computed, ref, onMounted, onBeforeUnmount } from 'vue'
+import { authState } from '../auth'
 import { api } from '../api/client'
 import { apiErrorMessage } from '../api/httpContract'
 import { createLatestRead } from '../composables/latestRead'
@@ -57,7 +58,7 @@ import PositionMap from '@/components/PositionMap.vue'
 import { describePositionContext } from '../utils/positionContext'
 
 const mobileLayout = useCollectionLayout()
-const oldId = ref(localStorage.getItem('oldIdfamily') || '')
+const oldId = computed(() => String(authState.account?.oldId ?? ''))
 const positionList = ref([])
 const isLoading = ref(false)
 const loadError = ref('')

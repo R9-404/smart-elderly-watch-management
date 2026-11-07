@@ -24,7 +24,7 @@ import { ElMessage, ElMessageBox } from 'element-plus'
 import { authState, endSession } from '../auth'
 
 const router = useRouter()
-const login_username = ref(localStorage.getItem('user_name') || '')
+const login_username = computed(() => authState.account?.displayName || '')
 const largeText = ref(localStorage.getItem('large_text') === 'true')
 const isFamily = computed(() => authState.account?.role === 'FAMILY')
 const userInitial = computed(() => (login_username.value || '用').slice(0, 1))
