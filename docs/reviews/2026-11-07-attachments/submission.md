@@ -12,7 +12,18 @@
 
 仅在本地已有 preview 工作；fork/preview 为 GitHub 自动复制的已有分支，没有手动新建功能分支，没有直接推送上游或修改保护规则。原始附件、用户便携版和本机运行脚本均未纳入提交。大型补丁的历史审核资料保留，但其重构代码未导入。
 
-本文件先记录创建 fork 与待提交方向；PR 创建后的编号、URL、实际 head/base 复核结果将在成功后追加。PR 正文为 PR_BODY.md；本地验证见 validation.md 和 fork-validation.json。不得将提交 PR 等同于完成远端 CI 或全部产品验收。
+## 创建成功与远端复核
+
+已创建草稿 PR [#106](https://github.com/WatchTestCs/smart-elderly-watch-management/pull/106)：`fix(preview): adapt small patches and optimize audit buffering`。
+
+- GitHub 返回 state=open、draft=true；没有执行合并。
+- head 为 `R9-404:preview`，base 为 `WatchTestCs:preview`。
+- 创建时 head 为 `d25a1797661b900379aeb7128727e49f18274288`，base 为 `2906fd1bb15fd9d766522ff74b6990375c185b72`，5 个本地提交、68 个变更文件。
+- GitHub 随后的实际合并检测为 mergeable=true，无文本合并冲突；mergeable_state=blocked，草稿、检查或审查门禁仍适用，不能据此宣称可立即合并。
+- Preview CI、Desktop Contract 已实际启动，Security 首次检查成功；最终状态以当前 PR head 的 checks 为准，旧 head 的结果不能替代新提交验证。
+
+本次补充提交仅更新提交记录，前后端 648 个已跟踪文件的 index 指纹保持与 fork-validation.json 中本地测试对象一致。PR 正文为 PR_BODY.md；本地验证见 validation.md 和 fork-validation.json。提交 PR 不等于远端 CI 或全部产品验收通过。
+
 
 ## 历史：同仓库尝试
 
