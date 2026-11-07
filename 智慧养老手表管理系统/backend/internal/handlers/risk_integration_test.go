@@ -121,6 +121,10 @@ func TestRiskAuthenticationAuditPersistence(t *testing.T) {
 	if w.Code != 200 || len(w.Result().Cookies()) != 1 {
 		t.Fatalf("login after exception: HTTP %d %s", w.Code, w.Body.String())
 	}
+	current := h.Sessions.Get(w.Result().Cookies()[0].Value)
+	if current == nil || current.Principal.Role != auth.RoleAdmin || current.Principal.ID != 1 {
+		t.Fatal("risk exception did not establish the existing authenticated principal")
+	}
 	if err := h.Risk.Close(); err != nil {
 		t.Fatal(err)
 	}
@@ -133,8 +137,12 @@ func TestRiskAuthenticationAuditPersistence(t *testing.T) {
 	if len(events) != 8 || events[0].Type != "login_success" {
 		t.Fatalf("unexpected persisted audit: %#v", events)
 	}
-	var count int
-	if err := pool.QueryRow(t.Context(), "SELECT COUNT(*) FROM login_audit WHERE outcome='success'").Scan(&count); err != nil || count != 1 {
-		t.Fatalf("authoritative SQL audit lost: %d %v", count, err)
+	// The legacy PG compatibility path intentionally has no login_audit table;
+	// loginAuditTx is MySQL-only. Keep that backend contract unchanged.
+	if pool.IsMySQL() {
+		var count int
+		if err := pool.QueryRow(t.Context(), "SELECT COUNT(*) FROM login_audit WHERE outcome='success'").Scan(&count); err != nil || count != 1 {
+			t.Fatalf("authoritative MySQL audit lost: %d %v", count, err)
+		}
 	}
 }
