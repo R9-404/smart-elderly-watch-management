@@ -2,7 +2,7 @@ import { describe, expect, it, vi } from 'vitest'
 import { api } from '@/api/client'
 import { postContract } from '@/api/contractClient'
 
-vi.mock('./client', () => ({ api: { post: vi.fn() } }))
+vi.mock('@/api/client', () => ({ api: { post: vi.fn() } }))
 
 describe('generated contract client', () => {
   it('uses the existing relative API transport and preserves cancellation', async () => {
