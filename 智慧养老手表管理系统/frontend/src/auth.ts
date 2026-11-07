@@ -8,6 +8,7 @@ import store from './store'
 
 export interface SessionAccount {
   role: 'ADMIN' | 'FAMILY'
+  id?: number | string
   duty?: 'supervisor' | 'caregiver' | 'auditor' | string
   displayName?: string
   oldId?: number | string
@@ -30,6 +31,7 @@ export const authState = reactive<SessionState>({
 })
 let loaded = false
 let pending: Promise<SessionAccount | null> | null = null
+let sessionGeneration = 0
 const profileKeys = ['token', 'user_name', 'oldIdfamily', 'familyPhone', 'familyTouPic']
 
 function clearProfile () {
@@ -41,35 +43,42 @@ function clearProfile () {
 export function loadSession (refresh = false): Promise<SessionAccount | null> {
   if (!refresh && loaded) return Promise.resolve(authState.account)
   if (pending) return pending
-  pending = axios.get('/api/v1/auth/session', { skipSession: true, timeout: 5000 }).then(response => {
+  const generation = sessionGeneration
+  const request = axios.get('/api/v1/auth/session', { skipSession: true, timeout: 5000 }).then(response => {
+    if (generation !== sessionGeneration) return authState.account
     const data = response.data
     if (!data || !data.csrfToken) throw new Error('Session response missing')
     authState.setupRequired = Boolean(data.setupRequired)
-    authState.account = data.authenticated ? data.account : null
+    const previousAccount = authState.account
+    const nextAccount = data.authenticated ? data.account as SessionAccount : null
+    authState.account = nextAccount
     authState.csrfToken = data.csrfToken
     authState.csrfHeader = data.csrfHeader || 'X-CSRF-TOKEN'
     loaded = true
     clearProfile()
-    if (!authState.account) store.clearTabs()
-    if (authState.account) {
-      try {
-        localStorage.setItem('user_name', authState.account.displayName || '用户')
-        if (authState.account.role === 'FAMILY') {
-          if (authState.account.oldId != null) localStorage.setItem('oldIdfamily', String(authState.account.oldId))
-          if (authState.account.phone != null) localStorage.setItem('familyPhone', authState.account.phone)
-        }
-      } catch (_) { /* A blocked storage write must not invalidate a valid session. */ }
-    }
+    const identityChanged = previousAccount !== null && nextAccount !== null && (
+      String(previousAccount.id ?? '') !== String(nextAccount.id ?? '') ||
+      previousAccount.role !== nextAccount.role ||
+      previousAccount.phone !== nextAccount.phone ||
+      String(previousAccount.oldId ?? '') !== String(nextAccount.oldId ?? '') ||
+      previousAccount.duty !== nextAccount.duty
+    )
+    if (!nextAccount || identityChanged) store.clearTabs()
     return authState.account
-  }).then(account => { pending = null; return account }, error => { pending = null; throw error })
-  return pending
+  })
+  const flight = request.finally(() => { if (pending === flight) pending = null })
+  pending = flight
+  return flight
 }
 
 export function endSession () {
   return axios.post('/api/v1/auth/logout', {}, { skipSession: true, headers: { [authState.csrfHeader]: authState.csrfToken } }).then(() => {
+    sessionGeneration++
+    pending = null
     loaded = false
     authState.account = null
     authState.csrfToken = ''
+    authState.csrfHeader = 'X-CSRF-TOKEN'
     clearProfile()
     store.clearTabs()
   })
@@ -96,14 +105,19 @@ export function installHttpSecurity (router: { currentRoute: { value: { path: st
         : '此功能需要连接数据库，正在自动连接。恢复后请重试。', grouping: true })
     }
     if (error.response && error.response.status === 401) {
+      sessionGeneration++
+      pending = null
       loaded = false
       authState.account = null
       authState.csrfToken = ''
+      authState.csrfHeader = 'X-CSRF-TOKEN'
       clearProfile()
       store.clearTabs()
       if (!['/sign-in', '/join-family'].includes(router.currentRoute.value.path)) router.replace?.('/sign-in')
     }
     if (error.response && error.response.status === 403 && error.response.data && error.response.data.code === 'CSRF_REJECTED') {
+      sessionGeneration++
+      pending = null
       loaded = false
       authState.csrfToken = ''
       // 只刷新令牌，不自动重放可能产生写入的请求。

@@ -32,7 +32,7 @@
 
     <details class="upload-panel"><summary class="image-maintenance-summary">更多展示图片设置<span>公告附图请在公告编辑中添加</span></summary><div class="image-maintenance-body">
       <div class="upload-heading"><div><h2>公告图片</h2><p>维护独立的展示图片，JPG 格式，单张不超过8MB。</p></div></div>
-      <el-upload ref="galleryUpload" class="upload-demo" :disabled="gallerySaving" :on-change="galleryChanged" :on-error="galleryError" action="api/v1/image/saveImage" :with-credentials="true" :headers="uploadHeaders" :on-preview="handlePreview" :on-remove="handleRemove" :on-success="handleAvatarSuccess" :before-upload="beforeAvatarUpload" multiple :limit="10" :file-list="fileList2" list-type="picture">
+      <el-upload ref="galleryUpload" class="upload-demo" :disabled="gallerySaving" :on-change="galleryChanged" :on-error="galleryError" action="/api/v1/image/saveImage" :with-credentials="true" :headers="uploadHeaders" :on-preview="handlePreview" :on-remove="handleRemove" :on-success="handleAvatarSuccess" :before-upload="beforeAvatarUpload" multiple :limit="10" :file-list="fileList2" list-type="picture">
         <el-button size="small" type="primary" :icon="UploadFilled">选择图片</el-button>
         <template #tip><div  class="el-upload__tip">最多上传 10 张图片。</div></template>
       </el-upload>

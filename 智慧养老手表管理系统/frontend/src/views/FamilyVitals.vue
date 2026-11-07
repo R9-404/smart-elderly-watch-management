@@ -59,7 +59,8 @@
 
 <script setup>
 import { Check, Refresh } from '@element-plus/icons-vue'
-import { onBeforeUnmount, onMounted, ref } from 'vue'
+import { computed, onBeforeUnmount, onMounted, ref } from 'vue'
+import { authState } from '../auth'
 import { useCollectionLayout } from '@/composables/useCollectionLayout'
 import { useRecordCharts } from '@/composables/useRecordCharts'
 import { createLatestRead } from '@/composables/latestRead'
@@ -71,7 +72,7 @@ const {
   detailsVisible, chartLoading, chartError, chartName,
   primaryChartElement, secondaryChartElement, showRecordDetails, resizeCharts, disposeCharts
 } = useRecordCharts()
-const oldId = ref(localStorage.getItem('oldIdfamily') || '')
+const oldId = computed(() => String(authState.account?.oldId ?? ''))
 const oldsList = ref([])
 const isLoading = ref(false)
 const loadError = ref('')

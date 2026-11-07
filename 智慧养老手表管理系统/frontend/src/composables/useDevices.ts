@@ -1,8 +1,7 @@
 import { computed, onBeforeUnmount, onMounted, reactive, toRefs, watch } from 'vue'
 import { useRouter } from 'vue-router'
 import { ElMessage, ElMessageBox } from 'element-plus'
-import axios from 'axios'
-import { accepted, type Envelope } from '../api/client'
+import { accepted, api, type Envelope } from '../api/client'
 import { apiErrorMessage } from '../api/httpContract'
 import { copyText } from '../utils/clipboard'
 
@@ -70,7 +69,7 @@ interface DeviceState {
 
 
 // Keep writes explicit: retrying administrative mutations could repeat a completed action.
-const post = (path: string, params: Record<string, unknown> = {}) => axios.post<Envelope & Record<string, any>>('api/v1/device/' + path, params)
+const post = (path: string, params: Record<string, unknown> = {}) => api.post<Envelope & Record<string, any>>('/api/v1/device/' + path, params)
 
 function emptyAlert(): DeviceAlert {
   return {
@@ -266,7 +265,7 @@ export function useDevices() {
 
   async function loadOldPeople() {
     try {
-      const { data } = await axios.post('api/v1/inviteCode/oldPersonList', {})
+      const { data } = await api.post<{ oldPeople: DeviceRecord[] }>('/api/v1/inviteCode/oldPersonList', {})
       if (!disposed) state.oldPeople = Array.isArray(data.oldPeople) ? data.oldPeople : []
     } catch (error) {
       ElMessage({ type: 'error', message: apiErrorMessage(error, '读取老人列表失败') })

@@ -102,13 +102,14 @@ html.large-text .care-family .data-caption { font-size: 18px; }
 </style>
 <script setup lang="ts">
 import { ArrowRight, Clock, Document, InfoFilled, Location, Refresh } from '@element-plus/icons-vue'
-import { ref } from 'vue'
+import { computed, ref } from 'vue'
+import { authState } from '../auth'
 import { useRouter } from 'vue-router'
 import { usePagedRecords } from '@/composables/usePagedRecords'
 import LatestHealthPanel from '../components/LatestHealthPanel.vue'
 
 const router = useRouter()
-const familyName = ref(localStorage.getItem('user_name') || '家人')
+const familyName = computed(() => authState.account?.displayName || '家人')
 const searchText = ref('')
 const {
   records: notices, total, pageSize, currentPage, isLoading, loadError,

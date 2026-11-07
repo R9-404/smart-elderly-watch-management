@@ -1,7 +1,7 @@
 import { expect, it } from 'vitest'
 import { CanceledError, type AxiosResponse } from 'axios'
 import { apiErrorMessage, assertApiResponse, isApplicationAPI, isSuccessEnvelope } from './httpContract'
-import { accepted } from './client'
+import { accepted, apiPath } from './client'
 
 const response = (data: unknown) => ({ data, status: 200, config: { url: '/api/v1/guardians/list' } }) as AxiosResponse
 
@@ -38,4 +38,20 @@ it('shares one success predicate for HTTP responses and explicit write acceptanc
   expect(isSuccessEnvelope([])).toBe(false)
   expect(isSuccessEnvelope(null)).toBe(false)
   expect(() => assertApiResponse(response({ returnCode: '0000', code: 'CONFLICT', message: '记录已变化' }))).toThrow('记录已变化')
+})
+
+it('canonicalizes local Go API routes and rejects non-API destinations', () => {
+  expect(apiPath('api/v1/guardians/list')).toBe('/api/v1/guardians/list')
+  expect(apiPath('/api/v1/guardians/list')).toBe('/api/v1/guardians/list')
+  expect(() => apiPath('https://external.example/api/v1/guardians/list')).toThrow()
+  expect(() => apiPath('/deprecated/guardians/list')).toThrow()
+  for (const path of [
+    '//external.example/api/v1/guardians/list',
+    '/api/v1/../auth/session',
+    '/api/v1/%2e%2e/auth/session',
+    '/api/v1/%2Fadmin',
+    '/api/v1\\admin',
+    '/api/v1/guardians/list?next=/admin',
+    '/api/v1/guardians/list#fragment'
+  ]) expect(() => apiPath(path)).toThrow()
 })

@@ -1,10 +1,10 @@
 import { expect, it, vi } from 'vitest'
-const mock = vi.hoisted(() => ({ request: null as any, responseError: null as any, get: vi.fn() }))
+const mock = vi.hoisted(() => ({ request: null as any, responseError: null as any, get: vi.fn(), post: vi.fn() }))
 vi.mock('axios', async (importOriginal) => ({ ...await importOriginal<typeof import('axios')>(), default: {
-  defaults: {}, get: mock.get,
+  defaults: {}, get: mock.get, post: mock.post,
   interceptors: { request: { use: (fn: unknown) => { mock.request = fn } }, response: { use: (_success: unknown, error: unknown) => { mock.responseError = error } } }
 } }))
-import { authState, installHttpSecurity } from './auth'
+import { authState, endSession, installHttpSecurity, loadSession } from './auth'
 
 it('adds CSRF to versioned mutations without leaking it to another origin', async () => {
   mock.get.mockResolvedValue({ data: { csrfToken: 'session-csrf', authenticated: false } })
@@ -29,4 +29,38 @@ it('refreshes a downgraded ADMIN duty on forbidden response without replaying th
   await vi.waitFor(() => expect(router.replace).toHaveBeenCalledWith('/operations/overview'))
   expect(authState.account?.duty).toBe('caregiver')
   expect(mock.get).toHaveBeenCalledWith('/api/v1/auth/session', expect.objectContaining({ skipSession: true }))
+})
+
+
+it('ignores a session response that completes after logout', async () => {
+  let finishSession: (value: unknown) => void = () => {}
+  mock.get.mockImplementationOnce(() => new Promise(resolve => { finishSession = resolve }))
+  const staleRequest = loadSession(true)
+  mock.post.mockResolvedValueOnce({ data: { returnCode: '1111' } })
+  await endSession()
+  finishSession({ data: {
+    csrfToken: 'stale-csrf', authenticated: true,
+    account: { id: 7, role: 'ADMIN', displayName: 'stale administrator' }
+  } })
+  await staleRequest
+  expect(authState.account).toBeNull()
+  expect(authState.csrfToken).toBe('')
+})
+
+it('does not apply a pending session response after a 401', async () => {
+  let finishSession: (value: unknown) => void = () => {}
+  mock.get.mockImplementationOnce(() => new Promise(resolve => { finishSession = resolve }))
+  const staleRequest = loadSession(true)
+  const router = { currentRoute: { value: { path: '/operations/overview' } }, replace: vi.fn() }
+  installHttpSecurity(router)
+  const denied = { response: { status: 401, data: { code: 'SESSION_EXPIRED' } } }
+  await expect(mock.responseError(denied)).rejects.toBe(denied)
+  finishSession({ data: {
+    csrfToken: 'expired-csrf', authenticated: true,
+    account: { id: 8, role: 'ADMIN', displayName: 'expired administrator' }
+  } })
+  await staleRequest
+  expect(authState.account).toBeNull()
+  expect(authState.csrfToken).toBe('')
+  expect(router.replace).toHaveBeenCalledWith('/sign-in')
 })
