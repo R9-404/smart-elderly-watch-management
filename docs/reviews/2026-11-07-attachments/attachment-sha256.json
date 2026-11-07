@@ -1,0 +1,12 @@
+{
+  "smart-elderly-watch-preview-refactored (1).patch": "4e1e2872f45fc0173d344defa1e6765e3aa4c7df36e779abc9ca10ad10f50bea",
+  "0_04_proxy_snapshot.patch": "451f2ea09e13ead6a04f7080536d2943624361731408042ec4b0fcb23d079041",
+  "1_03_multitype_proxy.patch": "9a0cb93d7ff07e0eab54ed8fa5507dffee999c4091976a362b6a9a2752873a15",
+  "2_01_security_original.patch": "17f74e97f06b85f69e5974996b8b64c24cfefc3050bee8cc49d590be74a8ffb2",
+  "2_02_risk_hardened.patch": "c036dae34270b0035791af7baf3ec556a33352aa2ebdfd75b01f0b8768fbb92d",
+  "05_async_audit.patch": "34b4373ee2b94577cb6fd4831e9e3ed2d43f3e650f39c8d70d7bf49325d85795",
+  "00_previous_bundle.zip": "bf78a638373e0adaaf351782eb468f28aa8ed5541c2eea55e28ba90c00ad40a4",
+  "P0 Complete Views And Shell Patch.md": "627ec98ac9ab37c5a3f43bd190ff384d45116cecb01e4a6f2bdc2cf97edb4d89",
+  "README.md": "0a6762948f0ee1819b5defcf9bf900f0e1a83dba841b741e7d3d59d96bc419ae",
+  "Ts Full Migration Guide.md": "9a873b93ca626b8c56990a2fd3c4866d3ee36a87bd0c84cf39dcd8fdee60cb46"
+}

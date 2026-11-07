@@ -38,7 +38,18 @@ func main() {
 	ctx := context.Background()
 
 	sessions := session.NewStore(cfg.SessionTTL)
-	service := &databaseService{configErr: cfgErr, desktopToken: cfg.DesktopToken}
+	riskManager, err := openServerRisk()
+	if err != nil {
+		log.Fatalf("initialize login risk: %v", err)
+	}
+	if riskManager != nil {
+		defer func() {
+			if err := riskManager.Close(); err != nil {
+				log.Printf("risk audit final flush failed: %v", err)
+			}
+		}()
+	}
+	service := &databaseService{configErr: cfgErr, desktopToken: cfg.DesktopToken, risk: riskManager}
 	mux := http.NewServeMux()
 	handlers.MountWeb(mux)
 	localHandlers := handlers.New(nil, sessions, cfg)
@@ -77,7 +88,10 @@ func main() {
 		shutdownOnce.Do(func() {
 			shutdownCtx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 			defer cancel()
-			_ = srv.Shutdown(shutdownCtx)
+			if err := srv.Shutdown(shutdownCtx); err != nil {
+				log.Printf("HTTP shutdown incomplete; closing active connections: %v", err)
+				_ = srv.Close()
+			}
 			close(done)
 		})
 	}

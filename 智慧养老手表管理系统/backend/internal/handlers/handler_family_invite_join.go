@@ -27,6 +27,9 @@ func (h *Handler) inviteOldPersonList(w http.ResponseWriter, r *http.Request) {
 
 // POST /api/v1/inviteCode/checkCode —— 校验邀请码（公开）。
 func (h *Handler) inviteCheckCode(w http.ResponseWriter, r *http.Request) {
+	if !h.allowRiskInvite(w, r) {
+		return
+	}
 	m, ok := bodyMap(w, r)
 	if !ok {
 		return
@@ -45,6 +48,9 @@ func (h *Handler) inviteCheckCode(w http.ResponseWriter, r *http.Request) {
 		code).Scan(&used, &expire, &oldName)
 	if err != nil {
 		if isNotFound(err) {
+			if h.Risk != nil {
+				h.Risk.InvalidInvite(h.clientIP(r), riskSignals(r)...)
+			}
 			response.Error(w, http.StatusNotFound, "INVITE_NOT_FOUND", "邀请码不存在，请向管理员确认")
 			return
 		}
@@ -70,6 +76,9 @@ func (h *Handler) inviteCheckCode(w http.ResponseWriter, r *http.Request) {
 
 // POST /api/v1/inviteCode/join —— 家属凭邀请码注册（公开，事务）。
 func (h *Handler) inviteJoin(w http.ResponseWriter, r *http.Request) {
+	if !h.allowRiskInvite(w, r) {
+		return
+	}
 	m, ok := bodyMap(w, r)
 	if !ok {
 		return
@@ -95,6 +104,9 @@ func (h *Handler) inviteJoin(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		_ = tx.Rollback(ctx)
 		if isNotFound(err) {
+			if h.Risk != nil {
+				h.Risk.InvalidInvite(h.clientIP(r), riskSignals(r)...)
+			}
 			response.Fail(w, "邀请码不存在，请向管理员确认")
 		} else {
 			response.Error500(w, ref())

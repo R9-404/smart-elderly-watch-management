@@ -52,6 +52,7 @@ fields = {
     "/api/v1/auth/login": {"phone": "string", "password": "string", "otp": "string", "recoveryCode": "string"},
     "/api/v1/security/factor": {"action": "string", "password": "string", "otp": "string"},
     "/api/v1/security/login-audit": {"after": "integer"},
+    "/api/v1/risk/rules": {"ip": "string", "action": "string", "reason": "string", "durationHours": "integer"},
     "/api/v1/notifications/search": {"after": "integer", "familyId": "integer"},
     "/api/v1/rule-policies": {"deviceId": "integer", "revision": "integer", "policy": "object"},
     "/api/v1/device-commands": {"deviceId": "integer", "action": "string", "requestKey": "string", "ttlSeconds": "integer"},
@@ -101,6 +102,13 @@ for file in sorted((backend / "internal/handlers").glob("*.go")):
                 # Device fields are incremental; existing telemetry stays an open object.
                 schema["additionalProperties"] = path in {"/api/v1/auth/login", "/api/v1/device/login", "/api/v1/device/report", "/api/v1/device/sos"}
             operation["requestBody"] = json_request(schema)
+        if path == "/api/v1/risk/rules" and method == "POST":
+            schema["required"] = ["ip", "action", "reason"]
+            schema["properties"]["action"]["enum"] = ["block", "skip-auto"]
+            schema["properties"]["durationHours"].update({"minimum": 0, "maximum": 8760})
+        if path == "/api/v1/risk/rules/{id}" and method == "DELETE":
+            operation.pop("requestBody", None)
+            operation["parameters"].append({"name": "id", "in": "path", "required": True, "schema": {"type": "string"}})
         operation["description"] = f"Implementation: {file.relative_to(root).as_posix()}. " + ("Device body authentication or signed gateway receipt; not anonymous access." if access == "Device" else "Go API DTOs without explicit schemas remain open objects; consult implementation.")
         if path == "/api/v1/device/login":
             schema["required"] = ["deviceNo", "secret"]
@@ -164,7 +172,7 @@ error_schema = {
 for key, contract in contracts.items():
     method, path = key.split(' ', 1)
     op = paths[path][method.lower()]
-    if method != 'GET' and path != '/api/v1/image/saveImage':
+    if 'requestBody' in op and path != '/api/v1/image/saveImage':
         request_schema = op['requestBody']['content']['application/json']['schema']
         for name in contract['request']:
             request_schema.setdefault('properties', {}).setdefault(name, {})

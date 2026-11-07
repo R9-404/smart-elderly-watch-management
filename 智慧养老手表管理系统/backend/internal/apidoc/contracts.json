@@ -1428,5 +1428,41 @@
       "returnCode",
       "totalResidents"
     ]
+  },
+  "GET /api/v1/risk/events": {
+    "file": "智慧养老手表管理系统/backend/internal/handlers/handler_risk.go",
+    "request": [],
+    "response": [
+      "events",
+      "rules",
+      "returnCode"
+    ]
+  },
+  "POST /api/v1/risk/rules": {
+    "file": "智慧养老手表管理系统/backend/internal/handlers/handler_risk.go",
+    "request": [
+      "ip",
+      "action",
+      "reason",
+      "durationHours"
+    ],
+    "response": [
+      "id",
+      "cidr",
+      "action",
+      "reason",
+      "actor",
+      "createdAt",
+      "expiresAt",
+      "returnCode"
+    ]
+  },
+  "DELETE /api/v1/risk/rules/{id}": {
+    "file": "智慧养老手表管理系统/backend/internal/handlers/handler_risk.go",
+    "request": [],
+    "response": [
+      "deleted",
+      "returnCode"
+    ]
   }
 }
