@@ -2,7 +2,7 @@
   <div class="roles">
     
     <div class="sys-research">
-      <form class="row-search" role="search" @submit.prevent="searchposition()">
+      <form class="row-search" role="search" @submit.prevent="loadLocationRecords()">
 		  
         <div class="search-field">
           
@@ -67,7 +67,7 @@
     </record-cards>
     
     <div style="margin-top: 10px;text-align: center">
-      <pager-bar
+      <el-pagination layout="total, sizes, prev, pager, next, jumper"
         @size-change="handleSizeChange"
         @current-change="changePage"
         v-model:current-page="currentPage"
@@ -91,14 +91,22 @@ import store from '@/store'
 import PositionMap from '@/components/PositionMap.vue'
 import RecordCards from '@/components/RecordCards.vue'
 import { describePositionContext } from '../utils/positionContext'
-import { positionAlertMessage } from './positionAlertMessage'
+import { positionAlertMessage, type PositionAlarm } from './positionAlertMessage'
 
-type PositionRow = Record<string, any>
+interface PositionRow extends PositionAlarm {
+  oldId: number | string
+  name: string
+  sex?: string
+  status?: number | string
+  lng?: number | string | null
+  lat?: number | string | null
+  beTime?: string
+}
 const searchText = ref('')
 const mobileLayout = useCollectionLayout(900)
 const {
   records: positionList, isLoading, loadError, total,
-  pageSize, currentPage, load: searchposition,
+  pageSize, currentPage, load: loadLocationRecords,
   handleSizeChange, changePage
 } = usePagedRecords<PositionRow, { name: string }>({
   path: 'api/v1/position/select',
@@ -109,7 +117,7 @@ const {
 const selectedLocation = ref<PositionRow | null>(null)
 const num = computed(() => positionList.value.filter(row => row.status === 1 || row.status === '1').length)
 
-watch(() => store.state.alertRevision, () => { void searchposition(true) })
+watch(() => store.state.alertRevision, () => { void loadLocationRecords(true) })
 watch(positionList, rows => {
   const id = store.state.selectedResidentId
   const selected = id == null ? null : rows.find(row => String(row.oldId) === id)

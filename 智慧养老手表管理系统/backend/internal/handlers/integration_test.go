@@ -3,9 +3,6 @@ package handlers
 import (
 	"context"
 	"encoding/json"
-	dbstore "suining-care/internal/db"
-	"suining-care/internal/db/dbtest"
-
 	"fmt"
 	"net/http"
 	"net/http/httptest"
@@ -15,15 +12,17 @@ import (
 	"testing"
 	"time"
 
+	"github.com/google/uuid"
+	"github.com/jackc/pgx/v5/pgxpool"
+
 	"suining-care/internal/auth"
 	"suining-care/internal/config"
 	"suining-care/internal/csrf"
 	"suining-care/internal/db"
-
-	"github.com/google/uuid"
+	dbstore "suining-care/internal/db"
+	"suining-care/internal/db/dbtest"
+	"suining-care/internal/devicecredential"
 	"suining-care/internal/session"
-
-	"github.com/jackc/pgx/v5/pgxpool"
 )
 
 // Each test uses a separate temporary schema in a dedicated test database.
@@ -200,7 +199,7 @@ const testSecret = "test-device-secret-1234567890"
 
 func seedDevice(t *testing.T, pool *dbstore.Database) {
 	t.Helper()
-	hash, err := secretHash(testSecret)
+	hash, err := devicecredential.Hash(testSecret)
 	if err != nil {
 		t.Fatal(err)
 	}

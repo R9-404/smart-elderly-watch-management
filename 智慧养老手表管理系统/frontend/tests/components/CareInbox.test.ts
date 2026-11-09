@@ -2,6 +2,7 @@ import { mount, flushPromises } from '@vue/test-utils'
 import { defineComponent } from 'vue'
 import { afterEach, beforeEach, describe, it, expect, vi } from 'vitest'
 import CareInbox from '@/components/CareInbox.vue'
+import store from '@/store'
 
 const { post } = vi.hoisted(() => ({ post: vi.fn() }))
 vi.mock('axios', async (importOriginal) => ({ ...await importOriginal<typeof import('axios')>(), default: { post } }))
@@ -20,6 +21,45 @@ describe('care task read scheduling', () => {
   beforeEach(() => { post.mockReset() })
   afterEach(() => { vi.useRealTimers() })
 
+  it('refreshes the care inbox on an external alert revision', async () => {
+    post.mockResolvedValueOnce(fixture('旧任务')).mockResolvedValueOnce(fixture('新求助'))
+    const view = mountInbox()
+    await flushPromises()
+    store.notifyAlertsChanged()
+    await flushPromises()
+    expect(post).toHaveBeenCalledTimes(2)
+    expect(view.text()).toContain('新求助')
+    expect(view.text()).not.toContain('旧任务')
+    view.unmount()
+  })
+
+  it('refreshes tasks on tab visibility restoration and unregisters the listener', async () => {
+    const visibility = vi.spyOn(document, 'hidden', 'get').mockReturnValue(true)
+    try {
+      post.mockResolvedValueOnce(fixture('旧任务')).mockResolvedValueOnce(fixture('最新任务'))
+      const view = mountInbox()
+      await flushPromises()
+      expect(view.text()).toContain('旧任务')
+      document.dispatchEvent(new Event('visibilitychange'))
+      await flushPromises()
+      expect(post).toHaveBeenCalledTimes(1)
+
+      visibility.mockReturnValue(false)
+      document.dispatchEvent(new Event('visibilitychange'))
+      await flushPromises()
+      expect(post).toHaveBeenCalledTimes(2)
+      expect(view.text()).toContain('最新任务')
+      expect(view.text()).not.toContain('旧任务')
+
+      view.unmount()
+      document.dispatchEvent(new Event('visibilitychange'))
+      await flushPromises()
+      expect(post).toHaveBeenCalledTimes(2)
+    } finally {
+      visibility.mockRestore()
+    }
+  })
+
   it('aborts a hung task page on timeout and can poll successfully afterwards', async () => {
     vi.useFakeTimers()
     post.mockReturnValueOnce(new Promise(() => {})).mockResolvedValueOnce(fixture('恢复任务'))
@@ -31,7 +71,7 @@ describe('care task read scheduling', () => {
     await vi.advanceTimersByTimeAsync(5000)
     expect(view.text()).toContain('恢复任务')
     expect(view.text()).not.toContain('照护任务暂时无法加载')
-    expect(post.mock.calls.every(([path]) => path === 'api/v1/care/incidents')).toBe(true)
+    expect(post.mock.calls.every(([path]) => path === '/api/v1/care/incidents')).toBe(true)
     view.unmount()
     expect(vi.getTimerCount()).toBe(0)
   })
@@ -66,6 +106,7 @@ describe('care task read scheduling', () => {
     await flushPromises()
     expect(post.mock.calls[1][2].signal.aborted).toBe(true)
     expect(post.mock.calls[2][1]).toMatchObject({ id: 'second', page: 1 })
+    expect(post.mock.calls[2][0]).toBe('/api/v1/care/events')
     expect(view.text()).toContain('最新履历')
     finishOld({ data: { events: [{ action: '过期履历' }], total: 99 } })
     await flushPromises()

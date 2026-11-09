@@ -1,6 +1,6 @@
 <template>
   <div class="roles">
-    <div class="record-heading"><h2>最近上报记录</h2><el-button link :loading="isLoading" @click="searchposition">刷新记录 <el-icon aria-hidden="true"><Refresh /></el-icon></el-button></div>
+    <div class="record-heading"><h2>最近上报记录</h2><el-button link :loading="isLoading" @click="loadFamilyLocations">刷新记录 <el-icon aria-hidden="true"><Refresh /></el-icon></el-button></div>
 
     <el-alert v-if="loadError" :title="loadError" type="error" :closable="false" show-icon></el-alert>
     <el-table v-if="!mobileLayout" class="desktop-records" v-loading="isLoading" :data="positionList"
@@ -46,25 +46,33 @@
 
 </template>
 
-<script setup>
+<script setup lang="ts">
 import { Refresh } from '@element-plus/icons-vue'
-import { computed, ref, onMounted, onBeforeUnmount } from 'vue'
+import { computed, ref, shallowRef, onMounted, onBeforeUnmount } from 'vue'
 import { authState } from '../auth'
 import { api } from '../api/client'
 import { apiErrorMessage } from '../api/httpContract'
 import { createLatestRead } from '../composables/latestRead'
 import { useCollectionLayout } from '@/composables/useCollectionLayout'
 import PositionMap from '@/components/PositionMap.vue'
-import { describePositionContext } from '../utils/positionContext'
+import { describePositionContext, type PositionContext } from '../utils/positionContext'
 
 const mobileLayout = useCollectionLayout()
 const oldId = computed(() => String(authState.account?.oldId ?? ''))
-const positionList = ref([])
+interface PositionRecord extends PositionContext {
+  oldId?: string | number
+  name: string
+  lng: number | string
+  lat: number | string
+  status?: string | number | null
+  beTime?: string
+}
+const positionList = shallowRef<PositionRecord[]>([])
 const isLoading = ref(false)
 const loadError = ref('')
-const selectedLocation = ref(null)
+const selectedLocation = ref<PositionRecord | null>(null)
 const reads = createLatestRead(
-  (query, signal) => api.post('api/v1/position/selectFamily', query, { signal }),
+  (query: { oldId: string }, signal: AbortSignal) => api.post<{ positionDtos?: PositionRecord[] }>('api/v1/position/selectFamily', query, { signal }),
   ({ data }) => {
     positionList.value = Array.isArray(data.positionDtos) ? data.positionDtos : []
     loadError.value = ''
@@ -75,9 +83,9 @@ const reads = createLatestRead(
   },
   loading => { isLoading.value = loading }
 )
-function searchposition() { return reads.run({ oldId: oldId.value }) }
-function showLocation(row) { selectedLocation.value = { ...row } }
-onMounted(() => { void searchposition() })
+function loadFamilyLocations() { return reads.run({ oldId: oldId.value }) }
+function showLocation(row: PositionRecord) { selectedLocation.value = { ...row } }
+onMounted(() => { void loadFamilyLocations() })
 onBeforeUnmount(reads.dispose)
 </script>
 

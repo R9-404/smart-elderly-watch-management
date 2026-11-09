@@ -11,6 +11,7 @@ import (
 	"time"
 
 	dbstore "suining-care/internal/db"
+	"suining-care/internal/devicecredential"
 	"suining-care/internal/health"
 )
 
@@ -246,7 +247,7 @@ func TestLateHealthDeviceLockRejectsConcurrentCredentialChanges(t *testing.T) {
 			}
 			var args []any
 			if tc.rotate {
-				hash, err := secretHash("another-test-secret-123456789012")
+				hash, err := devicecredential.Hash("another-test-secret-123456789012")
 				if err != nil {
 					release()
 					t.Fatal(err)
@@ -345,7 +346,7 @@ func TestBulkPreparationRevalidatesConcurrentDeviceChanges(t *testing.T) {
 			defer holder.Rollback(context.Background())
 			var args []any
 			if tc.name == "rotation" {
-				hash, err := secretHash("another-test-secret-123456789012")
+				hash, err := devicecredential.Hash("another-test-secret-123456789012")
 				if err != nil {
 					t.Fatal(err)
 				}
