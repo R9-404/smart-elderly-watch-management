@@ -12,7 +12,6 @@ import (
 	"strings"
 	"time"
 
-	"github.com/go-sql-driver/mysql"
 	"suining-care/migrations"
 )
 
@@ -31,8 +30,8 @@ func MySQLMigrationNames() ([]string, error) {
 	return names, nil
 }
 
-// MySQL DDL commits implicitly. Each statement is restartable; a checksum is
-// recorded only after all statements finish, under a connection-scoped lock.
+// MySQL DDL commits implicitly. A connection-scoped lock serializes migrations;
+// statement checkpoints prevent replay of ambiguous DDL or committed DML.
 func MigrateMySQL(ctx context.Context, database *Database) (result error) {
 	conn, err := database.Conn(ctx)
 	if err != nil {
@@ -76,11 +75,36 @@ func MigrateMySQL(ctx context.Context, database *Database) (result error) {
 			return errors.New("refusing to initialize a nonempty unrecognized MySQL database")
 		}
 	}
-	if _, err = conn.ExecContext(ctx, "CREATE TABLE IF NOT EXISTS schema_migrations(name varchar(191) PRIMARY KEY,checksum char(64) NOT NULL,applied_at datetime(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6)) ENGINE=InnoDB"); err != nil {
+	// Statement effects, checkpoints and the completed ledger must all be
+	// transactional. A pre-existing non-InnoDB table breaks that guarantee.
+	var nonTransactional string
+	err = conn.QueryRowContext(ctx, "SELECT TABLE_NAME FROM information_schema.TABLES WHERE TABLE_SCHEMA=DATABASE() AND TABLE_TYPE='BASE TABLE' AND ENGINE<>'InnoDB' LIMIT 1").Scan(&nonTransactional)
+	if err == nil {
+		return fmt.Errorf("MySQL migration requires InnoDB table %s", nonTransactional)
+	}
+	if !errors.Is(err, sql.ErrNoRows) {
 		return err
+	}
+	if _, err = conn.ExecContext(ctx, "CREATE TABLE IF NOT EXISTS schema_migrations(name varchar(191) PRIMARY KEY,checksum char(64) NOT NULL,schema_checksum char(64) NOT NULL DEFAULT '',applied_at datetime(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6)) ENGINE=InnoDB"); err != nil {
+		return err
+	}
+	var fingerprintColumn int
+	if err = conn.QueryRowContext(ctx, "SELECT COUNT(*) FROM information_schema.COLUMNS WHERE TABLE_SCHEMA=DATABASE() AND TABLE_NAME='schema_migrations' AND COLUMN_NAME='schema_checksum'").Scan(&fingerprintColumn); err != nil {
+		return err
+	}
+	if fingerprintColumn == 0 {
+		if _, err = conn.ExecContext(ctx, "ALTER TABLE schema_migrations ADD COLUMN schema_checksum CHAR(64) NOT NULL DEFAULT ''"); err != nil {
+			return err
+		}
+	}
+	if err = ensureMigrationStepJournal(ctx, conn); err != nil {
+		return fmt.Errorf("initialize migration step journal: %w", err)
 	}
 	names, err := MySQLMigrationNames()
 	if err != nil {
+		return err
+	}
+	if err := validateCompletedMigrationSchema(ctx, conn, names); err != nil {
 		return err
 	}
 	for _, name := range names {
@@ -104,21 +128,51 @@ func MigrateMySQL(ctx context.Context, database *Database) (result error) {
 		if !errors.Is(err, sql.ErrNoRows) {
 			return err
 		}
-		// Trigger statements use a single SET body, so no compound delimiters.
+		// MySQL DDL commits implicitly. Resume only after checking committed step
+		// fingerprints; never classify an unknown duplicate object as success.
+		statements := make([]string, 0)
 		for _, statement := range strings.Split(string(data), ";") {
-			if strings.TrimSpace(statement) == "" {
-				continue
-			}
-			if _, err = conn.ExecContext(ctx, statement); err != nil {
-				var myErr *mysql.MySQLError
-				if !errors.As(err, &myErr) || (myErr.Number != 1060 && myErr.Number != 1061 && myErr.Number != 1826 && myErr.Number != 1359) {
-					return fmt.Errorf("MySQL migration %s: %w", name, err)
-				}
+			if migrationStatementKind(statement) != "" {
+				statements = append(statements, statement)
 			}
 		}
-		if _, err = conn.ExecContext(ctx, "INSERT INTO schema_migrations(name,checksum) VALUES(?,?)", name, sum); err != nil {
+		start, err := resumeMigrationAt(ctx, conn, name, statements)
+		if err != nil {
+			return err
+		}
+		for ordinal := start; ordinal < len(statements); ordinal++ {
+			if err := applyCheckpointedStatement(ctx, conn, name, ordinal, statements[ordinal]); err != nil {
+				return fmt.Errorf("MySQL migration %s step %d: %w", name, ordinal, err)
+			}
+		}
+		// Retire statement checkpoints atomically with the completed ledger entry.
+		// Otherwise an intentional rollback leaves stale fingerprints that reject
+		// reapplication, and later migrations invalidate those fingerprints.
+		schemaChecksum, err := schemaDigest(ctx, conn)
+		if err != nil {
+			return err
+		}
+		tx, err := conn.BeginTx(ctx, nil)
+		if err != nil {
+			return err
+		}
+		if _, err = tx.ExecContext(ctx, "INSERT INTO schema_migrations(name,checksum,schema_checksum) VALUES(?,?,?)", name, sum, schemaChecksum); err == nil {
+			_, err = tx.ExecContext(ctx, "DELETE FROM schema_migration_steps WHERE name=?", name)
+		}
+		if err != nil {
+			tx.Rollback()
+			return err
+		}
+		if err = tx.Commit(); err != nil {
 			return err
 		}
 	}
-	return nil
+	// Older completed ledgers have no structural fingerprint. Establish their
+	// baseline only after every historical SQL checksum has been validated.
+	schemaChecksum, err := schemaDigest(ctx, conn)
+	if err != nil {
+		return err
+	}
+	_, err = conn.ExecContext(ctx, "UPDATE schema_migrations SET schema_checksum=? WHERE name=? AND schema_checksum=''", schemaChecksum, names[len(names)-1])
+	return err
 }
