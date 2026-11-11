@@ -1,6 +1,7 @@
 package handlers
 
 import (
+	"database/sql"
 	"errors"
 	"math"
 	"net/http"
@@ -9,8 +10,7 @@ import (
 	_ "time/tzdata"
 	"unicode/utf8"
 
-	"github.com/jackc/pgx/v5"
-
+	"suining-care/internal/carepolicy"
 	"suining-care/internal/devicerepo"
 	"suining-care/internal/fence"
 	"suining-care/internal/fencerepo"
@@ -19,7 +19,7 @@ import (
 )
 
 func (h *Handler) fenceSave(w http.ResponseWriter, r *http.Request) {
-	actor, ok := h.careSupervisor(w, r)
+	actor, ok := careAdmin(w, r)
 	if !ok {
 		return
 	}
@@ -40,13 +40,13 @@ func (h *Handler) fenceSave(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	ctx := r.Context()
-	tx, err := h.DB.Begin(ctx)
-	if internalError(w, err) {
+	tx, ok := h.beginAdminActionTx(w, r, carepolicy.ManageGeofences)
+	if !ok {
 		return
 	}
-	defer tx.Rollback(ctx)
+	defer tx.Rollback()
 	d, err := devicerepo.ScanDeviceRecord(devicerepo.LockedDeviceRow(ctx, tx, req.DeviceID))
-	if err == pgx.ErrNoRows {
+	if isNotFound(err) {
 		response.JSON(w, 404, map[string]any{"message": "设备不存在"})
 		return
 	}
@@ -76,7 +76,7 @@ func (h *Handler) fenceSave(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *Handler) fenceList(w http.ResponseWriter, r *http.Request) {
-	if _, ok := h.careSupervisor(w, r); !ok {
+	if _, ok := careAdmin(w, r); !ok {
 		return
 	}
 	var req struct {
@@ -89,8 +89,13 @@ func (h *Handler) fenceList(w http.ResponseWriter, r *http.Request) {
 		write400(w, "设备无效")
 		return
 	}
-	items, err := fencerepo.ListConfigured(r.Context(), h.DB, req.DeviceID)
-	if internalError(w, err) {
+	tx, ok := h.beginAdminActionTx(w, r, carepolicy.ReadGeofences)
+	if !ok {
+		return
+	}
+	defer tx.Rollback()
+	items, err := fencerepo.ListConfigured(r.Context(), tx, req.DeviceID)
+	if internalError(w, err) || internalError(w, tx.Commit()) {
 		return
 	}
 	response.OK(w, map[string]any{"items": items})
@@ -106,11 +111,11 @@ func (h *Handler) fencePoint(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	ctx := r.Context()
-	tx, err := h.DB.Begin(ctx)
+	tx, err := h.DB.BeginTx(ctx, &sql.TxOptions{Isolation: sql.LevelReadCommitted})
 	if internalError(w, err) {
 		return
 	}
-	defer tx.Rollback(ctx)
+	defer tx.Rollback()
 	d := h.capabilityDevice(w, r, tx, req.capabilityCredentials)
 	if d == nil {
 		return
@@ -145,17 +150,17 @@ func (h *Handler) fencePoint(w http.ResponseWriter, r *http.Request) {
 		}
 		events = append(events, event)
 	}
-	if err = telemetryrepo.TouchDevice(ctx, tx, d.ID, nil, nil, time.Now()); internalError(w, err) {
+	if err = telemetryrepo.TouchDevice(ctx, tx, d.ID, d.HealthEpoch, nil, nil, time.Now()); internalError(w, err) {
 		return
 	}
-	if err = tx.Commit(ctx); internalError(w, err) {
+	if err = tx.Commit(); internalError(w, err) {
 		return
 	}
 	response.OK(w, map[string]any{"events": events})
 }
 
 func (h *Handler) fenceEvents(w http.ResponseWriter, r *http.Request) {
-	if _, ok := h.careSupervisor(w, r); !ok {
+	if _, ok := careAdmin(w, r); !ok {
 		return
 	}
 	var req struct {
@@ -169,8 +174,13 @@ func (h *Handler) fenceEvents(w http.ResponseWriter, r *http.Request) {
 		write400(w, "老人或游标无效")
 		return
 	}
-	items, err := fencerepo.ListEvents(r.Context(), h.DB, req.OldID, req.After)
-	if internalError(w, err) {
+	tx, ok := h.beginAdminActionTx(w, r, carepolicy.ReadGeofences)
+	if !ok {
+		return
+	}
+	defer tx.Rollback()
+	items, err := fencerepo.ListEvents(r.Context(), tx, req.OldID, req.After)
+	if internalError(w, err) || internalError(w, tx.Commit()) {
 		return
 	}
 	response.OK(w, map[string]any{"items": items})

@@ -93,13 +93,9 @@ impl OfflineQueue {
         self.items.push_back(sample);
     }
 
-    /// 取最多 `max` 条待上传样本（不出队，失败时无需回填）。
-    pub fn peek(&self, max: usize) -> Vec<HealthSample> {
-        self.items
-            .iter()
-            .take(max.min(self.capacity))
-            .cloned()
-            .collect()
+    /// 借用待上传样本，避免弱网重试时复制整批记录。
+    pub fn iter_pending(&self, max: usize) -> impl Iterator<Item = &HealthSample> {
+        self.items.iter().take(max.min(self.capacity))
     }
 
     /// 上传成功后按条数出队。后端对重复 `recordId` 返回 duplicates，
@@ -167,7 +163,10 @@ mod priority_eviction_tests {
             ),
             1,
         );
-        let ids: Vec<String> = q.peek(2).into_iter().map(|item| item.record_id).collect();
+        let ids: Vec<&str> = q
+            .iter_pending(2)
+            .map(|item| item.record_id.as_str())
+            .collect();
         assert_eq!(ids, ["alert", "new"]);
         assert_eq!(q.dropped(), 1);
     }
@@ -189,7 +188,10 @@ mod priority_eviction_tests {
             ),
             1,
         );
-        assert_eq!(q.peek(1)[0].record_id, "alert");
+        assert_eq!(
+            q.iter_pending(1).next().unwrap().record_id.as_str(),
+            "alert"
+        );
         assert_eq!(q.dropped(), 1);
     }
 }

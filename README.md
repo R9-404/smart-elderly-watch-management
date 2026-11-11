@@ -92,8 +92,6 @@ python3 scripts/bootstrap-admin.py
 
 ### 旧库迁移与长期值守
 
-如果从早期使用 PostgreSQL 作为业务主库的版本升级，请先停止旧服务写入并备份数据库与图片，然后使用 `transfer-postgres` 工具完成预检查，将数据导入全新的空 MySQL 库，最后手动复制图片目录。安装程序不会自动迁移旧库，且全量导入过程不可逆。
-
 桌面客户端默认监听本机回环动态端口，关闭窗口即终止本地 Go 服务。如果需要全天候接收真实手表上报并处理紧急求助，请独立部署常驻 Go 服务、配置受控公网或局域网入口、接入外部通知网关，并安排值班人员跟进。
 
 ## 系统架构
@@ -187,7 +185,6 @@ UI Quality 随每次 Preview CI 执行。`Core CI / required` 仅表示基础检
 | --- | --- |
 | 界面能打开，但无法登录或保存 | 检查 MySQL 是否启动、库名是否正确、迁移是否完成，以及 `SESSION_BACKEND` 和 `DATA_ENCRYPTION_KEY` 是否有效 |
 | PostgreSQL 离线，但日常操作仍能保存 | 属于预期设计；业务直接写入 MySQL，留意磁盘空间与分析事件积压即可 |
-| 升级版本后找不到历史记录 | 确认是否已执行离线迁移工具导入旧库数据，并手动复制了旧版图片目录 |
 | 外部手表无法连接桌面端服务 | 桌面端默认仅监听本机回环地址，外部设备接入需独立部署服务端并开放受控网络端口 |
 | 免安装版双击无法启动 | 确认已完整解压 ZIP、主程序与 Go sidecar 位于同一目录、系统已安装 WebView2，并核对 SHA-256 |
 
@@ -211,6 +208,6 @@ UI Quality 随每次 Preview CI 执行。`Core CI / required` 仅表示基础检
 
 [接口合同与逐项差异处理](docs/API_CONTRACTS.md)列出 109 个路径的请求字段、成功响应字段和错误状态。JSON 成功响应使用 HTTP 200 与 `returnCode="1111"`；失败使用 HTTP 4xx/5xx 与 `returnCode="0000"`、`code`、`message`，内部错误保留 `reference`。图片下载返回图片字节，上传使用 multipart `file` 字段。
 
-设备请求签名使用 `X-Device-Signature`、`X-Device-Timestamp`、`X-Device-Nonce`。设置 `CAREOLD_REQUIRE_SIGNED_DEVICE=1` 后，除 `/device/report`、`/device/sos`（已在业务事务内预留 nonce）与 `/care/receipt`（使用网关 HMAC）外，其余设备路由强制签名并拒绝 nonce 重放；未设置该变量时旧固件仍可无签名上报，但携带的签名必须校验通过。
+设备请求签名使用 `X-Device-Signature`、`X-Device-Timestamp`、`X-Device-Nonce`。设置 `SUINING_REQUIRE_SIGNED_DEVICE=1` 后，除 `/device/report`、`/device/sos`（已在业务事务内预留 nonce）与 `/care/receipt`（使用网关 HMAC）外，其余设备路由强制签名并拒绝 nonce 重放；未设置该变量时旧固件仍可无签名上报，但携带的签名必须校验通过。
 
-携带合法 `requestId` 的 `/device/report` 具备事务级幂等：相同编号且相同内容重发时返回首次提交的成功响应（`duplicate=true`）而不重复写入；同一编号换成不同内容返回 409。未携带编号的旧固件上报保持原有行为。启用持久遥测队列（`CAREOLD_DURABLE_TELEMETRY=1`）时沿用该路径原有的唯一键 409 语义。
+携带合法 `requestId` 的 `/device/report` 具备事务级幂等：相同编号且相同内容重发时返回首次提交的成功响应（`duplicate=true`）而不重复写入；同一编号换成不同内容返回 409。未携带编号的旧固件上报保持原有行为。启用持久遥测队列（`SUINING_DURABLE_TELEMETRY=1`）时沿用该路径原有的唯一键 409 语义。

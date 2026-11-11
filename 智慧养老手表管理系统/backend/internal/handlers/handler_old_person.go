@@ -1,12 +1,15 @@
 package handlers
 
 import (
-	"github.com/jackc/pgx/v5"
+	"database/sql"
+	"errors"
 	"net/http"
 	"strconv"
+	"time"
+
+	"suining-care/internal/carepolicy"
 	dbstore "suining-care/internal/db"
 	"suining-care/internal/response"
-	"time"
 )
 
 // POST /api/v1/residents/create —— 新增老人档案（ADMIN）。
@@ -72,22 +75,22 @@ func (h *Handler) saveResident(w http.ResponseWriter, r *http.Request, update bo
 		return
 	}
 	ctx := r.Context()
-	tx, err := h.DB.Begin(ctx)
-	if internalError(w, err) {
+	tx, ok := h.beginAdminActionTx(w, r, carepolicy.ManageResidents)
+	if !ok {
 		return
 	}
-	defer tx.Rollback(ctx)
+	defer tx.Rollback()
 	if !lockCustomer(w, r, tx, customerID) {
 		return
 	}
 	args := []any{fields["name"], age, fields["sex"], fields["phone"], fields["room"], fields["illness"],
 		fields["warn"], fields["foodLike"], fields["foodHate"], fields["drag"], customerID, fields["bothdate"]}
 	query := `INSERT INTO oldperson(name,age,sex,phone,room,illness,warn,food_like,food_hate,drag,
-   customer_id,bothdate,be_time) VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13)`
+   customer_id,bothdate,be_time) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?)`
 	if update {
 		var device *int64
-		err := tx.QueryRow(ctx, "SELECT device_id FROM oldperson WHERE old_id=$1 FOR UPDATE", oldID).Scan(&device)
-		if err == pgx.ErrNoRows {
+		err := tx.QueryRowContext(ctx, "SELECT device_id FROM oldperson WHERE old_id=? FOR UPDATE", oldID).Scan(&device)
+		if errors.Is(err, sql.ErrNoRows) {
 			response.Fail(w, "长者档案不存在")
 			return
 		}
@@ -101,19 +104,22 @@ func (h *Handler) saveResident(w http.ResponseWriter, r *http.Request, update bo
 				return
 			}
 		}
-		query = `UPDATE oldperson SET name=$1,age=$2,sex=$3,phone=$4,room=$5,illness=$6,warn=$7,
-   food_like=$8,food_hate=$9,drag=$10,customer_id=$11,bothdate=$12 WHERE old_id=$13`
+		query = `UPDATE oldperson SET name=?,age=?,sex=?,phone=?,room=?,illness=?,warn=?,
+   food_like=?,food_hate=?,drag=?,customer_id=?,bothdate=? WHERE old_id=?`
 		args = append(args, oldID)
 	} else {
 		day := siteDay(now)
 		args = append(args, day)
 	}
-	result, err := tx.Exec(ctx, query, args...)
+	result, err := tx.ExecContext(ctx, query, args...)
 	if internalError(w, err) {
 		return
 	}
-	affected := result.RowsAffected()
-	if (update || affected == 1) && internalError(w, tx.Commit(ctx)) {
+	affected, err := result.RowsAffected()
+	if internalError(w, err) {
+		return
+	}
+	if (update || affected == 1) && internalError(w, tx.Commit()) {
 		return
 	}
 	writeSingleMutation(w, affected)
@@ -132,13 +138,13 @@ func (h *Handler) deleteResident(w http.ResponseWriter, r *http.Request) {
 	}
 	oldID, _ := strconv.ParseInt(oldIDStr, 10, 64)
 	ctx := r.Context()
-	tx, err := h.DB.Begin(ctx)
-	if internalError(w, err) {
+	tx, ok := h.beginAdminActionTx(w, r, carepolicy.ManageResidents)
+	if !ok {
 		return
 	}
-	rollback := func() { _ = tx.Rollback(ctx) }
+	rollback := func() { _ = tx.Rollback() }
 	var exists bool
-	if err := tx.QueryRow(ctx, `SELECT EXISTS(SELECT 1 FROM oldperson WHERE old_id=$1)`, oldID).Scan(&exists); rollbackOnError(w, rollback, err) {
+	if err := tx.QueryRowContext(ctx, `SELECT EXISTS(SELECT 1 FROM oldperson WHERE old_id=?)`, oldID).Scan(&exists); rollbackOnError(w, rollback, err) {
 		return
 	}
 	if !exists {
@@ -147,7 +153,7 @@ func (h *Handler) deleteResident(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	var devCount int64
-	if err := tx.QueryRow(ctx, `SELECT COUNT(*) FROM device WHERE old_id=$1`, oldID).Scan(&devCount); rollbackOnError(w, rollback, err) {
+	if err := tx.QueryRowContext(ctx, `SELECT COUNT(*) FROM device WHERE old_id=?`, oldID).Scan(&devCount); rollbackOnError(w, rollback, err) {
 		return
 	}
 	if devCount > 0 {
@@ -156,10 +162,10 @@ func (h *Handler) deleteResident(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	// 删除该老人名下所有邀请码（含已使用的），避免无主邀请码。
-	if _, err := tx.Exec(ctx, `DELETE FROM invite_code WHERE old_id=$1`, oldID); rollbackOnError(w, rollback, err) {
+	if _, err := tx.ExecContext(ctx, `DELETE FROM invite_code WHERE old_id=?`, oldID); rollbackOnError(w, rollback, err) {
 		return
 	}
-	ct, err := tx.Exec(ctx, `DELETE FROM oldperson WHERE old_id=$1`, oldID)
+	ct, err := tx.ExecContext(ctx, `DELETE FROM oldperson WHERE old_id=?`, oldID)
 	if err != nil {
 		rollback()
 		if dbstore.IsForeignKey(err) {
@@ -169,11 +175,15 @@ func (h *Handler) deleteResident(w http.ResponseWriter, r *http.Request) {
 		response.Error500(w, ref())
 		return
 	}
-	if ct.RowsAffected() != 1 {
+	affected, err := ct.RowsAffected()
+	if rollbackOnError(w, rollback, err) {
+		return
+	}
+	if affected != 1 {
 		rollbackFailure(w, rollback)
 		return
 	}
-	if internalError(w, tx.Commit(ctx)) {
+	if internalError(w, tx.Commit()) {
 		return
 	}
 	response.OK(w, nil)

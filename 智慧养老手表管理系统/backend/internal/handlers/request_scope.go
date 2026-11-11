@@ -1,12 +1,15 @@
 package handlers
 
 import (
+	"database/sql"
+	"errors"
 	"math"
 	"net/http"
 	"strconv"
 	"strings"
 
 	"suining-care/internal/auth"
+	"suining-care/internal/carepolicy"
 	"suining-care/internal/response"
 	"suining-care/internal/session"
 )
@@ -36,6 +39,52 @@ func (h *Handler) resolveOptionalOldID(w http.ResponseWriter, r *http.Request, i
 	return h.resolveOldID(w, r, id)
 }
 
+// beginScopedHealthRead retains health-data authorization until the caller
+// commits its database read. It never inherits the staff-management capability.
+func (h *Handler) beginScopedHealthRead(w http.ResponseWriter, r *http.Request, oldID int64) (*sql.Tx, bool) {
+	return h.beginScopedResidentRead(w, r, oldID, carepolicy.ReadHealthData)
+}
+
+// beginScopedLocationRead uses the same family ownership lock, but administrators
+// must hold the independent live location-reading capability.
+func (h *Handler) beginScopedLocationRead(w http.ResponseWriter, r *http.Request, oldID int64) (*sql.Tx, bool) {
+	return h.beginScopedResidentRead(w, r, oldID, carepolicy.ReadLocations)
+}
+
+// beginScopedResidentRead holds the actor's duty or family binding through
+// the protected query. Role changes and family unbinding cannot overtake it.
+func (h *Handler) beginScopedResidentRead(w http.ResponseWriter, r *http.Request, oldID int64, action carepolicy.Action) (*sql.Tx, bool) {
+	p, ok := principalOr401(w, r)
+	if !ok {
+		return nil, false
+	}
+	if p.Role == auth.RoleAdmin {
+		tx, _, ok := h.beginCareRead(w, r, p.ID, action)
+		return tx, ok
+	}
+	if p.Role != auth.RoleFamily {
+		response.JSON(w, http.StatusForbidden, map[string]any{"code": "ACCESS_DENIED"})
+		return nil, false
+	}
+	tx, err := h.DB.BeginTx(r.Context(), &sql.TxOptions{Isolation: sql.LevelReadCommitted})
+	if internalError(w, err) {
+		return nil, false
+	}
+	var id int64
+	err = tx.QueryRowContext(r.Context(),
+		"SELECT old_id FROM oldperson WHERE old_id=? AND family_id=? FOR SHARE", oldID, p.ID).Scan(&id)
+	if errors.Is(err, sql.ErrNoRows) {
+		tx.Rollback()
+		response.JSON(w, http.StatusForbidden, map[string]any{"message": "无权访问该账户或照护记录"})
+		return nil, false
+	}
+	if internalError(w, err) {
+		tx.Rollback()
+		return nil, false
+	}
+	return tx, true
+}
+
 // resolveOldID allows ADMIN to select an elder by ID;
 // FAMILY 传空用会话绑定的 oldId，传值则实时查库核对 oldperson.family_id。
 func (h *Handler) resolveOldID(w http.ResponseWriter, r *http.Request, value any) (int64, bool) {
@@ -54,7 +103,7 @@ func (h *Handler) resolveOldID(w http.ResponseWriter, r *http.Request, value any
 	}
 	if p.Role != auth.RoleAdmin {
 		var familyID *int64
-		err := h.DB.QueryRow(r.Context(), "SELECT family_id FROM oldperson WHERE old_id=$1", id).Scan(&familyID)
+		err := h.DB.QueryRowContext(r.Context(), "SELECT family_id FROM oldperson WHERE old_id=?", id).Scan(&familyID)
 		if err != nil || familyID == nil || *familyID != p.ID {
 			response.JSON(w, http.StatusForbidden, map[string]any{"message": "无权访问该账户或照护记录"})
 			return 0, false

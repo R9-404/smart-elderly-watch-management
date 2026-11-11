@@ -3,6 +3,13 @@ export interface WatchConfig {
   server: string;
   deviceNo: string;
 }
+export class DeviceRequestError extends Error {
+  code: string;
+  constructor(code: string, message: string) {
+    super(message);
+    this.code = code;
+  }
+}
 export interface SimulatorState { day: string; steps: number; }
 export interface DeviceReply {
   returnCode: string;
@@ -11,8 +18,8 @@ export interface DeviceReply {
   message?: string;
   deviceId?: number;
   bound?: number;
-  oldId?: number;
-  oldPersonName?: string;
+  residentId?: number;
+  residentName?: string;
   bindingVersion?: number;
   accepted?: number;
   duplicates?: number;
@@ -27,7 +34,7 @@ export interface LoginRequest extends Credentials { platform: string; protocolVe
 export interface Binding {
   server: string;
   deviceNo: string;
-  oldId: number;
+  residentId: number;
   version: number;
 }
 export interface SampleMetadata {
@@ -97,14 +104,17 @@ export function verifyHandshake(reply: DeviceReply): void {
 }
 
 export function bindingFrom(config: WatchConfig, reply: DeviceReply): Binding {
-  if (reply.bound !== 1 || !reply.oldId || !reply.bindingVersion) {
+  if (reply.bound !== 1 || !reply.residentId || !reply.bindingVersion) {
     throw new Error('设备尚未绑定长者，请输入后台生成的设备绑定码');
   }
   return { server: config.server, deviceNo: config.deviceNo,
-    oldId: reply.oldId, version: reply.bindingVersion };
+    residentId: reply.residentId, version: reply.bindingVersion };
 }
 export function sameBinding(a: Binding, b: Binding): boolean {
-  return a.server === b.server && a.deviceNo === b.deviceNo && a.oldId === b.oldId && a.version === b.version;
+  return a.server === b.server && a.deviceNo === b.deviceNo && a.residentId === b.residentId && a.version === b.version;
+}
+export function isExpiredBinding(saved: Binding, live: Binding): boolean {
+  return saved.server === live.server && saved.deviceNo === live.deviceNo && saved.version < live.version;
 }
 export function enqueue(current: PendingBatch | undefined, binding: Binding,
   samples: HealthSample[]): PendingBatch {
@@ -118,6 +128,9 @@ export function enqueue(current: PendingBatch | undefined, binding: Binding,
   return { binding: binding, samples: prior.concat(samples) };
 }
 export function batchRequest(batch: PendingBatch, live: Binding, secret: string): BatchRequest {
+  if (isExpiredBinding(batch.binding, live)) {
+    throw new DeviceRequestError('EPOCH_EXPIRED', '绑定纪元已过期，禁止补传旧记录');
+  }
   if (!sameBinding(batch.binding, live)) {
     throw new Error('服务器或设备绑定已变化，禁止补传旧记录');
   }

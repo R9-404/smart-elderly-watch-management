@@ -2,12 +2,12 @@ package handlers
 
 import (
 	"context"
+	"database/sql"
 	"errors"
 	"net/http"
-	"regexp"
 	"time"
 
-	dbstore "suining-care/internal/db"
+	"suining-care/internal/deviceprotocol"
 	"suining-care/internal/devicerepo"
 	"suining-care/internal/deviceworkflow"
 	"suining-care/internal/response"
@@ -34,10 +34,10 @@ func (h *Handler) deviceSos(w http.ResponseWriter, r *http.Request) {
 	result, failure, err := deviceworkflow.SOS(r.Context(), h.DB, h.Box, deviceworkflow.SOSInput{
 		Number: req.deviceNo, Secret: req.secret, Epoch: req.bindingVersion, RequestID: req.requestID,
 	}, deviceworkflow.SOSHooks{
-		AcceptNonce: func(ctx context.Context, tx *dbstore.Transaction, deviceID int64) bool {
+		AcceptNonce: func(ctx context.Context, tx *sql.Tx, deviceID int64) bool {
 			return acceptSignedDeviceNonce(w, ctx, tx, deviceID)
 		},
-		Persist: func(ctx context.Context, tx *dbstore.Transaction, device *devicerepo.DeviceRecord) (int64, error) {
+		Persist: func(ctx context.Context, tx *sql.Tx, device *devicerepo.DeviceRecord) (int64, error) {
 			if msg := checkPosition(lng, lat); msg != "" {
 				invalidPosition = msg
 				return 0, errInvalidPosition
@@ -62,8 +62,11 @@ func (h *Handler) deviceSos(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	switch failure {
+	case deviceworkflow.EpochExpired:
+		response.Error(w, http.StatusConflict, string(failure), "绑定纪元已过期，请重新登录；原求助记录须保留核查")
+		return
 	case deviceworkflow.BindingChanged:
-		conflict409(w, "绑定已变化，请重新登录；旧绑定求助不能归入新老人")
+		response.Error(w, http.StatusConflict, string(failure), "绑定已变化，请重新登录；旧绑定求助不能归入新老人")
 		return
 	case deviceworkflow.SOSRequestConflict:
 		conflict409(w, "求助编号已被其他事件或绑定使用，请检查设备请求编号")
@@ -93,10 +96,6 @@ func (h *Handler) deviceSos(w http.ResponseWriter, r *http.Request) {
 	})
 }
 
-var sosRequestIDPattern = regexp.MustCompile(`^[A-Za-z0-9_.:-]{1,64}$`)
-
-func sosRequestIDOK(id string) bool { return sosRequestIDPattern.MatchString(id) }
-
 type sosRequest struct {
 	deviceNo, secret, requestID string
 	bindingVersion              int64
@@ -117,7 +116,7 @@ func parseSOSRequest(w http.ResponseWriter, m map[string]any) (sosRequest, bool)
 	}
 	// SOS retry identifiers must be checked before opening a DB transaction.
 	requestID, _ := vstr(m, "requestId")
-	if requestID == "" || len(requestID) > 64 || !sosRequestIDOK(requestID) {
+	if !deviceprotocol.ValidRequestID(requestID) {
 		writeValidation400(w)
 		return sosRequest{}, false
 	}

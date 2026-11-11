@@ -2,6 +2,7 @@ package handlers
 
 import (
 	"context"
+	"database/sql"
 	"encoding/json"
 	"net/http"
 	"testing"
@@ -24,6 +25,7 @@ func latestHealthRoute(h *Handler, principal session.Principal) http.HandlerFunc
 func TestHealthLatestPreservesSourcesPrecisionAndVersions(t *testing.T) {
 	pool := testDatabase(t)
 	seedDevice(t, pool)
+	seedCareAdminDuty(t, pool, 11, "supervisor")
 	h := testHandler(t, pool)
 	at := time.Date(2026, 10, 20, 9, 0, 0, 0, time.UTC)
 	a := health.Sample{RecordID: "newer", Source: "watch", SourceDevice: "A", Metric: "heart_rate", Unit: "count/min", Start: at.Add(900 * time.Nanosecond), End: at.Add(900 * time.Nanosecond), Version: 1, Value: health.Number(72)}
@@ -39,20 +41,20 @@ func TestHealthLatestPreservesSourcesPrecisionAndVersions(t *testing.T) {
 	deviceID := int64(1)
 	save := func(samples ...health.Sample) {
 		t.Helper()
-		tx, err := pool.Begin(context.Background())
+		tx, err := pool.BeginTx(context.Background(), &sql.TxOptions{Isolation: sql.LevelReadCommitted})
 		if err != nil {
 			t.Fatal(err)
 		}
-		defer tx.Rollback(context.Background())
+		defer tx.Rollback()
 		if _, _, err = health.SaveBatch(context.Background(), tx, health.Owner{OldID: 1, DeviceID: &deviceID, Epoch: 1}, samples); err != nil {
 			t.Fatal(err)
 		}
-		if err = tx.Commit(context.Background()); err != nil {
+		if err = tx.Commit(); err != nil {
 			t.Fatal(err)
 		}
 	}
 	save(a, b, c, upper, other, missing, interval, daily, sleep)
-	read := latestHealthRoute(h, session.Principal{Role: auth.RoleAdmin, ID: 1})
+	read := latestHealthRoute(h, session.Principal{Role: auth.RoleAdmin, ID: 11})
 	check := func(want float64) {
 		t.Helper()
 		out := api(t, read, map[string]any{"oldId": 1})

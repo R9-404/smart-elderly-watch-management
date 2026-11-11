@@ -6,8 +6,6 @@ import (
 	"errors"
 	"time"
 
-	"github.com/jackc/pgx/v5"
-
 	"suining-care/internal/db"
 )
 
@@ -35,20 +33,20 @@ func FindPendingDeviceAlert(ctx context.Context, store db.RowQuerier, deviceID i
 	args := []any{deviceID}
 	filter := ""
 	if recordID != nil {
-		filter = " AND r.id=$2"
+		filter = " AND r.id=?"
 		args = append(args, *recordID)
 	}
 	var alert PendingDeviceAlert
-	err := store.QueryRow(ctx,
+	err := store.QueryRowContext(ctx,
 		`SELECT r.id, r.hr, r.bp, r.create_time, o.old_id, o.name, w.hrf, w.hrl, w.bpf, w.bpl
 		 FROM ratepre r LEFT JOIN watch_info w ON w.device_id=r.device_id
 		 LEFT JOIN oldperson o ON o.old_id=r.old_id
-		 WHERE r.device_id=$1 AND `+pending+filter+`
+		 WHERE r.device_id=? AND `+pending+filter+`
 		 ORDER BY r.create_time DESC, r.id DESC LIMIT 1`, args...).
 		Scan(&alert.ID, &alert.HR, &alert.BP, &alert.OccurredAt,
 			&alert.ResidentID, &alert.ResidentName, &alert.HRHigh,
 			&alert.HRLow, &alert.BPHigh, &alert.BPLow)
-	if errors.Is(err, pgx.ErrNoRows) || errors.Is(err, sql.ErrNoRows) {
+	if errors.Is(err, sql.ErrNoRows) {
 		return nil, nil
 	}
 	if err != nil {

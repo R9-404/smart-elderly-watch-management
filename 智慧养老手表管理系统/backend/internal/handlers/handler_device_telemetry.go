@@ -1,12 +1,14 @@
 package handlers
 
 import (
+	"database/sql"
 	"encoding/json"
 	"net/http"
 	"strings"
 	"time"
 
 	"suining-care/internal/careworkflow"
+	"suining-care/internal/deviceprotocol"
 	"suining-care/internal/deviceworkflow"
 	"suining-care/internal/observability"
 	"suining-care/internal/response"
@@ -46,7 +48,7 @@ func (h *Handler) deviceReport(w http.ResponseWriter, r *http.Request) {
 	var requestID string
 	if isAlarm {
 		requestID, _ = vstr(m, "requestId")
-		if requestID != "" && !sosRequestIDOK(requestID) {
+		if requestID != "" && !deviceprotocol.ValidRequestID(requestID) {
 			writeValidation400(w)
 			return
 		}
@@ -75,12 +77,12 @@ func (h *Handler) deviceReport(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	beginAt := time.Now()
-	tx, err := h.DB.Begin(ctx)
+	tx, err := h.DB.BeginTx(ctx, &sql.TxOptions{Isolation: sql.LevelReadCommitted})
 	observability.Default.Add("suining_device_report_begin_seconds_total", time.Since(beginAt).Seconds())
 	if internalError(w, err) {
 		return
 	}
-	rollback := func() { _ = tx.Rollback(ctx) }
+	rollback := func() { _ = tx.Rollback() }
 	// A report writes owner-scoped vitals, history and locations. Read-only
 	// authentication above is not enough: unbind can commit between that read
 	// and persistence. Take the same elder -> device locks as bind/SOS before
@@ -104,8 +106,10 @@ func (h *Handler) deviceReport(w http.ResponseWriter, r *http.Request) {
 	if locked == nil {
 		rollback()
 		switch failure {
+		case deviceworkflow.EpochExpired:
+			response.Error(w, http.StatusConflict, string(failure), "绑定纪元已过期，请重新登录并清理旧纪元采样")
 		case deviceworkflow.BindingChanged:
-			conflict409(w, "绑定已变化，请重新登录；旧绑定求助不能归入新老人")
+			response.Error(w, http.StatusConflict, string(failure), "绑定已变化，请重新登录；旧绑定数据不能归入新老人")
 		case deviceworkflow.DeviceUnbound:
 			hwFail(w, "DEVICE_NOT_BOUND", "设备还未绑定老人")
 		case deviceworkflow.DeviceDisabled:
@@ -123,7 +127,7 @@ func (h *Handler) deviceReport(w http.ResponseWriter, r *http.Request) {
 	receiptDigest := ""
 	// The durable queue already owns its replay contract (a unique key and
 	// a 409 on collision); do not turn that into a duplicate acknowledgement.
-	if receiptID != "" && sosRequestIDOK(receiptID) && !durableTelemetryEligible(parsed, receiptID, h.Box) {
+	if receiptID != "" && deviceprotocol.ValidRequestID(receiptID) && !durableTelemetryEligible(parsed, receiptID, h.Box) {
 		var digestErr error
 		receiptDigest, digestErr = reportPayloadDigest(m)
 		if digestErr != nil {
@@ -203,7 +207,7 @@ func (h *Handler) deviceReport(w http.ResponseWriter, r *http.Request) {
 		if !stageDeviceReportReceipt(w, ctx, tx, rollback, d, receiptID, receiptDigest, queuedResult) {
 			return
 		}
-		if internalError(w, tx.Commit(ctx)) {
+		if internalError(w, tx.Commit()) {
 			return
 		}
 		response.OK(w, queuedResult)
@@ -226,7 +230,7 @@ func (h *Handler) deviceReport(w http.ResponseWriter, r *http.Request) {
 	if !stageDeviceReportReceipt(w, ctx, tx, rollback, d, receiptID, receiptDigest, result) {
 		return
 	}
-	if internalError(w, tx.Commit(ctx)) {
+	if internalError(w, tx.Commit()) {
 		return
 	}
 	response.OK(w, result)

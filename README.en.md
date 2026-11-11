@@ -94,8 +94,6 @@ The web UI listens at `http://127.0.0.1:8080` and Prometheus metrics are exposed
 
 ### Database migration and 24/7 monitoring
 
-To upgrade from an earlier version that stored business data in PostgreSQL, stop all writes, back up your database and uploaded images, and run `transfer-postgres` to validate and import records into an empty MySQL schema. Copy the image folder separately. Installing a new desktop version does not migrate legacy databases automatically, and the import is one-way.
-
 The desktop client binds its local Go server to a dynamic loopback port and stops the server when you close the window. For continuous watch reporting and round-the-clock SOS handling, deploy the Go backend as a persistent service behind a controlled network endpoint, connect an external notification gateway, and staff an on-call response workflow.
 
 ## Architecture
@@ -189,7 +187,6 @@ Historical performance experiments and release-stage notes are not current-versi
 | --- | --- |
 | The window opens, but login or saving fails | Verify MySQL connectivity, database name, migration status, `SESSION_BACKEND`, and `DATA_ENCRYPTION_KEY` |
 | PostgreSQL is offline, but writes still succeed | This is normal; MySQL handles live transactions and queues analytics events until PG reconnects |
-| Historical records are missing after upgrading | Run `transfer-postgres` to import legacy PG data into MySQL and copy the old image directory over |
 | A watch cannot reach the desktop app | The desktop client only listens on localhost; deploy the Go server on a reachable host for external devices |
 | The portable build fails to launch | Extract the entire ZIP, keep both `.exe` files in the same directory, ensure WebView2 is installed, and verify the SHA-256 hash |
 
@@ -213,6 +210,6 @@ Licensed under the [MIT License](LICENSE). Bundled fonts, map tiles, and third-p
 
 [API contracts and resolved differences](docs/API_CONTRACTS.md) list request and success fields for 109 paths. JSON success uses HTTP 200 and `returnCode="1111"`. Failures use HTTP 4xx/5xx with `returnCode="0000"`, `code`, `message` and an optional `reference`. Image downloads return bytes; uploads use multipart field `file`.
 
-Device requests use `X-Device-Signature`, `X-Device-Timestamp` and `X-Device-Nonce`. With `CAREOLD_REQUIRE_SIGNED_DEVICE=1`, every device route requires a valid signature and rejects nonce replay, except `/device/report` and `/device/sos` (which reserve nonces inside their business transaction) and `/care/receipt` (which uses the gateway HMAC). Without the variable, legacy unsigned firmware still works, but any signature that is present must verify.
+Device requests use `X-Device-Signature`, `X-Device-Timestamp` and `X-Device-Nonce`. With `SUINING_REQUIRE_SIGNED_DEVICE=1`, every device route requires a valid signature and rejects nonce replay, except `/device/report` and `/device/sos` (which reserve nonces inside their business transaction) and `/care/receipt` (which uses the gateway HMAC). Without the variable, legacy unsigned firmware still works, but any signature that is present must verify.
 
-A `/device/report` carrying a valid `requestId` is idempotent at the transaction level: resending the same number with identical content returns the original success response (`duplicate=true`) without a second write, while reusing the number with different content returns 409. Legacy reports without a request ID keep their previous behaviour. With the durable telemetry queue enabled (`CAREOLD_DURABLE_TELEMETRY=1`), that path keeps its existing unique-key 409 semantics.
+A `/device/report` carrying a valid `requestId` is idempotent at the transaction level: resending the same number with identical content returns the original success response (`duplicate=true`) without a second write, while reusing the number with different content returns 409. Legacy reports without a request ID keep their previous behaviour. With the durable telemetry queue enabled (`SUINING_DURABLE_TELEMETRY=1`), that path keeps its existing unique-key 409 semantics.

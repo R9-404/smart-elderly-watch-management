@@ -32,10 +32,11 @@ func TestContinuousConfiguredThresholdExplanation(t *testing.T) {
 	pool := testDatabase(t)
 	h := testHandler(t, pool)
 	seedDevice(t, pool)
+	seedCareAdminDuty(t, pool, 11, "supervisor")
 	mustExec(t, pool, "INSERT INTO watch_info(device_id,hrf,hrl,bpf,bpl) VALUES(1,75,55,200,180)")
 	api(t, h.deviceReport, map[string]any{"deviceNo": "WATCH001", "secret": testSecret, "hr": 80, "bp": 170})
 	for _, body := range []map[string]any{{"oldId": 1}, {"recordId": 1}} {
-		out := api(t, h.getVitalAlert, body)
+		out := api(t, withHealthPrincipal(h, session.Principal{Role: auth.RoleAdmin, ID: 11}, h.getVitalAlert), body)
 		reason, _ := out["reason"].(string)
 		detail, _ := out["detail"].(string)
 		if !strings.Contains(reason, "心率偏高") || !strings.Contains(reason, "血压偏低") || !strings.Contains(detail, "55-75") || !strings.Contains(detail, "180-200") {
@@ -48,13 +49,14 @@ func TestContinuousStatisticsExactSource(t *testing.T) {
 	pool := testDatabase(t)
 	h := testHandler(t, pool)
 	seedDevice(t, pool)
+	seedCareAdminDuty(t, pool, 11, "supervisor")
 	at := time.Date(2026, 10, 30, 9, 0, 0, 0, time.UTC)
 	s := health.Sample{RecordID: "exact", Source: "watch", SourceDevice: "WATCH001", Metric: "heart_rate", Unit: "count/min", Value: health.Number(72), Start: at, End: at, Version: 1}
 	out := api(t, h.healthBatch, map[string]any{"deviceNo": "WATCH001", "secret": testSecret, "bindingVersion": 1, "samples": []health.Sample{s}})
 	if out["returnCode"] != "1111" {
 		t.Fatal(out)
 	}
-	admin := withHealthPrincipal(h, session.Principal{Role: auth.RoleAdmin, ID: 1}, h.healthStatistics)
+	admin := withHealthPrincipal(h, session.Principal{Role: auth.RoleAdmin, ID: 11}, h.healthStatistics)
 	for _, tc := range []struct {
 		source, device string
 		count          float64

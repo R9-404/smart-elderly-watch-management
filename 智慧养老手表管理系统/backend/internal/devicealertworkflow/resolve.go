@@ -2,8 +2,11 @@ package devicealertworkflow
 
 import (
 	"context"
+	"database/sql"
 	"errors"
 
+	"suining-care/internal/carepolicy"
+	"suining-care/internal/careworkflow"
 	"suining-care/internal/db"
 	"suining-care/internal/devicerepo"
 	"suining-care/internal/vitalrepo"
@@ -17,14 +20,17 @@ var (
 
 // ReasonReader runs inside the same transaction so the response describes
 // the pre-resolution state without a second, inconsistent snapshot.
-type ReasonReader func(context.Context, *db.Transaction, int64, string, *int64) (string, error)
+type ReasonReader func(context.Context, *sql.Tx, int64, string, *int64) (string, error)
 
-func Resolve(ctx context.Context, store *db.Database, deviceID int64, kind string, recordID *int64, reason ReasonReader) (string, error) {
-	tx, err := store.Begin(ctx)
+func Resolve(ctx context.Context, store *db.Database, actorID, deviceID int64, kind string, recordID *int64, reason ReasonReader) (string, error) {
+	if kind != "rate" && kind != "pre" && kind != "person" {
+		return "", ErrUnknownKind
+	}
+	tx, _, err := careworkflow.BeginAuthorized(ctx, store, actorID, carepolicy.HandleAlerts)
 	if err != nil {
 		return "", err
 	}
-	defer tx.Rollback(ctx)
+	defer tx.Rollback()
 	exists, err := devicerepo.ExistsInTransaction(ctx, tx, deviceID)
 	if err != nil {
 		return "", err
@@ -51,7 +57,10 @@ func Resolve(ctx context.Context, store *db.Database, deviceID int64, kind strin
 	if rows < 1 {
 		return "", ErrNoPendingAlert
 	}
-	if err := tx.Commit(ctx); err != nil {
+	if _, err := tx.ExecContext(ctx, "INSERT INTO care_access_audit(admin_id,action) VALUES(?,'device_alert_resolve')", actorID); err != nil {
+		return "", err
+	}
+	if err := tx.Commit(); err != nil {
 		return "", err
 	}
 	return before, nil

@@ -1,11 +1,12 @@
 package handlers
 
 import (
+	"database/sql"
 	"net/http"
 
-	"suining-care/internal/db"
 	"suining-care/internal/devicerepo"
 	"suining-care/internal/deviceworkflow"
+	"suining-care/internal/response"
 )
 
 type capabilityCredentials struct {
@@ -15,7 +16,7 @@ type capabilityCredentials struct {
 }
 
 // Every capability request rechecks its owner and credential under resident-then-device locks.
-func (h *Handler) capabilityDevice(w http.ResponseWriter, r *http.Request, tx *db.Transaction, c capabilityCredentials) *devicerepo.DeviceRecord {
+func (h *Handler) capabilityDevice(w http.ResponseWriter, r *http.Request, tx *sql.Tx, c capabilityCredentials) *devicerepo.DeviceRecord {
 	device, failure, err := deviceworkflow.LockBoundDevice(r.Context(), tx, c.DeviceNo, c.Secret, c.BindingVersion)
 	if internalError(w, err) {
 		return nil
@@ -28,6 +29,8 @@ func (h *Handler) capabilityDevice(w http.ResponseWriter, r *http.Request, tx *d
 		hwFail(w, "DEVICE_AUTH_FAILED", "设备号或密钥不正确")
 	case deviceworkflow.DeviceDisabled:
 		hwFail(w, "DEVICE_DISABLED", "设备已停用")
+	case deviceworkflow.EpochExpired, deviceworkflow.BindingChanged:
+		response.Error(w, http.StatusConflict, string(failure), "绑定版本已改变，请重新登录")
 	default:
 		conflict409(w, "绑定版本已改变")
 	}

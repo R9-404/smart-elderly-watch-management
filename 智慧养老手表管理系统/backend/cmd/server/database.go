@@ -18,6 +18,7 @@ import (
 	"suining-care/internal/response"
 	"suining-care/internal/securestore"
 	"suining-care/internal/session"
+	"suining-care/internal/telemetryworkflow"
 )
 
 // Only fully migrated database handlers are published to HTTP requests.
@@ -74,7 +75,7 @@ func watchDatabase(ctx context.Context, cfg config.Config, sessions *session.Sto
 		if pool == nil {
 			pool, err = dbstore.OpenMySQL(attempt, cfg.MySQLDSN)
 		} else {
-			err = pool.Ping(attempt)
+			err = pool.PingContext(attempt)
 		}
 		cancel()
 		if err == nil && api == nil {
@@ -92,11 +93,12 @@ func watchDatabase(ctx context.Context, cfg config.Config, sessions *session.Sto
 						log.Printf("database sessions require a valid DATA_ENCRYPTION_KEY: %v", err)
 						return
 					}
-					sessions.UseDatabase(pool.SQL(), box)
+					sessions.UseDatabase(pool.DB, box)
 				}
 				mux := http.NewServeMux()
 				h := handlers.New(pool, sessions, cfg)
 				h.Analytics = &service.analytics
+				h.Heartbeats = telemetryworkflow.NewHeartbeatBuffer(pool)
 				h.Routes(mux)
 				observability.Default.SetRouteResolver(func(r *http.Request) string { _, pattern := mux.Handler(r); return pattern })
 				workerDone = startDatabaseWorkers(ctx, databaseWorkerDeps{
@@ -105,6 +107,7 @@ func watchDatabase(ctx context.Context, cfg config.Config, sessions *session.Sto
 					runCapabilities: h.RunCapabilities,
 					analyticsURL:    cfg.PGAnalyticsURL,
 					analyticsState:  &service.analytics,
+					heartbeats:      h.Heartbeats,
 				})
 				api = limiter.Middleware(csrf.Middleware(sessions, auth.Middleware(sessions, h.EnforceAdminDuty(h.EnforceDeviceSignatures(sensitiveCareAudit(pool, response.Router(mux)))))))
 			}

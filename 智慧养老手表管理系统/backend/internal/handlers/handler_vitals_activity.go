@@ -1,10 +1,11 @@
 package handlers
 
 import (
-	dbstore "suining-care/internal/db"
-	"suining-care/internal/response"
-
+	"database/sql"
 	"net/http"
+
+	"suining-care/internal/db"
+	"suining-care/internal/response"
 )
 
 type activityRecord struct {
@@ -26,12 +27,12 @@ const ownedDailyRecords = `(SELECT * FROM (SELECT daily.*,
 // 每位老人当前主设备的最新日记录。
 const stepLatestSelect = `SELECT o.name AS name, o.old_id AS oldId, o.sex AS sex,` +
 	` w.step AS step, w.sleep AS sleep, w.sleep_sate AS sleepAlertState,` +
-	` TO_CHAR(w.create_time,'YYYY-MM-DD') AS createTime` +
+	` DATE_FORMAT(w.create_time,'%Y-%m-%d') AS createTime` +
 	` FROM oldperson o` +
 	` INNER JOIN (SELECT *, ROW_NUMBER() OVER (PARTITION BY device_id,old_id ORDER BY create_time DESC, id DESC) AS rn FROM ` + ownedDailyRecords + ` daily) w` +
 	` ON w.device_id=o.device_id AND w.old_id=o.old_id AND w.rn=1`
 
-func scanActivityRecord(rows dbstore.Rows) (activityRecord, error) {
+func scanActivityRecord(rows *sql.Rows) (activityRecord, error) {
 	var d activityRecord
 	err := rows.Scan(&d.Name, &d.OldID, &d.Sex, &d.Step, &d.Sleep, &d.SleepAlertState, &d.CreateTime)
 	return d, err
@@ -48,11 +49,16 @@ func (h *Handler) listActivityHistory(w http.ResponseWriter, r *http.Request) {
 	if !ok {
 		return
 	}
-	items, ok := queryRows(h, w, r.Context(), scanActivityRecord, `SELECT o.name AS name, o.old_id AS oldId, o.sex AS sex,`+
-		` w.step AS step, w.sleep AS sleep, w.sleep_sate AS sleepAlertState, TO_CHAR(w.create_time,'YYYY-MM-DD') AS createTime`+
-		` FROM oldperson o INNER JOIN `+ownedDailyRecords+` w ON w.device_id=o.device_id AND w.old_id=o.old_id`+
-		` WHERE o.old_id=$1 ORDER BY w.create_time DESC, w.id DESC LIMIT 1`, oldID)
+	tx, ok := h.beginScopedHealthRead(w, r, oldID)
 	if !ok {
+		return
+	}
+	defer tx.Rollback()
+	items, err := db.QueryList(r.Context(), tx, scanActivityRecord, `SELECT o.name AS name, o.old_id AS oldId, o.sex AS sex,`+
+		` w.step AS step, w.sleep AS sleep, w.sleep_sate AS sleepAlertState, DATE_FORMAT(w.create_time,'%Y-%m-%d') AS createTime`+
+		` FROM oldperson o INNER JOIN `+ownedDailyRecords+` w ON w.device_id=o.device_id AND w.old_id=o.old_id`+
+		` WHERE o.old_id=? ORDER BY w.create_time DESC, w.id DESC LIMIT 1`, oldID)
+	if internalError(w, err) || internalError(w, tx.Commit()) {
 		return
 	}
 	response.JSON(w, http.StatusOK, map[string]any{"activityRecords": items})
@@ -64,14 +70,19 @@ func (h *Handler) getActivityChart(w http.ResponseWriter, r *http.Request) {
 	if !ok {
 		return
 	}
-	items, ok := queryRows(h, w, r.Context(), scanActivityRecord, `SELECT r.name, r.oldId, r.sex, r.step, r.sleep, r.sleepAlertState,`+
-		` TO_CHAR(r.create_time,'YYYY-MM-DD') AS createTime FROM (`+
+	tx, ok := h.beginScopedHealthRead(w, r, oldID)
+	if !ok {
+		return
+	}
+	defer tx.Rollback()
+	items, err := db.QueryList(r.Context(), tx, scanActivityRecord, `SELECT r.name, r.oldId, r.sex, r.step, r.sleep, r.sleepAlertState,`+
+		` DATE_FORMAT(r.create_time,'%Y-%m-%d') AS createTime FROM (`+
 		` SELECT o.name AS name, o.old_id AS oldId, o.sex AS sex, w.step AS step, w.sleep AS sleep,`+
 		` w.sleep_sate AS sleepAlertState, w.create_time, w.id`+
 		` FROM oldperson o INNER JOIN `+ownedDailyRecords+` w ON w.device_id=o.device_id AND w.old_id=o.old_id`+
-		` WHERE o.old_id=$1 ORDER BY w.create_time DESC, w.id DESC LIMIT 7) r`+
+		` WHERE o.old_id=? ORDER BY w.create_time DESC, w.id DESC LIMIT 7) r`+
 		` ORDER BY r.create_time ASC, r.id ASC`, oldID)
-	if !ok {
+	if internalError(w, err) || internalError(w, tx.Commit()) {
 		return
 	}
 	sleep := []*int64{}

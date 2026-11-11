@@ -2,21 +2,22 @@ package rules
 
 import (
 	"context"
+	"database/sql"
 	"encoding/json"
-	"github.com/jackc/pgx/v5"
+	"errors"
 	"suining-care/internal/db"
 	"suining-care/internal/notify"
 	"time"
 )
 
-func (e *Engine) persist(ctx context.Context, tx *db.Transaction, device, old, epoch int64, c CompactCandidate, now time.Time, scratch []byte) error {
+func (e *Engine) persist(ctx context.Context, tx *sql.Tx, device, old, epoch int64, c CompactCandidate, now time.Time, scratch []byte) error {
 	var previous string
 	var streak int
 	var active bool
 	var incident *int64
 	var prior []byte
-	err := tx.QueryRow(ctx, "SELECT observation_key,streak,active,incident_id,evidence FROM rule_state WHERE device_id=$1 AND epoch=$2 AND kind=$3 FOR UPDATE", device, epoch, c.Kind).Scan(&previous, &streak, &active, &incident, &prior)
-	if err != nil && err != pgx.ErrNoRows {
+	err := tx.QueryRowContext(ctx, "SELECT observation_key,streak,active,incident_id,evidence FROM rule_state WHERE device_id=? AND epoch=? AND kind=? FOR UPDATE", device, epoch, c.Kind).Scan(&previous, &streak, &active, &incident, &prior)
+	if err != nil && !errors.Is(err, sql.ErrNoRows) {
 		return err
 	}
 	if previous == c.Key {
@@ -44,8 +45,7 @@ func (e *Engine) persist(ctx context.Context, tx *db.Transaction, device, old, e
 		streak++
 	}
 	if c.Breach && streak >= c.Required && !active {
-		var id int64
-		err = tx.QueryRow(ctx, "INSERT INTO care_incident(old_id,device_id,kind,severity) VALUES($1,$2,$3,$4) RETURNING id", old, device, "rule_"+c.Kind, c.Severity).Scan(&id)
+		id, err := db.InsertID(ctx, tx, "INSERT INTO care_incident(old_id,device_id,kind,severity) VALUES(?,?,?,?)", old, device, "rule_"+c.Kind, c.Severity)
 		if err != nil {
 			return err
 		}
@@ -58,7 +58,7 @@ func (e *Engine) persist(ctx context.Context, tx *db.Transaction, device, old, e
 				return err
 			}
 		}
-		if _, err = tx.Exec(ctx, "INSERT INTO care_incident_event(incident_id,actor,action,note) VALUES($1,'rule','received',$2)", id, note); err != nil {
+		if _, err = tx.ExecContext(ctx, "INSERT INTO care_incident_event(incident_id,actor,action,note) VALUES(?,'rule','received',?)", id, note); err != nil {
 			return err
 		}
 		if _, err = notify.QueueCareSMS(ctx, tx, e.Box, id, old); err != nil {
@@ -79,6 +79,6 @@ func (e *Engine) persist(ctx context.Context, tx *db.Transaction, device, old, e
 		}
 		b, _ = json.Marshal(map[string]string{"encrypted": sealed})
 	}
-	_, err = tx.Exec(ctx, `INSERT INTO rule_state(device_id,epoch,kind,observation_key,streak,active,incident_id,evidence,updated_at) VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9) ON CONFLICT(device_id,epoch,kind) DO UPDATE SET observation_key=EXCLUDED.observation_key,streak=EXCLUDED.streak,active=EXCLUDED.active,incident_id=EXCLUDED.incident_id,evidence=EXCLUDED.evidence,updated_at=EXCLUDED.updated_at`, device, epoch, c.Kind, c.Key, streak, active, incident, json.RawMessage(b), now)
+	_, err = tx.ExecContext(ctx, `INSERT INTO rule_state(device_id,epoch,kind,observation_key,streak,active,incident_id,evidence,updated_at) VALUES(?,?,?,?,?,?,?,?,?) AS new ON DUPLICATE KEY UPDATE observation_key=new.observation_key,streak=new.streak,active=new.active,incident_id=new.incident_id,evidence=new.evidence,updated_at=new.updated_at`, device, epoch, c.Kind, c.Key, streak, active, incident, json.RawMessage(b), now)
 	return err
 }

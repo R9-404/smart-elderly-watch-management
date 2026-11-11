@@ -6,9 +6,6 @@ import (
 	"errors"
 	"time"
 
-	"github.com/jackc/pgx/v5"
-
-	"suining-care/internal/db"
 	"suining-care/internal/devicerepo"
 	"suining-care/internal/securestore"
 	"suining-care/internal/telemetryrepo"
@@ -16,25 +13,25 @@ import (
 
 // Persist applies an authenticated queue payload to the resident's data.
 // The resident and device row locks, plus binding-epoch validation, are held.
-type Persist func(context.Context, *db.Transaction, *devicerepo.DeviceRecord, Payload) error
+type Persist func(context.Context, *sql.Tx, *devicerepo.DeviceRecord, Payload) error
 
 // ProcessItem owns stale-binding detection and keeps the same resident-first
 // lock order as the interactive device reporting and SOS paths.
-func ProcessItem(ctx context.Context, tx *db.Transaction, box *securestore.Box, item telemetryrepo.DurableItem, persist Persist) error {
+func ProcessItem(ctx context.Context, tx *sql.Tx, box *securestore.Box, item telemetryrepo.DurableItem, persist Persist) error {
 	payload, err := Decode(box, item.Payload)
 	if err != nil {
 		return err
 	}
 	var owner int64
-	err = tx.QueryRow(ctx, "SELECT old_id FROM oldperson WHERE old_id=$1 FOR UPDATE", item.ResidentID).Scan(&owner)
-	if errors.Is(err, pgx.ErrNoRows) || errors.Is(err, sql.ErrNoRows) {
+	err = tx.QueryRowContext(ctx, "SELECT old_id FROM oldperson WHERE old_id=? FOR UPDATE", item.ResidentID).Scan(&owner)
+	if errors.Is(err, sql.ErrNoRows) {
 		return telemetryrepo.MarkDurableStale(ctx, tx, item.ID, "elder removed")
 	}
 	if err != nil {
 		return err
 	}
 	device, err := devicerepo.ScanDeviceRecord(devicerepo.LockedDeviceRow(ctx, tx, item.DeviceID))
-	if errors.Is(err, pgx.ErrNoRows) || errors.Is(err, sql.ErrNoRows) {
+	if errors.Is(err, sql.ErrNoRows) {
 		return telemetryrepo.MarkDurableStale(ctx, tx, item.ID, "device removed")
 	}
 	if err != nil {

@@ -1,11 +1,13 @@
 package handlers
 
 import (
+	"database/sql"
 	"errors"
 	"net/http"
 	"strconv"
 
-	dbstore "suining-care/internal/db"
+	"suining-care/internal/carepolicy"
+	"suining-care/internal/db"
 	"suining-care/internal/guardianrepo"
 	"suining-care/internal/response"
 	"suining-care/internal/userphone"
@@ -31,11 +33,16 @@ func (h *Handler) userSelect(w http.ResponseWriter, r *http.Request) {
 		response.Fail(w, "参数不完整")
 		return
 	}
-	lookup, err := userphone.SearchIndex(r.Context(), h.DB, h.Box, phone)
+	tx, ok := h.beginAdminActionTx(w, r, carepolicy.ReadAccounts)
+	if !ok {
+		return
+	}
+	defer tx.Rollback()
+	lookup, err := userphone.SearchIndex(r.Context(), tx, h.Box, phone)
 	if internalError(w, err) {
 		return
 	}
-	list, ok := queryRows(h, w, r.Context(), func(rows dbstore.Rows) (map[string]any, error) {
+	list, err := db.QueryList(r.Context(), tx, func(rows *sql.Rows) (map[string]any, error) {
 		var id int64
 		var name, uphone, role *string
 		var protected userphone.Record
@@ -52,8 +59,8 @@ func (h *Handler) userSelect(w http.ResponseWriter, r *http.Request) {
 			"role": role, "password": nil,
 		}, nil
 	}, `SELECT user_id,user_name,user_phone,role,user_phone_cipher,user_phone_lookup,user_phone_protected FROM users
- WHERE (user_phone_protected=false AND user_phone=$1) OR (user_phone_protected=true AND user_phone_lookup=$2)`, phone, lookup)
-	if !ok {
+ WHERE (user_phone_protected=false AND user_phone=?) OR (user_phone_protected=true AND user_phone_lookup=?)`, phone, lookup)
+	if internalError(w, err) || internalError(w, tx.Commit()) {
 		return
 	}
 	response.JSON(w, http.StatusOK, map[string]any{"usersByPhone2": list})
@@ -67,8 +74,13 @@ func (h *Handler) listGuardians(w http.ResponseWriter, r *http.Request) {
 	}
 	name := str(m, "customerName")
 	page, pageSize := bodyPage(m)
-	items, total, err := guardianrepo.List(r.Context(), h.DB, name, page, pageSize)
-	if internalError(w, err) {
+	tx, ok := h.beginAdminActionTx(w, r, carepolicy.ReadGuardians)
+	if !ok {
+		return
+	}
+	defer tx.Rollback()
+	items, total, err := guardianrepo.List(r.Context(), tx, name, page, pageSize)
+	if internalError(w, err) || internalError(w, tx.Commit()) {
 		return
 	}
 	response.JSON(w, http.StatusOK, map[string]any{
@@ -86,10 +98,15 @@ func (h *Handler) createGuardian(w http.ResponseWriter, r *http.Request) {
 	if !ok {
 		return
 	}
-	affected, err := guardianrepo.Create(r.Context(), h.DB, guardianrepo.Fields{
+	tx, ok := h.beginAdminActionTx(w, r, carepolicy.ManageGuardians)
+	if !ok {
+		return
+	}
+	defer tx.Rollback()
+	affected, err := guardianrepo.Create(r.Context(), tx, guardianrepo.Fields{
 		Name: name, Age: age, Sex: sex, Phone: phone, Address: addr,
 	})
-	if internalError(w, err) {
+	if internalError(w, err) || internalError(w, tx.Commit()) {
 		return
 	}
 	writeSingleMutation(w, affected)
@@ -110,10 +127,15 @@ func (h *Handler) updateGuardian(w http.ResponseWriter, r *http.Request) {
 	if !ok {
 		return
 	}
-	affected, err := guardianrepo.Update(r.Context(), h.DB, id, guardianrepo.Fields{
+	tx, ok := h.beginAdminActionTx(w, r, carepolicy.ManageGuardians)
+	if !ok {
+		return
+	}
+	defer tx.Rollback()
+	affected, err := guardianrepo.Update(r.Context(), tx, id, guardianrepo.Fields{
 		Name: name, Age: age, Sex: sex, Phone: phone, Address: addr,
 	})
-	if internalError(w, err) {
+	if internalError(w, err) || internalError(w, tx.Commit()) {
 		return
 	}
 	writeSingleMutation(w, affected)
@@ -130,7 +152,12 @@ func (h *Handler) deleteGuardian(w http.ResponseWriter, r *http.Request) {
 		response.Error500(w, ref())
 		return
 	}
-	err := guardianrepo.Delete(r.Context(), h.DB, id)
+	tx, ok := h.beginAdminActionTx(w, r, carepolicy.ManageGuardians)
+	if !ok {
+		return
+	}
+	defer tx.Rollback()
+	err := guardianrepo.Delete(r.Context(), tx, id)
 	switch {
 	case errors.Is(err, guardianrepo.ErrGuardianNotFound):
 		response.Fail(w, "监护人不存在，请刷新后重新选择")
@@ -138,15 +165,17 @@ func (h *Handler) deleteGuardian(w http.ResponseWriter, r *http.Request) {
 		response.Fail(w, "该监护人仍关联长者，请先调整长者档案")
 	case internalError(w, err):
 		return
+	case internalError(w, tx.Commit()):
+		return
 	default:
 		response.OK(w, nil)
 	}
 }
 
 // Profile assignment and guardian deletion lock the same parent before changing references.
-func lockCustomer(w http.ResponseWriter, r *http.Request, tx *dbstore.Transaction, id int64) bool {
+func lockCustomer(w http.ResponseWriter, r *http.Request, tx *sql.Tx, id int64) bool {
 	var found int64
-	if err := tx.QueryRow(r.Context(), "SELECT customer_id FROM customer WHERE customer_id=$1 FOR UPDATE", id).Scan(&found); err != nil {
+	if err := tx.QueryRowContext(r.Context(), "SELECT customer_id FROM customer WHERE customer_id=? FOR UPDATE", id).Scan(&found); err != nil {
 		if isNotFound(err) {
 			response.Fail(w, "监护人不存在，请刷新后重新选择")
 		} else {

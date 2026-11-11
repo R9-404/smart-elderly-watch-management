@@ -1,35 +1,16 @@
 package handlers
 
 import (
-	"context"
 	"errors"
 	"net/http"
 	"strings"
 
 	"suining-care/internal/blob"
-	dbstore "suining-care/internal/db"
+	"suining-care/internal/careworkflow"
 	"suining-care/internal/response"
 	"suining-care/internal/socialrepo"
 	"suining-care/internal/socialworkflow"
 )
-
-type dbQuerier interface {
-	Query(ctx context.Context, sql string, args ...any) (dbstore.Rows, error)
-}
-
-// notificationPhones 有老人绑定的家属手机号（去重）。
-type notificationTarget struct {
-	FamilyID int64
-	Phone    string
-}
-
-func notificationPhones(ctx context.Context, q dbQuerier) ([]notificationTarget, error) {
-	return dbstore.QueryList(ctx, q, func(row dbstore.Rows) (notificationTarget, error) {
-		var target notificationTarget
-		err := row.Scan(&target.FamilyID, &target.Phone)
-		return target, err
-	}, "SELECT DISTINCT f.family_id,f.family_phone FROM family f INNER JOIN oldperson o ON o.family_id=f.family_id WHERE f.family_phone IS NOT NULL")
-}
 
 // POST /api/v1/gallery/replace —— 替换首页展示图（整体替换，事务内执行）。
 func (h *Handler) replaceGallery(w http.ResponseWriter, r *http.Request) {
@@ -52,14 +33,21 @@ func (h *Handler) replaceGallery(w http.ResponseWriter, r *http.Request) {
 		}
 		names = append(names, s)
 	}
+	actor, ok := careAdmin(w, r)
+	if !ok {
+		return
+	}
 	manager, err := h.images()
 	if internalError(w, err) {
 		return
 	}
-	if err := socialworkflow.ReplaceGallery(r.Context(), h.DB, manager, names); err != nil {
-		if errors.Is(err, blob.ErrNotFound) {
+	if err := socialworkflow.ReplaceGallery(r.Context(), h.DB, actor, manager, names); err != nil {
+		switch {
+		case errors.Is(err, careworkflow.ErrCapabilityDenied):
+			response.JSON(w, http.StatusForbidden, map[string]any{"code": "ACCESS_DENIED"})
+		case errors.Is(err, blob.ErrNotFound):
 			write400(w, "图片不存在或已回收，请重新上传")
-		} else {
+		default:
 			internalError(w, err)
 		}
 		return

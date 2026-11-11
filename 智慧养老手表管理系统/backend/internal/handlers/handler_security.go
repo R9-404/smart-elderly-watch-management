@@ -2,12 +2,13 @@ package handlers
 
 import (
 	"context"
+	"database/sql"
 	"errors"
 	"net/http"
 	"time"
 
 	"suining-care/internal/authrepo"
-	"suining-care/internal/db"
+	"suining-care/internal/carepolicy"
 	"suining-care/internal/observability"
 	"suining-care/internal/response"
 	"suining-care/internal/securityworkflow"
@@ -18,11 +19,8 @@ type factorGenerationKey struct{}
 func (h *Handler) loginAudit(r *http.Request, phone, role string, id int64, outcome string) error {
 	return h.loginAuditTx(r, phone, role, id, outcome, nil)
 }
-func (h *Handler) loginAuditTx(r *http.Request, phone, role string, id int64, outcome string, tx *db.Transaction) error {
+func (h *Handler) loginAuditTx(r *http.Request, phone, role string, id int64, outcome string, tx *sql.Tx) error {
 	observability.Default.Add(`suining_auth_attempts_total{outcome="`+outcome+`"}`, 1)
-	if !h.DB.IsMySQL() {
-		return nil
-	}
 	requestID := r.Header.Get("X-Request-ID")
 	if len(requestID) > 64 {
 		requestID = requestID[:64]
@@ -34,9 +32,6 @@ func (h *Handler) loginAuditTx(r *http.Request, phone, role string, id int64, ou
 }
 
 func (h *Handler) loginAllowed(w http.ResponseWriter, r *http.Request, phone string) bool {
-	if !h.DB.IsMySQL() {
-		return true
-	}
 	pair, account, err := authrepo.RecentFailureCounts(
 		r.Context(), h.DB, h.Box.Index("account", phone),
 		h.Box.Index("ip", h.clientIP(r)), time.Now().Add(-15*time.Minute),
@@ -52,12 +47,9 @@ func (h *Handler) loginAllowed(w http.ResponseWriter, r *http.Request, phone str
 	return true
 }
 func (h *Handler) factorLogin(w http.ResponseWriter, r *http.Request, m map[string]any, role string, id int64, phone string) bool {
-	if !h.DB.IsMySQL() {
-		return true
-	}
 	valid, generation, err := securityworkflow.VerifyLogin(
 		r.Context(), h.DB, h.Box, role, id, str(m, "otp"), str(m, "recoveryCode"),
-		func(tx *db.Transaction, outcome string) error {
+		func(tx *sql.Tx, outcome string) error {
 			return h.loginAuditTx(r, phone, role, id, outcome, tx)
 		},
 	)
@@ -127,9 +119,11 @@ func (h *Handler) securityFactor(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *Handler) securityLoginAudit(w http.ResponseWriter, r *http.Request) {
-	if _, ok := h.careSupervisor(w, r); !ok {
+	tx, ok := h.beginAdminActionTx(w, r, carepolicy.ReadLoginAudit)
+	if !ok {
 		return
 	}
+	defer tx.Rollback()
 	var req struct {
 		After int64 `json:"after"`
 	}
@@ -140,8 +134,8 @@ func (h *Handler) securityLoginAudit(w http.ResponseWriter, r *http.Request) {
 		write400(w, "游标无效")
 		return
 	}
-	items, err := authrepo.ListLoginAudits(r.Context(), h.DB, req.After)
-	if internalError(w, err) {
+	items, err := authrepo.ListLoginAudits(r.Context(), tx, req.After)
+	if internalError(w, err) || internalError(w, tx.Commit()) {
 		return
 	}
 	response.OK(w, map[string]any{"items": items})

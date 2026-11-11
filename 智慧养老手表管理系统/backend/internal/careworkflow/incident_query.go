@@ -2,8 +2,12 @@ package careworkflow
 
 import (
 	"context"
+	"database/sql"
+	"errors"
+	"strconv"
 	"time"
 
+	"suining-care/internal/carepolicy"
 	"suining-care/internal/db"
 )
 
@@ -27,28 +31,71 @@ type Incident struct {
 	VerifiedAt        *time.Time `json:"verifiedAt"`
 }
 
-func notificationStatusSQL(mysql bool) string {
-	aggregate := "bool_or"
-	if mysql {
-		aggregate = "MAX"
-	}
-	return `(SELECT CASE
-            WHEN ` + aggregate + `(n.status='delivered') THEN 'delivered'
-            WHEN ` + aggregate + `(n.status='failed') THEN 'failed'
-            WHEN ` + aggregate + `(n.status='sending') THEN 'sending'
-            WHEN ` + aggregate + `(n.status='pending') THEN 'pending'
-            WHEN ` + aggregate + `(n.status='sent') THEN 'sent'
+const notificationStatusSQL = `(SELECT CASE
+            WHEN MAX(n.status='delivered') THEN 'delivered'
+            WHEN MAX(n.status='failed') THEN 'failed'
+            WHEN MAX(n.status='sending') THEN 'sending'
+            WHEN MAX(n.status='pending') THEN 'pending'
+            WHEN MAX(n.status='sent') THEN 'sent'
             ELSE 'no_recipient' END
            FROM care_notification_outbox n WHERE n.incident_id=i.id)`
+
+const activeIncidentOrderSQL = ` ORDER BY
+	CASE
+		WHEN i.kind IN ('sos','fall') OR i.severity='critical' THEN 0
+		WHEN i.severity IN ('high','warning') THEN 1
+		ELSE 2
+	END,
+	(i.due_at < CURRENT_TIMESTAMP(6)) DESC,
+	i.due_at ASC,
+	i.id DESC`
+
+const verifiedIncidentOrderSQL = ` ORDER BY i.verified_at DESC, i.id DESC`
+
+// Caregivers see work available for pickup or already accepted by them.
+// Escalated work is available for reassignment even when a previous owner remains recorded.
+const caregiverIncidentScopeSQL = ` AND i.visibility_group IN ('PUBLIC_POOL', ?)`
+
+func incidentReadScope(duty carepolicy.Duty, actorID int64) (string, []any) {
+	switch duty {
+	case carepolicy.Supervisor, carepolicy.Auditor:
+		return "", nil
+	case carepolicy.Caregiver:
+		return caregiverIncidentScopeSQL, []any{"ASSIGNED:" + strconv.FormatInt(actorID, 10)}
+	default:
+		return " AND FALSE", nil
+	}
 }
 
-// ListIncidents returns due-time-ordered tasks and an independent total count.
-func ListIncidents(ctx context.Context, store *db.Database, verified bool, page, pageSize int) ([]Incident, int64, error) {
+// CanReadIncident applies the same row-level visibility as the paginated queue.
+// Both missing and out-of-scope incidents are invisible to the caller.
+func CanReadIncident(ctx context.Context, tx *sql.Tx, duty carepolicy.Duty, actorID, incidentID int64) (bool, error) {
+	scope, scopeArgs := incidentReadScope(duty, actorID)
+	args := append([]any{incidentID}, scopeArgs...)
+	var id int64
+	err := tx.QueryRowContext(ctx,
+		`SELECT i.id FROM care_incident i WHERE i.id=?`+scope+` FOR SHARE`, args...).Scan(&id)
+	if errors.Is(err, sql.ErrNoRows) {
+		return false, nil
+	}
+	return err == nil, err
+}
+
+// ListIncidents returns risk-ordered tasks and newest-first verified history
+// inside the current actor's authorized visibility scope.
+func ListIncidents(ctx context.Context, store *sql.Tx, duty carepolicy.Duty, actorID int64, verified bool, page, pageSize int) ([]Incident, int64, error) {
+	scope, scopeArgs := incidentReadScope(duty, actorID)
+	countArgs := append([]any{verified}, scopeArgs...)
 	var total int64
-	if err := store.QueryRow(ctx, `SELECT count(*) FROM care_incident WHERE (state='verified')=$1`, verified).Scan(&total); err != nil {
+	if err := store.QueryRowContext(ctx,
+		`SELECT count(*) FROM care_incident i WHERE (i.state='verified')=?`+scope, countArgs...).Scan(&total); err != nil {
 		return nil, 0, err
 	}
-	items, err := db.QueryList(ctx, store, func(rows db.Rows) (Incident, error) {
+	order := activeIncidentOrderSQL
+	if verified {
+		order = verifiedIncidentOrderSQL
+	}
+	items, err := db.QueryList(ctx, store, func(rows *sql.Rows) (Incident, error) {
 		var item Incident
 		err := rows.Scan(&item.ID, &item.ResidentID, &item.DeviceID, &item.Kind, &item.State,
 			&item.Severity, &item.CreatedAt, &item.DueAt, &item.AcknowledgedBy,
@@ -58,9 +105,9 @@ func ListIncidents(ctx context.Context, store *db.Database, verified bool, page,
 	}, `SELECT i.id,i.old_id,i.device_id,i.kind,i.state,i.severity,i.created_at,i.due_at,
           i.acknowledged_by,i.acknowledged_at,i.resolved_by,i.resolved_at,i.verified_by,i.verified_at,
           o.name,
-          `+notificationStatusSQL(store.IsMySQL())+`
+          `+notificationStatusSQL+`
      FROM care_incident i LEFT JOIN oldperson o ON o.old_id=i.old_id
-     WHERE (i.state='verified')=$1 ORDER BY i.due_at ASC, i.id DESC
-     LIMIT $2 OFFSET $3`, verified, pageSize, (page-1)*pageSize)
+     WHERE (i.state='verified')=?`+scope+order+`
+     LIMIT ? OFFSET ?`, append(countArgs, pageSize, (page-1)*pageSize)...)
 	return items, total, err
 }

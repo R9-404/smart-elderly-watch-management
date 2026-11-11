@@ -18,8 +18,8 @@ pub use self::failure::Failure;
 
 #[derive(Debug, Clone, PartialEq)]
 pub struct Binding {
-    pub old_id: i64,
-    pub old_name: String,
+    pub resident_id: i64,
+    pub resident_name: String,
     /// 绑定版本（后端 `device.health_epoch`）。重绑后会变。
     pub version: i64,
 }
@@ -59,7 +59,7 @@ pub struct HeartbeatOutcome {
 pub struct DeviceSession {
     cred: Credentials,
     client: Arc<Client>,
-    signer: Option<Box<crate::protocol::PreparedSigner>>,
+    signer: crate::protocol::PreparedSigner,
     platform: Platform,
     app_version: String,
     binding: Option<Binding>,
@@ -77,7 +77,7 @@ impl DeviceSession {
         platform: Platform,
         app_version: String,
     ) -> Self {
-        let signer = Some(Box::new(crate::protocol::PreparedSigner::new(&cred)));
+        let signer = crate::protocol::PreparedSigner::new(&cred);
         DeviceSession {
             cred,
             client,

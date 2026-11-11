@@ -2,20 +2,28 @@ package handlers
 
 import (
 	"context"
+	"database/sql"
 	"errors"
 	"net/http"
 	"strconv"
 	"strings"
-	dbstore "suining-care/internal/db"
+	"time"
+
+	"suining-care/internal/carepolicy"
+	"suining-care/internal/careworkflow"
 	"suining-care/internal/devicealertworkflow"
 	"suining-care/internal/devicerepo"
 	"suining-care/internal/response"
-	"time"
 )
 
 func (h *Handler) deviceAlertCounts(w http.ResponseWriter, r *http.Request) {
+	tx, ok := h.beginAdminActionTx(w, r, carepolicy.ReadAlerts)
+	if !ok {
+		return
+	}
+	defer tx.Rollback()
 	ctx := r.Context()
-	rows, err := h.DB.Query(ctx,
+	rows, err := tx.QueryContext(ctx,
 		`SELECT `+personCols+`,
 			(SELECT COUNT(1) FROM ratepre r WHERE r.device_id = d.device_id AND `+pendingRate+`) AS rate_count,
 			(SELECT COUNT(1) FROM ratepre r WHERE r.device_id = d.device_id AND `+pendingPressure+`) AS pre_count
@@ -45,7 +53,7 @@ func (h *Handler) deviceAlertCounts(w http.ResponseWriter, r *http.Request) {
 		rateTotal += rateCount
 		preTotal += preCount
 	}
-	if internalError(w, rows.Err()) {
+	if internalError(w, rows.Err()) || internalError(w, rows.Close()) || internalError(w, tx.Commit()) {
 		return
 	}
 	response.OK(w, map[string]any{
@@ -66,22 +74,27 @@ func (h *Handler) deviceAlertDetail(w http.ResponseWriter, r *http.Request) {
 	}
 	kind, _ := vstr(m, "kind")
 	kind = strings.ToLower(kind)
-	// 规格：kind 默认 person；非法值按 person 处理。
 	if kind != "person" && kind != "rate" && kind != "pre" {
-		kind = "person"
-	}
-	ctx := r.Context()
-	d, err := h.readDeviceRecord(devicerepo.FindDeviceByID(ctx, h.DB, deviceID))
-	if internalError(w, err) {
+		write400(w, "kind 必须为 person、rate 或 pre")
 		return
 	}
-	if d == nil {
+	ctx := r.Context()
+	tx, ok := h.beginAdminActionTx(w, r, carepolicy.ReadAlerts)
+	if !ok {
+		return
+	}
+	defer tx.Rollback()
+	d, err := devicerepo.FindDeviceByID(ctx, tx, deviceID)
+	if isNotFound(err) {
 		response.Fail(w, "设备不存在")
+		return
+	}
+	if internalError(w, err) {
 		return
 	}
 	oldName := "（未绑定）"
 	if d.OldID != nil {
-		nm, err := devicerepo.ResidentName(ctx, h.DB, *d.OldID)
+		nm, err := devicerepo.ResidentName(ctx, tx, *d.OldID)
 		if err != nil && !isNotFound(err) {
 			response.Error500(w, ref())
 			return
@@ -97,14 +110,14 @@ func (h *Handler) deviceAlertDetail(w http.ResponseWriter, r *http.Request) {
 	}
 	var alert map[string]any
 	if kind == "person" {
-		pr, err := scanPersonRow(h.DB.QueryRow(ctx,
-			`SELECT `+personCols+` `+personFrom+` WHERE d.device_id=$1`, deviceID))
+		pr, err := scanPersonRow(tx.QueryRowContext(ctx,
+			`SELECT `+personCols+` `+personFrom+` WHERE d.device_id=?`, deviceID))
 		if internalError(w, err) {
 			return
 		}
 		alert = describePersonAlert(pr, time.Now())
 	} else {
-		alert, err = h.findRatepreAlert(ctx, h.DB, deviceID, kind, nil)
+		alert, err = h.findRatepreAlert(ctx, tx, deviceID, kind, nil)
 		if internalError(w, err) {
 			return
 		}
@@ -112,6 +125,9 @@ func (h *Handler) deviceAlertDetail(w http.ResponseWriter, r *http.Request) {
 	if alert == nil {
 		fields["hasAlert"] = 0
 		fields["message"] = "该设备当前没有未处理的「" + kindTextOf(kind) + "」问题"
+		if internalError(w, tx.Commit()) {
+			return
+		}
 		response.OK(w, fields)
 		return
 	}
@@ -125,11 +141,18 @@ func (h *Handler) deviceAlertDetail(w http.ResponseWriter, r *http.Request) {
 	fields["occurTime"] = alert["occurTime"]
 	fields["recordId"] = alert["recordId"]
 	fields["advice"] = adviceOfKind(kind)
+	if internalError(w, tx.Commit()) {
+		return
+	}
 	response.OK(w, fields)
 }
 
 // POST /api/v1/device/resolveAlert —— 处置异常、消除红点（ADMIN，事务）。
 func (h *Handler) deviceResolveAlert(w http.ResponseWriter, r *http.Request) {
+	actor, ok := careAdmin(w, r)
+	if !ok {
+		return
+	}
 	m, ok := bodyMap(w, r)
 	if !ok {
 		return
@@ -138,8 +161,10 @@ func (h *Handler) deviceResolveAlert(w http.ResponseWriter, r *http.Request) {
 	if !ok {
 		return
 	}
-	before, err := devicealertworkflow.Resolve(r.Context(), h.DB, req.deviceID, req.kind, req.recordID, h.alertResolutionReason)
+	before, err := devicealertworkflow.Resolve(r.Context(), h.DB, actor, req.deviceID, req.kind, req.recordID, h.alertResolutionReason)
 	switch {
+	case errors.Is(err, careworkflow.ErrCapabilityDenied):
+		response.JSON(w, http.StatusForbidden, map[string]any{"code": "ACCESS_DENIED", "message": "岗位无此操作权限"})
 	case errors.Is(err, devicealertworkflow.ErrDeviceMissing):
 		response.Fail(w, "设备不存在")
 	case errors.Is(err, devicealertworkflow.ErrUnknownKind):
@@ -191,13 +216,13 @@ func parseAlertResolution(w http.ResponseWriter, m map[string]any) (alertResolut
 	return alertResolution{deviceID, kind, recordID}, true
 }
 
-func (h *Handler) alertResolutionReason(ctx context.Context, tx *dbstore.Transaction, deviceID int64, kind string, recordID *int64) (string, error) {
+func (h *Handler) alertResolutionReason(ctx context.Context, tx *sql.Tx, deviceID int64, kind string, recordID *int64) (string, error) {
 	// 处置前的 reason，用于 handledReason 回显。
 	var before string
 	switch kind {
 	case "person":
-		pr, err := scanPersonRow(tx.QueryRow(ctx,
-			`SELECT `+personCols+` `+personFrom+` WHERE d.device_id=$1`, deviceID))
+		pr, err := scanPersonRow(tx.QueryRowContext(ctx,
+			`SELECT `+personCols+` `+personFrom+` WHERE d.device_id=?`, deviceID))
 		if err != nil {
 			return "", err
 		}

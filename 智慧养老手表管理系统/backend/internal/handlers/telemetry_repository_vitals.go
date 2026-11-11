@@ -2,8 +2,8 @@ package handlers
 
 import (
 	"context"
+	"database/sql"
 
-	dbstore "suining-care/internal/db"
 	"suining-care/internal/devicerepo"
 	"suining-care/internal/telemetryrepo"
 	"suining-care/internal/vitalpolicy"
@@ -19,7 +19,7 @@ func measurementState(value *int, low, high int) any {
 	return "0"
 }
 
-func (repo telemetryRepository) persistReportVitals(ctx context.Context, tx *dbstore.Transaction, d *devicerepo.DeviceRecord, oldID int64, parsed *parsedDeviceTelemetry) (telemetryPersisted, error) {
+func (repo telemetryRepository) persistReportVitals(ctx context.Context, tx *sql.Tx, d *devicerepo.DeviceRecord, oldID int64, parsed *parsedDeviceTelemetry) (telemetryPersisted, error) {
 	hr, bp := parsed.hr, parsed.bp
 	// Zero vital signs are legacy "not measured" sentinels.
 	if hr != nil && *hr == 0 {
@@ -43,7 +43,7 @@ func (repo telemetryRepository) persistReportVitals(ctx context.Context, tx *dbs
 	if !hasMeasurements {
 		return result, nil
 	}
-	if err := telemetryrepo.InsertVitals(ctx, tx, d.ID, oldID, parsed.beTime, hr, bp, result.rateState, result.preState); err != nil {
+	if err := telemetryrepo.InsertVitals(ctx, tx, d.ID, oldID, d.HealthEpoch, parsed.beTime, hr, bp, result.rateState, result.preState); err != nil {
 		return telemetryPersisted{}, err
 	}
 	return result, nil

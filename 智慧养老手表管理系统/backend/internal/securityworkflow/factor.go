@@ -8,8 +8,6 @@ import (
 	"strconv"
 	"time"
 
-	"github.com/jackc/pgx/v5"
-
 	"suining-care/internal/auth"
 	"suining-care/internal/authrepo"
 	"suining-care/internal/db"
@@ -44,18 +42,18 @@ type FactorInput struct {
 }
 
 func ChangeFactor(ctx context.Context, store *db.Database, box *securestore.Box, input FactorInput) (map[string]any, FactorFailure, error) {
-	tx, err := store.Begin(ctx)
+	tx, err := store.BeginTx(ctx, &sql.TxOptions{Isolation: sql.LevelReadCommitted})
 	if err != nil {
 		return nil, "", err
 	}
-	defer tx.Rollback(ctx)
+	defer tx.Rollback()
 	password, passwordErr := authrepo.LockPassword(ctx, tx, input.Role, input.ActorID)
 	if passwordErr != nil || !auth.Matches(input.Password, password) {
 		return nil, WrongPassword, nil
 	}
 	scope := "totp:" + input.Role + ":" + strconv.FormatInt(input.ActorID, 10)
 	factor, factorErr := authrepo.LockFactor(ctx, tx, input.Role, input.ActorID)
-	if factorErr != nil && !errors.Is(factorErr, pgx.ErrNoRows) && !errors.Is(factorErr, sql.ErrNoRows) {
+	if factorErr != nil && !errors.Is(factorErr, sql.ErrNoRows) {
 		return nil, "", factorErr
 	}
 	result := map[string]any{}
@@ -107,7 +105,7 @@ func ChangeFactor(ctx context.Context, store *db.Database, box *securestore.Box,
 			return nil, "", err
 		}
 	}
-	if err := tx.Commit(ctx); err != nil {
+	if err := tx.Commit(); err != nil {
 		return nil, "", err
 	}
 	return result, "", nil

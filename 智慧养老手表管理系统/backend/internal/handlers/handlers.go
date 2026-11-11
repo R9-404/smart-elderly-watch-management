@@ -17,6 +17,7 @@ import (
 	"suining-care/internal/config"
 	"suining-care/internal/securestore"
 	"suining-care/internal/session"
+	"suining-care/internal/telemetryworkflow"
 )
 
 var sharedRisk = risk.New()
@@ -35,6 +36,7 @@ type Handler struct {
 	imageError   error
 	clientIP     func(*http.Request) string
 	Risk         *risk.Manager
+	Heartbeats   *telemetryworkflow.HeartbeatBuffer
 }
 
 func New(pool *dbstore.Database, sessions *session.Store, cfg config.Config) *Handler {
@@ -58,6 +60,7 @@ func (h *Handler) Routes(mux *http.ServeMux) {
 	h.routeHealth(mux)
 	h.routeCare(mux) // 照护事件队列、接单及审核状态
 	h.routeCapabilities(mux)
+	h.routeOperations(mux)
 	mux.HandleFunc("POST /api/v1/security/factor", h.securityFactor)
 	mux.HandleFunc("POST /api/v1/security/login-audit", h.securityLoginAudit)
 	mux.HandleFunc("POST /api/v1/notifications/search", h.notifications)
@@ -65,15 +68,15 @@ func (h *Handler) Routes(mux *http.ServeMux) {
 }
 
 func InitRisk(ctx context.Context, pool *dbstore.Database) error {
-	if err := sharedRisk.EnableMySQL(pool.SQL()); err != nil {
+	if err := sharedRisk.EnableMySQL(pool.DB); err != nil {
 		return err
 	}
-	if path := os.Getenv("CAREOLD_RISK_PROXY_CIDRS_FILE"); path != "" {
+	if path := os.Getenv("SUINING_RISK_PROXY_CIDRS_FILE"); path != "" {
 		if err := sharedRisk.LoadProxyCIDRs(path); err != nil {
 			log.Printf("risk IP feed unavailable: %v", err)
 		}
 	}
-	if path := os.Getenv("CAREOLD_RISK_NETWORK_FEED"); path != "" {
+	if path := os.Getenv("SUINING_RISK_NETWORK_FEED"); path != "" {
 		if err := sharedRisk.StartNetworkRefresh(ctx, path, 15*time.Minute, func(err error) {
 			log.Printf("risk intelligence update failed: %v", err)
 		}); err != nil {

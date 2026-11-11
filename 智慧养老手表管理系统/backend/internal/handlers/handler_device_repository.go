@@ -3,10 +3,7 @@ package handlers
 import (
 	"context"
 	"database/sql"
-	"errors"
 	"net/http"
-
-	"github.com/jackc/pgx/v5"
 
 	dbstore "suining-care/internal/db"
 	"suining-care/internal/devicerepo"
@@ -15,7 +12,7 @@ import (
 )
 
 func (h *Handler) readDeviceRecord(device *devicerepo.DeviceRecord, err error) (*devicerepo.DeviceRecord, error) {
-	if errors.Is(err, pgx.ErrNoRows) || errors.Is(err, sql.ErrNoRows) {
+	if isNotFound(err) {
 		return nil, nil
 	}
 	if err != nil {
@@ -28,8 +25,8 @@ func (h *Handler) readDeviceRecord(device *devicerepo.DeviceRecord, err error) (
 	return device, nil
 }
 
-// hwAuth maps the device workflow's authentication result to the HTTP protocol.
-func (h *Handler) hwAuth(ctx context.Context, q dbstore.RowQuerier, deviceNo, secret, disabledMsg string) (*devicerepo.DeviceRecord, string, string, error) {
+// hwAuthIdentity authenticates a device without decrypting location data.
+func (h *Handler) hwAuthIdentity(ctx context.Context, q dbstore.RowQuerier, deviceNo, secret, disabledMsg string) (*devicerepo.DeviceRecord, string, string, error) {
 	device, failure, err := deviceworkflow.Authenticate(ctx, q, deviceNo, secret)
 	if err != nil {
 		return nil, "", "", err
@@ -40,14 +37,23 @@ func (h *Handler) hwAuth(ctx context.Context, q dbstore.RowQuerier, deviceNo, se
 	case deviceworkflow.DeviceDisabled:
 		return nil, "DEVICE_DISABLED", disabledMsg, nil
 	}
+	return device, "", "", nil
+}
+
+// hwAuth also opens encrypted coordinates for endpoints that need them.
+func (h *Handler) hwAuth(ctx context.Context, q dbstore.RowQuerier, deviceNo, secret, disabledMsg string) (*devicerepo.DeviceRecord, string, string, error) {
+	device, code, message, err := h.hwAuthIdentity(ctx, q, deviceNo, secret, disabledMsg)
+	if err != nil || device == nil {
+		return device, code, message, err
+	}
 	device, err = h.readDeviceRecord(device, nil)
 	return device, "", "", err
 }
 
 // lockDeviceID holds the device row lock until the caller finishes its transaction.
-func lockDeviceID(w http.ResponseWriter, ctx context.Context, tx *dbstore.Transaction, deviceID int64) bool {
+func lockDeviceID(w http.ResponseWriter, ctx context.Context, tx *sql.Tx, deviceID int64) bool {
 	err := devicerepo.LockDeviceID(ctx, tx, deviceID)
-	if errors.Is(err, pgx.ErrNoRows) || errors.Is(err, sql.ErrNoRows) {
+	if isNotFound(err) {
 		response.JSON(w, http.StatusNotFound, map[string]any{"message": "设备不存在"})
 		return false
 	}

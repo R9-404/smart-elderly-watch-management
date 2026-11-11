@@ -7,7 +7,9 @@ import (
 	"strings"
 	"testing"
 
+	"suining-care/internal/auth"
 	"suining-care/internal/securestore"
+	"suining-care/internal/session"
 )
 
 func TestProtectedAdministratorSetupAndLogin(t *testing.T) {
@@ -29,7 +31,7 @@ func TestProtectedAdministratorSetupAndLogin(t *testing.T) {
 	var id int64
 	var legacy, cipher, index *string
 	var protected bool
-	if err := pool.QueryRow(context.Background(), `SELECT user_id,user_phone,user_phone_cipher,user_phone_lookup,user_phone_protected FROM users`).Scan(&id, &legacy, &cipher, &index, &protected); err != nil {
+	if err := pool.QueryRowContext(context.Background(), `SELECT user_id,user_phone,user_phone_cipher,user_phone_lookup,user_phone_protected FROM users`).Scan(&id, &legacy, &cipher, &index, &protected); err != nil {
 		t.Fatal(err)
 	}
 	if legacy != nil || cipher == nil || index == nil || !protected || strings.Contains(*cipher, "13800000001") {
@@ -39,11 +41,11 @@ func TestProtectedAdministratorSetupAndLogin(t *testing.T) {
 	if login.Code != 200 || !strings.Contains(login.Body.String(), `"authenticated":true`) {
 		t.Fatalf("encrypted administrator login: %d %s", login.Code, login.Body.String())
 	}
-	lookup := callAPI(h.userSelect, map[string]any{"userPhone": "13800000001"})
+	lookup := callAPI(withHealthPrincipal(h, session.Principal{Role: auth.RoleAdmin, ID: id}, h.userSelect), map[string]any{"userPhone": "13800000001"})
 	if lookup.Code != 200 || !strings.Contains(lookup.Body.String(), `"userPhone":"13800000001"`) {
 		t.Fatalf("protected account lookup: %d %s", lookup.Code, lookup.Body.String())
 	}
-	duplicate := callAPI(h.familyAdd, map[string]any{
+	duplicate := callAPI(withHealthPrincipal(h, session.Principal{Role: auth.RoleAdmin, ID: id}, h.familyAdd), map[string]any{
 		"familyName": "synthetic", "familyRelation": "child", "familySex": "男",
 		"familyPhone": "13800000001", "oldPhone": "13800000002", "familyAddress": "synthetic",
 	})

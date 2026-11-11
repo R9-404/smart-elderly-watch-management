@@ -2,11 +2,13 @@ package authrepo
 
 import (
 	"context"
+	"database/sql"
 	"errors"
 	"strings"
 	"unicode/utf8"
 
 	"suining-care/internal/auth"
+	"suining-care/internal/carerepo"
 	"suining-care/internal/db"
 	"suining-care/internal/securestore"
 	"suining-care/internal/userphone"
@@ -17,18 +19,18 @@ var ErrInvalidAdmin = errors.New("invalid administrator input")
 
 // InitializeAdmin serializes first-run account creation using the metadata lock.
 func InitializeAdmin(ctx context.Context, store *db.Database, box *securestore.Box, name, phone, password string) error {
-	tx, err := store.Begin(ctx)
+	tx, err := store.BeginTx(ctx, &sql.TxOptions{Isolation: sql.LevelReadCommitted})
 	if err != nil {
 		return err
 	}
-	defer tx.Rollback(ctx)
+	defer tx.Rollback()
 
 	var metadataID int64
-	if err := tx.QueryRow(ctx, "SELECT id FROM app_metadata WHERE id=1 FOR UPDATE").Scan(&metadataID); err != nil {
+	if err := tx.QueryRowContext(ctx, "SELECT id FROM app_metadata WHERE id=1 FOR UPDATE").Scan(&metadataID); err != nil {
 		return err
 	}
 	var count int64
-	if err := tx.QueryRow(ctx, "SELECT COUNT(*) FROM users").Scan(&count); err != nil {
+	if err := tx.QueryRowContext(ctx, "SELECT COUNT(*) FROM users").Scan(&count); err != nil {
 		return err
 	}
 	if count != 0 {
@@ -42,19 +44,22 @@ func InitializeAdmin(ctx context.Context, store *db.Database, box *securestore.B
 	if err != nil {
 		return err
 	}
+	var adminID int64
 	if box == nil {
-		if _, err := tx.Exec(ctx,
-			"INSERT INTO users(user_name,user_phone,password,role) VALUES($1,$2,$3,'1')",
-			name, phone, hashed); err != nil {
+		adminID, err = db.InsertID(ctx, tx,
+			"INSERT INTO users(user_name,user_phone,password,role) VALUES(?,?,?,'1')",
+			name, phone, hashed)
+		if err != nil {
 			return err
 		}
 	} else {
-		var id int64
-		if err := tx.QueryRow(ctx,
-			"INSERT INTO users(user_name,password,role) VALUES($1,$2,'1') RETURNING user_id",
-			name, hashed).Scan(&id); err != nil {
+		id, err := db.InsertID(ctx, tx,
+			"INSERT INTO users(user_name,password,role) VALUES(?,?,'1')",
+			name, hashed)
+		if err != nil {
 			return err
 		}
+		adminID = id
 		protected, err := userphone.Protect(box, id, phone)
 		if err != nil {
 			return err
@@ -62,11 +67,21 @@ func InitializeAdmin(ctx context.Context, store *db.Database, box *securestore.B
 		if err := userphone.BindLookupKey(ctx, tx, box); err != nil {
 			return err
 		}
-		if _, err := tx.Exec(ctx,
-			"UPDATE users SET user_phone_cipher=$1,user_phone_lookup=$2,user_phone_protected=true WHERE user_id=$3",
+		if _, err := tx.ExecContext(ctx,
+			"UPDATE users SET user_phone_cipher=?,user_phone_lookup=?,user_phone_protected=true WHERE user_id=?",
 			protected.Ciphertext, protected.Lookup, id); err != nil {
 			return err
 		}
 	}
-	return tx.Commit(ctx)
+	// First-run administrator and the first explicit supervisor are one
+	// atomic identity/authorization/audit operation.
+	if err := carerepo.SetDuty(ctx, tx, adminID, adminID, "supervisor"); err != nil {
+		return err
+	}
+	if _, err := tx.ExecContext(ctx,
+		"INSERT INTO care_access_audit(admin_id,action,subject_admin_id) VALUES(?,'supervisor_initialized',?)",
+		adminID, adminID); err != nil {
+		return err
+	}
+	return tx.Commit()
 }

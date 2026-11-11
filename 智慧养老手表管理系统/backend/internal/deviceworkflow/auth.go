@@ -5,8 +5,6 @@ import (
 	"database/sql"
 	"errors"
 
-	"github.com/jackc/pgx/v5"
-
 	"suining-care/internal/db"
 	"suining-care/internal/devicecredential"
 	"suining-care/internal/devicerepo"
@@ -19,10 +17,11 @@ const (
 	DeviceDisabled    Failure = "DEVICE_DISABLED"
 	DeviceUnbound     Failure = "DEVICE_NOT_BOUND"
 	BindingChanged    Failure = "BINDING_CHANGED"
+	EpochExpired      Failure = "EPOCH_EXPIRED"
 )
 
 func MissingRow(err error) bool {
-	return errors.Is(err, sql.ErrNoRows) || errors.Is(err, pgx.ErrNoRows)
+	return errors.Is(err, sql.ErrNoRows)
 }
 
 // Authenticate reads the stored device record without opening its encrypted coordinates.
@@ -52,7 +51,7 @@ func Verify(device *devicerepo.DeviceRecord, secret string) (*devicerepo.DeviceR
 }
 
 // LockBoundDevice uses the same resident-then-device order for SOS and telemetry.
-func LockBoundDevice(ctx context.Context, tx *db.Transaction, number, secret string, epoch int64) (*devicerepo.DeviceRecord, Failure, error) {
+func LockBoundDevice(ctx context.Context, tx *sql.Tx, number, secret string, epoch int64) (*devicerepo.DeviceRecord, Failure, error) {
 	device, failure, err := Authenticate(ctx, tx, number, secret)
 	if err != nil || device == nil {
 		return nil, failure, err
@@ -62,7 +61,7 @@ func LockBoundDevice(ctx context.Context, tx *db.Transaction, number, secret str
 
 // LockAuthenticatedDevice reuses an already verified, unlocked snapshot.
 // The resident and device are still locked and revalidated before any write.
-func LockAuthenticatedDevice(ctx context.Context, tx *db.Transaction, device *devicerepo.DeviceRecord, number, secret string, epoch int64) (*devicerepo.DeviceRecord, Failure, error) {
+func LockAuthenticatedDevice(ctx context.Context, tx *sql.Tx, device *devicerepo.DeviceRecord, number, secret string, epoch int64) (*devicerepo.DeviceRecord, Failure, error) {
 	if device == nil {
 		return nil, InvalidCredential, nil
 	}
@@ -83,6 +82,9 @@ func LockAuthenticatedDevice(ctx context.Context, tx *db.Transaction, device *de
 	}
 	if locked.No != number {
 		return nil, InvalidCredential, nil
+	}
+	if epoch < locked.HealthEpoch {
+		return nil, EpochExpired, nil
 	}
 	if locked.OldID == nil || *locked.OldID != owner || locked.HealthEpoch != epoch {
 		return nil, BindingChanged, nil

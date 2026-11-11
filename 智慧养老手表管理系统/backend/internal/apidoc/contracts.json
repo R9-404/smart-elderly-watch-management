@@ -150,6 +150,18 @@
       "returnCode"
     ]
   },
+  "POST /api/v1/care/accounts/status": {
+    "file": "智慧养老手表管理系统/backend/internal/handlers/handler_care_incident.go",
+    "request": [
+      "adminId",
+      "status"
+    ],
+    "response": [
+      "adminId",
+      "returnCode",
+      "status"
+    ]
+  },
   "POST /api/v1/care/assignDuty": {
     "file": "智慧养老手表管理系统/backend/internal/handlers/handler_care_staff.go",
     "request": [
@@ -195,6 +207,41 @@
       "pageSize",
       "returnCode",
       "total"
+    ]
+  },
+  "POST /api/v1/care/handover/accept": {
+    "file": "智慧养老手表管理系统/backend/internal/handlers/handler_care_handover.go",
+    "request": [
+      "handoverId"
+    ],
+    "response": [
+      "handoverId",
+      "returnCode",
+      "status",
+      "transferred"
+    ]
+  },
+  "POST /api/v1/care/handover/cancel": {
+    "file": "智慧养老手表管理系统/backend/internal/handlers/handler_care_handover.go",
+    "request": [
+      "handoverId"
+    ],
+    "response": [
+      "handoverId",
+      "returnCode",
+      "status"
+    ]
+  },
+  "POST /api/v1/care/handover/create": {
+    "file": "智慧养老手表管理系统/backend/internal/handlers/handler_care_handover.go",
+    "request": [
+      "toAdminId",
+      "note"
+    ],
+    "response": [
+      "handoverId",
+      "incidentIds",
+      "returnCode"
     ]
   },
   "POST /api/v1/care/incidents": {
@@ -344,8 +391,8 @@
       "secret"
     ],
     "response": [
-      "oldId",
-      "oldPersonName",
+      "residentId",
+      "residentName",
       "returnCode"
     ]
   },
@@ -476,7 +523,7 @@
     "response": [
       "bindingVersion",
       "bound",
-      "oldId",
+      "residentId",
       "pendingAlarm",
       "reportInterval",
       "returnCode",
@@ -514,9 +561,9 @@
       "bound",
       "deviceId",
       "deviceNo",
-      "oldId",
+      "residentId",
       "returnCode",
-      "oldPersonName",
+      "residentName",
       "protocolVersion",
       "maxBatchSize"
     ]
@@ -830,6 +877,30 @@
       "sleep"
     ]
   },
+  "POST /api/v1/health/baseline": {
+    "file": "智慧养老手表管理系统/backend/internal/handlers/handler_health_baseline.go",
+    "request": [
+      "oldId"
+    ],
+    "response": [
+      "returnCode",
+      "oldId",
+      "metric",
+      "ready",
+      "sampleDays",
+      "trustedDays",
+      "rejectedDays",
+      "confidence",
+      "reason",
+      "observedAt",
+      "value",
+      "baseline",
+      "scale",
+      "score",
+      "direction",
+      "anomalous"
+    ]
+  },
   "POST /api/v1/health/changes": {
     "file": "智慧养老手表管理系统/backend/internal/handlers/handler_health.go",
     "request": [
@@ -867,11 +938,6 @@
       "source",
       "sourceDevice"
     ]
-  },
-  "POST /api/v1/health/baseline": {
-    "file": "智慧养老手表管理系统/backend/internal/handlers/handler_health_baseline.go",
-    "request": ["oldId"],
-    "response": ["returnCode", "oldId", "metric", "ready", "sampleDays", "trustedDays", "rejectedDays", "confidence", "reason", "observedAt", "value", "baseline", "scale", "score", "direction", "anomalous"]
   },
   "POST /api/v1/health/latest": {
     "file": "智慧养老手表管理系统/backend/internal/handlers/handler_health_latest.go",
@@ -1188,6 +1254,14 @@
     ],
     "response": [
       "items",
+      "returnCode"
+    ]
+  },
+  "POST /api/v1/operations/snapshot": {
+    "file": "智慧养老手表管理系统/backend/internal/handlers/handler_operations.go",
+    "request": [],
+    "response": [
+      "snapshot",
       "returnCode"
     ]
   },

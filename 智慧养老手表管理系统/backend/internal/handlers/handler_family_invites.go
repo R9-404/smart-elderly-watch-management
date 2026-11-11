@@ -2,13 +2,15 @@ package handlers
 
 import (
 	"context"
+	"database/sql"
 	"net/http"
 	"strconv"
 	"strings"
 	"time"
 
 	"suining-care/internal/auth"
-	"suining-care/internal/db"
+	"suining-care/internal/carepolicy"
+
 	"suining-care/internal/inviterepo"
 	"suining-care/internal/response"
 	"suining-care/internal/securecode"
@@ -74,8 +76,13 @@ func (h *Handler) inviteList(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	page, pageSize := bodyPage(m)
-	rows, total, err := inviterepo.ListCodes(r.Context(), h.DB, state, page, pageSize)
-	if internalError(w, err) {
+	tx, ok := h.beginAdminActionTx(w, r, carepolicy.ReadInvites)
+	if !ok {
+		return
+	}
+	defer tx.Rollback()
+	rows, total, err := inviterepo.ListCodes(r.Context(), tx, state, page, pageSize)
+	if internalError(w, err) || internalError(w, tx.Commit()) {
 		return
 	}
 	statusText := map[string]string{"unused": "可使用", "used": "已使用", "expired": "已过期"}
@@ -111,15 +118,6 @@ func (h *Handler) inviteCreate(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	ctx := r.Context()
-	oldName, err := inviterepo.ResidentName(ctx, h.DB, oldID)
-	if err != nil {
-		if isNotFound(err) {
-			response.Fail(w, "老人不存在，请重新选择")
-			return
-		}
-		response.Error500(w, ref())
-		return
-	}
 	expire, validExpiry := parseInvitationExpiry(m)
 	if !validExpiry {
 		write400(w, "有效天数必须为非负整数，留空或 0 表示长期有效")
@@ -137,7 +135,16 @@ func (h *Handler) inviteCreate(w http.ResponseWriter, r *http.Request) {
 	}
 	createUser := creatorName(r)
 
-	tx, err := h.DB.Begin(ctx)
+	tx, ok := h.beginAdminActionTx(w, r, carepolicy.ManageInvites)
+	if !ok {
+		return
+	}
+	defer tx.Rollback()
+	oldName, err := inviterepo.ResidentName(ctx, tx, oldID)
+	if isNotFound(err) {
+		response.Fail(w, "老人不存在，请重新选择")
+		return
+	}
 	if internalError(w, err) {
 		return
 	}
@@ -157,11 +164,11 @@ func (h *Handler) inviteCreate(w http.ResponseWriter, r *http.Request) {
 		codes = append(codes, code)
 	}
 	if failed {
-		_ = tx.Rollback(ctx)
+		_ = tx.Rollback()
 		response.Error500(w, ref())
 		return
 	}
-	if internalError(w, tx.Commit(ctx)) {
+	if internalError(w, tx.Commit()) {
 		return
 	}
 	var expAny any
@@ -189,8 +196,13 @@ func (h *Handler) inviteDelete(w http.ResponseWriter, r *http.Request) {
 		response.Fail(w, msg)
 		return
 	}
-	deleted, err := inviterepo.DeleteUnusedCode(r.Context(), h.DB, id)
-	if internalError(w, err) {
+	tx, ok := h.beginAdminActionTx(w, r, carepolicy.ManageInvites)
+	if !ok {
+		return
+	}
+	defer tx.Rollback()
+	deleted, err := inviterepo.DeleteUnusedCode(r.Context(), tx, id)
+	if internalError(w, err) || internalError(w, tx.Commit()) {
 		return
 	}
 	if deleted {
@@ -218,7 +230,7 @@ func parseInvitationExpiry(m map[string]any) (*time.Time, bool) {
 	return expire, true
 }
 
-func unusedInvitationCode(ctx context.Context, tx *db.Transaction) (string, error) {
+func unusedInvitationCode(ctx context.Context, tx *sql.Tx) (string, error) {
 	code := ""
 	for a := 0; a < 20; a++ { // 最多 20 次重试保唯一
 		c, err := securecode.Generate(8)

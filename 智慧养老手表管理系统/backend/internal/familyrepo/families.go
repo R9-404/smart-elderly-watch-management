@@ -3,6 +3,7 @@ package familyrepo
 
 import (
 	"context"
+	"database/sql"
 	"errors"
 
 	"suining-care/internal/db"
@@ -32,66 +33,60 @@ type bindingTarget struct {
 	matches  int
 }
 
-func loadBindingTarget(ctx context.Context, tx *db.Transaction, phone string) (bindingTarget, error) {
+func loadBindingTarget(ctx context.Context, tx *sql.Tx, phone string) (bindingTarget, error) {
 	target := bindingTarget{}
-	err := db.QueryEach(ctx, tx, func(rows db.Rows) error {
+	err := db.QueryEach(ctx, tx, func(rows *sql.Rows) error {
 		target.matches++
 		return rows.Scan(&target.id, &target.familyID)
-	}, "SELECT old_id,family_id FROM oldperson WHERE phone=$1 ORDER BY old_id LIMIT 2 FOR UPDATE", phone)
+	}, "SELECT old_id,family_id FROM oldperson WHERE phone=? ORDER BY old_id LIMIT 2 FOR UPDATE", phone)
 	return target, err
 }
 
-func phoneInUse(ctx context.Context, store *db.Database, box *securestore.Box, phone string, exceptFamilyID *int64) (bool, error) {
-	lookup, err := userphone.SearchIndex(ctx, store, box, phone)
+func phoneInUse(ctx context.Context, tx *sql.Tx, box *securestore.Box, phone string, exceptFamilyID *int64) (bool, error) {
+	lookup, err := userphone.SearchIndex(ctx, tx, box, phone)
 	if err != nil {
 		return false, err
 	}
 	var used bool
 	query := `SELECT EXISTS(SELECT 1 FROM users WHERE
-	    (user_phone_protected=false AND user_phone=$1) OR
-	    (user_phone_protected=true AND user_phone_lookup=$2))
-	    OR EXISTS(SELECT 1 FROM family WHERE family_phone=$1)`
-	args := []any{phone, lookup}
+	    (user_phone_protected=false AND user_phone=?) OR
+	    (user_phone_protected=true AND user_phone_lookup=?))
+	    OR EXISTS(SELECT 1 FROM family WHERE family_phone=?)`
+	args := []any{phone, lookup, phone}
 	if exceptFamilyID != nil {
 		query = `SELECT EXISTS(SELECT 1 FROM users WHERE
-		    (user_phone_protected=false AND user_phone=$1) OR
-		    (user_phone_protected=true AND user_phone_lookup=$2))
-		    OR EXISTS(SELECT 1 FROM family WHERE family_phone=$1 AND family_id<>$3)`
+		    (user_phone_protected=false AND user_phone=?) OR
+		    (user_phone_protected=true AND user_phone_lookup=?))
+		    OR EXISTS(SELECT 1 FROM family WHERE family_phone=? AND family_id<>?)`
 		args = append(args, *exceptFamilyID)
 	}
-	err = store.QueryRow(ctx, query, args...).Scan(&used)
+	err = tx.QueryRowContext(ctx, query, args...).Scan(&used)
 	return used, err
 }
 
 // Create binds one unambiguous unassigned resident in a single transaction.
-func Create(ctx context.Context, store *db.Database, box *securestore.Box, input Family, residentPhone string) error {
-	tx, err := store.Begin(ctx)
-	if err != nil {
-		return err
-	}
-	defer tx.Rollback(ctx)
+func Create(ctx context.Context, tx *sql.Tx, box *securestore.Box, input Family, residentPhone string) error {
 	lookup, err := userphone.SearchIndex(ctx, tx, box, input.Phone)
 	if err != nil {
 		return err
 	}
 	var duplicate bool
-	err = tx.QueryRow(ctx,
+	err = tx.QueryRowContext(ctx,
 		`SELECT EXISTS(SELECT 1 FROM users WHERE
-		    (user_phone_protected=false AND user_phone=$1) OR
-		    (user_phone_protected=true AND user_phone_lookup=$2))
-		    OR EXISTS(SELECT 1 FROM family WHERE family_phone=$1)`,
-		input.Phone, lookup).Scan(&duplicate)
+		    (user_phone_protected=false AND user_phone=?) OR
+		    (user_phone_protected=true AND user_phone_lookup=?))
+		    OR EXISTS(SELECT 1 FROM family WHERE family_phone=?)`,
+		input.Phone, lookup, input.Phone).Scan(&duplicate)
 	if err != nil {
 		return err
 	}
 	if duplicate {
 		return ErrPhoneInUse
 	}
-	var familyID int64
-	err = tx.QueryRow(ctx,
+	familyID, err := db.InsertID(ctx, tx,
 		`INSERT INTO family(family_name,family_relation,family_sex,family_phone,family_address)
-		 VALUES($1,$2,$3,$4,$5) RETURNING family_id`,
-		input.Name, input.Relation, input.Sex, input.Phone, input.Address).Scan(&familyID)
+		 VALUES(?,?,?,?,?)`,
+		input.Name, input.Relation, input.Sex, input.Phone, input.Address)
 	if err != nil {
 		return err
 	}
@@ -107,34 +102,42 @@ func Create(ctx context.Context, store *db.Database, box *securestore.Box, input
 	case target.familyID != nil:
 		return ErrResidentBound
 	}
-	result, err := tx.Exec(ctx,
-		"UPDATE oldperson SET family_id=$1 WHERE old_id=$2 AND family_id IS NULL",
+	result, err := tx.ExecContext(ctx,
+		"UPDATE oldperson SET family_id=? WHERE old_id=? AND family_id IS NULL",
 		familyID, target.id)
 	if err != nil {
 		return err
 	}
-	if result.RowsAffected() != 1 {
+	affected, err := result.RowsAffected()
+	if err != nil {
+		return err
+	}
+	if affected != 1 {
 		return ErrResidentBound
 	}
-	return tx.Commit(ctx)
+	return nil
 }
 
-func Update(ctx context.Context, store *db.Database, box *securestore.Box, familyID int64, input Family) error {
-	used, err := phoneInUse(ctx, store, box, input.Phone, &familyID)
+func Update(ctx context.Context, tx *sql.Tx, box *securestore.Box, familyID int64, input Family) error {
+	used, err := phoneInUse(ctx, tx, box, input.Phone, &familyID)
 	if err != nil {
 		return err
 	}
 	if used {
 		return ErrPhoneInUse
 	}
-	result, err := store.Exec(ctx,
-		`UPDATE family SET family_name=$1,family_relation=$2,family_sex=$3,
-		 family_phone=$4,family_address=$5 WHERE family_id=$6`,
+	result, err := tx.ExecContext(ctx,
+		`UPDATE family SET family_name=?,family_relation=?,family_sex=?,
+		 family_phone=?,family_address=? WHERE family_id=?`,
 		input.Name, input.Relation, input.Sex, input.Phone, input.Address, familyID)
 	if err != nil {
 		return err
 	}
-	if result.RowsAffected() != 1 {
+	affected, err := result.RowsAffected()
+	if err != nil {
+		return err
+	}
+	if affected != 1 {
 		return ErrFamilyNotFound
 	}
 	return nil
@@ -142,28 +145,25 @@ func Update(ctx context.Context, store *db.Database, box *securestore.Box, famil
 
 // Delete clears the resident binding and database sessions atomically.
 // Caller revokes non-database sessions only after the transaction commits.
-func Delete(ctx context.Context, store *db.Database, familyID int64) error {
-	tx, err := store.Begin(ctx)
+func Delete(ctx context.Context, tx *sql.Tx, familyID int64) error {
+	if _, err := tx.ExecContext(ctx,
+		"UPDATE oldperson SET family_id=NULL WHERE family_id=?", familyID); err != nil {
+		return err
+	}
+	result, err := tx.ExecContext(ctx, "DELETE FROM family WHERE family_id=?", familyID)
 	if err != nil {
 		return err
 	}
-	defer tx.Rollback(ctx)
-	if _, err := tx.Exec(ctx,
-		"UPDATE oldperson SET family_id=NULL WHERE family_id=$1", familyID); err != nil {
-		return err
-	}
-	result, err := tx.Exec(ctx, "DELETE FROM family WHERE family_id=$1", familyID)
+	affected, err := result.RowsAffected()
 	if err != nil {
 		return err
 	}
-	if result.RowsAffected() != 1 {
+	if affected != 1 {
 		return ErrFamilyNotFound
 	}
-	if tx.IsMySQL() {
-		if _, err := tx.Exec(ctx,
-			"DELETE FROM web_session WHERE role='FAMILY' AND actor_id=$1", familyID); err != nil {
-			return err
-		}
+	if _, err := tx.ExecContext(ctx,
+		"DELETE FROM web_session WHERE role='FAMILY' AND actor_id=?", familyID); err != nil {
+		return err
 	}
-	return tx.Commit(ctx)
+	return nil
 }

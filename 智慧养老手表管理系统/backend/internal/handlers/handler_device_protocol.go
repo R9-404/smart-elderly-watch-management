@@ -1,13 +1,10 @@
 package handlers
 
 import (
-	"errors"
 	"net/http"
 	"strings"
 	"time"
 	"unicode/utf8"
-
-	"github.com/jackc/pgx/v5"
 
 	"suining-care/internal/devicerepo"
 	"suining-care/internal/deviceworkflow"
@@ -62,7 +59,7 @@ func (h *Handler) deviceLogin(w http.ResponseWriter, r *http.Request) {
 		harmony = true
 	}
 	ctx := r.Context()
-	d, code, msg, err := h.hwAuth(ctx, h.DB, deviceNo, secret, "设备已停用，请联系管理员")
+	d, code, msg, err := h.hwAuthIdentity(ctx, h.DB, deviceNo, secret, "设备已停用，请联系管理员")
 	if internalError(w, err) {
 		return
 	}
@@ -71,13 +68,13 @@ func (h *Handler) deviceLogin(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	now := time.Now()
-	if internalError(w, telemetryrepo.TouchDevice(ctx, h.DB, d.ID, nil, nil, now)) {
+	if internalError(w, telemetryrepo.TouchDevice(ctx, h.DB, d.ID, d.HealthEpoch, nil, nil, now)) {
 		return
 	}
 	bound := 0
 	fields := map[string]any{
 		"deviceId": d.ID, "deviceNo": d.No, "alias": d.Alias,
-		"bound": bound, "oldId": d.OldID, "bindingVersion": d.HealthEpoch,
+		"bound": bound, "residentId": d.OldID, "bindingVersion": d.HealthEpoch,
 	}
 	if harmony {
 		fields["protocolVersion"] = 1
@@ -86,15 +83,15 @@ func (h *Handler) deviceLogin(w http.ResponseWriter, r *http.Request) {
 	if d.OldID != nil {
 		bound = 1
 		fields["bound"] = bound
-		oldName, err := devicerepo.ResidentName(ctx, h.DB, *d.OldID)
-		if err != nil && !errors.Is(err, pgx.ErrNoRows) {
+		residentName, err := devicerepo.ResidentName(ctx, h.DB, *d.OldID)
+		if err != nil && !isNotFound(err) {
 			response.Error500(w, ref())
 			return
 		}
-		if oldName != nil {
-			fields["oldPersonName"] = *oldName
+		if residentName != nil {
+			fields["residentName"] = *residentName
 		} else {
-			fields["oldPersonName"] = ""
+			fields["residentName"] = ""
 		}
 	}
 	response.OK(w, fields)
@@ -125,7 +122,7 @@ func (h *Handler) deviceBind(w http.ResponseWriter, r *http.Request) {
 	}
 	switch failure {
 	case "":
-		response.OK(w, map[string]any{"oldId": result.ResidentID, "oldPersonName": result.Name})
+		response.OK(w, map[string]any{"residentId": result.ResidentID, "residentName": result.Name})
 	case deviceworkflow.AlreadyBound:
 		conflict409(w, "设备已绑定其他长者，请先在设备管理解除绑定")
 	case deviceworkflow.BindFailed:
@@ -170,7 +167,7 @@ func (h *Handler) deviceHeartbeat(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	ctx := r.Context()
-	d, code, msg, err := h.hwAuth(ctx, h.DB, deviceNo, secret, "设备已停用")
+	d, code, msg, err := h.hwAuthIdentity(ctx, h.DB, deviceNo, secret, "设备已停用")
 	if internalError(w, err) {
 		return
 	}
@@ -179,7 +176,11 @@ func (h *Handler) deviceHeartbeat(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	now := time.Now()
-	if internalError(w, telemetryrepo.TouchDevice(ctx, h.DB, d.ID, battery, appVersion, now)) {
+	if h.Heartbeats != nil {
+		if internalError(w, h.Heartbeats.Record(ctx, d.ID, d.HealthEpoch, battery, appVersion, now)) {
+			return
+		}
+	} else if internalError(w, telemetryrepo.TouchDevice(ctx, h.DB, d.ID, d.HealthEpoch, battery, appVersion, now)) {
 		return
 	}
 	bound := 0
@@ -187,7 +188,7 @@ func (h *Handler) deviceHeartbeat(w http.ResponseWriter, r *http.Request) {
 		bound = 1
 	}
 	response.OK(w, map[string]any{
-		"serverTime": now.Format(tsLayout), "bound": bound, "oldId": d.OldID, "bindingVersion": d.HealthEpoch,
+		"serverTime": now.Format(tsLayout), "bound": bound, "residentId": d.OldID, "bindingVersion": d.HealthEpoch,
 		"reportInterval": 5, "pendingAlarm": 0,
 	})
 }

@@ -1,15 +1,15 @@
 package handlers
 
 import (
-	"errors"
+	"database/sql"
 	"net/http"
 	"strconv"
 	"strings"
 	"unicode/utf8"
 
-	"github.com/jackc/pgx/v5"
-
 	"suining-care/internal/auth"
+	"suining-care/internal/carepolicy"
+	"suining-care/internal/carerepo"
 	"suining-care/internal/careworkflow"
 	"suining-care/internal/response"
 )
@@ -18,11 +18,15 @@ import (
 func (h *Handler) routeCare(mux *http.ServeMux) {
 	mux.HandleFunc("POST /api/v1/care/incidents", h.careIncidents)
 	mux.HandleFunc("POST /api/v1/care/transition", h.careTransition)
+	mux.HandleFunc("POST /api/v1/care/handover/create", h.careCreateHandover)
+	mux.HandleFunc("POST /api/v1/care/handover/accept", h.careAcceptHandover)
+	mux.HandleFunc("POST /api/v1/care/handover/cancel", h.careCancelHandover)
 	mux.HandleFunc("POST /api/v1/care/events", h.careEvents)
 	mux.HandleFunc("POST /api/v1/care/receipt", h.careReceipt)
 	mux.HandleFunc("POST /api/v1/care/diagnostics", h.careDiagnostics)
 	mux.HandleFunc("POST /api/v1/care/staff", h.careStaff)
 	mux.HandleFunc("POST /api/v1/care/assignDuty", h.careAssignDuty)
+	mux.HandleFunc("POST /api/v1/care/accounts/status", h.careAccountStatus)
 	mux.HandleFunc("POST /api/v1/care/accessAudit", h.careAccessAudit)
 }
 
@@ -40,7 +44,7 @@ func careAdmin(w http.ResponseWriter, r *http.Request) (int64, bool) {
 
 func (h *Handler) careIncidents(w http.ResponseWriter, r *http.Request) {
 	actor, ok := careAdmin(w, r)
-	if !ok || !h.auditCareAccess(w, r, actor, "incident_list", nil) {
+	if !ok {
 		return
 	}
 	m, ok := optBody(w, r)
@@ -59,12 +63,16 @@ func (h *Handler) careIncidents(w http.ResponseWriter, r *http.Request) {
 		write400(w, "任务范围应为 active 或 verified")
 		return
 	}
-	duty, ok := h.careDuty(w, r, actor)
+	tx, duty, ok := h.beginCareRead(w, r, actor, carepolicy.ReadTasks)
 	if !ok {
 		return
 	}
-	items, total, err := careworkflow.ListIncidents(r.Context(), h.DB, state == "verified", page, pageSize)
-	if internalError(w, err) {
+	defer tx.Rollback()
+	if _, err := tx.ExecContext(r.Context(), "INSERT INTO care_access_audit(admin_id,action) VALUES(?,'incident_list')", actor); internalError(w, err) {
+		return
+	}
+	items, total, err := careworkflow.ListIncidents(r.Context(), tx, duty, actor, state == "verified", page, pageSize)
+	if internalError(w, err) || internalError(w, tx.Commit()) {
 		return
 	}
 	response.OK(w, map[string]any{"items": items, "total": total, "page": page, "pageSize": pageSize, "duty": duty, "actorId": actor})
@@ -95,18 +103,33 @@ func (h *Handler) careTransition(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	ctx := r.Context()
-	tx, err := h.DB.Begin(ctx)
+	tx, err := h.DB.BeginTx(ctx, &sql.TxOptions{Isolation: sql.LevelReadCommitted})
 	if internalError(w, err) {
 		return
 	}
-	defer tx.Rollback(ctx)
-	before, resolver, err := careworkflow.LockedIncidentState(ctx, tx, id)
+	defer tx.Rollback()
+	// The read-time role check is only for an early 403 response. Hold a
+	// shared duty lock through commit so a concurrent demotion cannot race
+	// this state transition.
+	lockedDuty, err := carerepo.LockDuty(ctx, tx, actor)
+	if internalError(w, err) {
+		return
+	}
+	if !carepolicy.Allowed(carepolicy.Duty(lockedDuty), carepolicy.Action(action)) {
+		response.JSON(w, http.StatusForbidden, map[string]any{"code": "ACCESS_DENIED", "message": "岗位无此操作权限"})
+		return
+	}
+	before, resolver, acknowledgedBy, err := careworkflow.LockedIncidentState(ctx, tx, id)
 	if err != nil {
-		if errors.Is(err, pgx.ErrNoRows) {
+		if isNotFound(err) {
 			response.Fail(w, "事件不存在")
 			return
 		}
 		response.Error500(w, ref())
+		return
+	}
+	if !carepolicy.AllowedForIncident(carepolicy.Duty(lockedDuty), carepolicy.Action(action), actor, acknowledgedBy) {
+		response.JSON(w, http.StatusForbidden, map[string]any{"code": "ACCESS_DENIED", "message": "只能处理自己接单的照护任务"})
 		return
 	}
 	if action == "verify" && resolver != nil && *resolver == strconv.FormatInt(actor, 10) {
@@ -127,9 +150,9 @@ func (h *Handler) careTransition(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	verdict := str(m, "verdict")
-	if action == "verify" && h.DB.IsMySQL() {
-		// Older clients submit no verdict: retain their explicit verification as
-		// confirmed. Never invent conclusions for historical verified incidents.
+	if action == "verify" {
+		// Empty verification verdict means confirmed; preserve the current API
+		// contract while keeping review writes in the same incident transaction.
 		if verdict == "" {
 			verdict = "confirmed"
 		}
@@ -145,7 +168,7 @@ func (h *Handler) careTransition(w http.ResponseWriter, r *http.Request) {
 	if internalError(w, careworkflow.PersistTransition(ctx, tx, id, next, action, strconv.FormatInt(actor, 10), note)) {
 		return
 	}
-	if internalError(w, tx.Commit(ctx)) {
+	if internalError(w, tx.Commit()) {
 		return
 	}
 	response.OK(w, map[string]any{"id": id, "state": next})
@@ -161,14 +184,30 @@ func (h *Handler) careEvents(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	id, ok := requireID(w, m, "id")
-	if !ok || !h.auditCareAccess(w, r, actor, "incident_events", &id) {
+	if !ok {
 		return
 	}
 	page, pageSize, ok := strictPage(w, m)
 	if !ok {
 		return
 	}
-	events, total, err := careworkflow.ListEvents(r.Context(), h.DB, id, page, pageSize)
+	tx, duty, ok := h.beginCareRead(w, r, actor, carepolicy.ReadTasks)
+	if !ok {
+		return
+	}
+	defer tx.Rollback()
+	visible, err := careworkflow.CanReadIncident(r.Context(), tx, duty, actor, id)
+	if internalError(w, err) {
+		return
+	}
+	if !visible {
+		response.JSON(w, http.StatusForbidden, map[string]any{"code": "ACCESS_DENIED", "message": "任务不在可见范围"})
+		return
+	}
+	if _, err := tx.ExecContext(r.Context(), "INSERT INTO care_access_audit(admin_id,action,incident_id) VALUES(?,'incident_events',?)", actor, id); internalError(w, err) {
+		return
+	}
+	events, total, err := careworkflow.ListEvents(r.Context(), tx, id, page, pageSize)
 	if internalError(w, err) {
 		return
 	}
@@ -181,6 +220,9 @@ func (h *Handler) careEvents(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 		events[i].Note = &plain
+	}
+	if internalError(w, tx.Commit()) {
+		return
 	}
 	response.OK(w, map[string]any{
 		"events": events, "total": total, "page": page, "pageSize": pageSize,
