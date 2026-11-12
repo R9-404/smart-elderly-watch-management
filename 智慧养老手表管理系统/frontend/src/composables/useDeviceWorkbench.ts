@@ -1,5 +1,6 @@
 import { ElMessage } from 'element-plus'
 import { readErrorMessage } from '../api/httpContract'
+import { awaitAbortable } from './latestRead'
 import type { AlertDetailResponse, DeviceId, DeviceRecord, DeviceState } from './deviceModels'
 
 type AlertKind = 'person' | 'rate' | 'pre'
@@ -50,7 +51,7 @@ export function useDeviceWorkbench(
         activeReads.add(controller)
         const timeout = setTimeout(() => controller.abort(), detailTimeoutMs)
         try {
-          const detail = await readDetail(device.deviceId, kind, controller.signal)
+          const detail = await awaitAbortable(readDetail(device.deviceId, kind, controller.signal), controller.signal)
           if (!current()) return
           if (detail.hasAlert !== 1) continue
           results[index] = {
