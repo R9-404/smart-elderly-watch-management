@@ -1,10 +1,12 @@
 package careworkflow
 
 import (
+	"context"
 	"strings"
 	"testing"
 
 	"suining-care/internal/carepolicy"
+	"suining-care/internal/db/dbtest"
 )
 
 func TestNotificationAggregateUsesNativeMySQL(t *testing.T) {
@@ -34,5 +36,26 @@ func TestCaregiverScopeUsesIndexedVisibilityBucket(t *testing.T) {
 	}
 	if len(args) != 1 || args[0] != "ASSIGNED:42" {
 		t.Fatalf("unexpected caregiver visibility bucket args: %#v", args)
+	}
+}
+
+func TestNotificationStatePriorityInMySQL(t *testing.T) {
+	database := dbtest.MySQL(t)
+	for _, tc := range []struct {
+		statuses string
+		want     string
+	}{
+		{"SELECT 'pending' AS status UNION ALL SELECT 'sending'", "sending"},
+		{"SELECT 'failed' AS status UNION ALL SELECT 'pending'", "failed"},
+		{"SELECT 'sent' AS status UNION ALL SELECT 'delivered'", "delivered"},
+	} {
+		var got string
+		if err := database.QueryRowContext(context.Background(),
+			"SELECT "+notificationStatusPrioritySQL+" FROM ("+tc.statuses+") n").Scan(&got); err != nil {
+			t.Fatal(err)
+		}
+		if got != tc.want {
+			t.Fatalf("notification state for %q = %q, want %q", tc.statuses, got, tc.want)
+		}
 	}
 }
