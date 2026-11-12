@@ -32,3 +32,32 @@ it('does not double-transform coordinates already reported as GCJ-02', () => {
   expect(uri.searchParams.get('lng')).toBe('116.403')
   expect(uri.searchParams.get('lat')).toBe('39.91')
 })
+
+it('uses the public Google Maps search URL without an API key or resident identity', () => {
+  const url = new URL(mapLocationUrl('google', 116.397, 39.908, 'roadmap'))
+  expect(url.origin).toBe('https://www.google.com')
+  expect(url.pathname).toBe('/maps/search/')
+  expect(url.searchParams.get('api')).toBe('1')
+  expect(url.searchParams.get('query')).toBe('39.908,116.397')
+  expect(url.searchParams.has('key')).toBe(false)
+  expect(url.toString()).not.toContain('老人')
+})
+
+it('converts existing GCJ-02 samples back to WGS84 before Google Maps lookup', () => {
+  const original = { longitude: 116.397, latitude: 39.908 }
+  const amap = new URL(mapLocationUrl('amap', original.longitude, original.latitude, 'roadmap'))
+  const url = new URL(mapLocationUrl(
+    'google', Number(amap.searchParams.get('lng')), Number(amap.searchParams.get('lat')), 'roadmap', 'gcj02'
+  ))
+  const [latitude, longitude] = (url.searchParams.get('query') || '').split(',').map(Number)
+  expect(longitude).toBeCloseTo(original.longitude, 4)
+  expect(latitude).toBeCloseTo(original.latitude, 4)
+})
+
+it('keeps Google Maps as an explicit persisted provider choice', () => {
+  resetMapPreferences()
+  mapPreferences.provider = 'google'
+  saveMapPreferences()
+  expect(localStorage.getItem('suining_map_preferences_v1')).toContain('"provider":"google"')
+  resetMapPreferences()
+})
