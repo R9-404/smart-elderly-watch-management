@@ -31,14 +31,16 @@ type Incident struct {
 	VerifiedAt        *time.Time `json:"verifiedAt"`
 }
 
-const notificationStatusSQL = `(SELECT CASE
+const notificationStatusPrioritySQL = `CASE
             WHEN MAX(n.status='delivered') THEN 'delivered'
             WHEN MAX(n.status='failed') THEN 'failed'
             WHEN MAX(n.status='sending') THEN 'sending'
             WHEN MAX(n.status='pending') THEN 'pending'
             WHEN MAX(n.status='sent') THEN 'sent'
-            ELSE 'no_recipient' END
-           FROM care_notification_outbox n WHERE n.incident_id=i.id)`
+            ELSE 'no_recipient' END`
+
+const notificationStatusSQL = `(SELECT ` + notificationStatusPrioritySQL +
+	` FROM care_notification_outbox n WHERE n.incident_id=i.id)`
 
 const activeIncidentOrderSQL = ` ORDER BY
 	CASE
