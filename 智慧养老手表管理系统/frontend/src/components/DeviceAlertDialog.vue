@@ -1,6 +1,10 @@
 <template>
 <el-dialog :title="alert.title" :model-value="alert.visible" @update:model-value="onVisibleChange" width="min(620px, 94vw)">
       <div v-if="alert.loading" style="text-align:center;padding:20px;">正在读取 ...</div>
+      <div v-else-if="alert.hasAlert === -1" class="no-alert" role="status">
+        <p>{{ alert.message }}</p>
+        <el-button type="primary" plain @click="emit('retry')">重新读取详情</el-button>
+      </div>
       <div v-else-if="alert.hasAlert === 0" class="no-alert">
         <el-icon style="color:#52BAB5;font-size:32px;"><CircleCheckFilled /></el-icon>
         <div style="margin-top:8px;">{{ alert.message }}</div>
@@ -44,6 +48,7 @@ const emit = defineEmits<{
   close: []
   resolve: []
   navigate: []
+  retry: []
 }>()
 
 function onVisibleChange(visible: boolean) {
