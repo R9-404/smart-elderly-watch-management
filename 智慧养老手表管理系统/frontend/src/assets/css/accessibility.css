@@ -42,3 +42,12 @@
 #app .care-app .el-input-group .el-input__inner:focus-visible {
   outline: none;
 }
+
+html.reduce-motion #app *,
+html.reduce-motion #app *::before,
+html.reduce-motion #app *::after {
+  scroll-behavior: auto !important;
+  animation-duration: 0.01ms !important;
+  animation-iteration-count: 1 !important;
+  transition-duration: 0.01ms !important;
+}
