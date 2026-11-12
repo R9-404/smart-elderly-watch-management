@@ -325,3 +325,34 @@ it('keeps the device table interactive during same-query refresh but shows loadi
     vi.restoreAllMocks()
   }
 })
+
+it('preserves reactive device and alert-count identities for unchanged polling results', async () => {
+  let online = 1
+  vi.spyOn(axios, 'post').mockImplementation(url => {
+    if (url === '/api/v1/device/list') return Promise.resolve({
+      data: { devices: [{ deviceId: 1, deviceNo: 'watch-1', online }], total: 1, onlineCount: online }
+    })
+    if (url === '/api/v1/device/alertCounts') return Promise.resolve({
+      data: { items: [{ deviceId: 1, personCount: 0, rateCount: 0, preCount: 0 }], total: 0 }
+    })
+    if (url === '/api/v1/inviteCode/oldPersonList') return Promise.resolve({ data: { oldPeople: [] } })
+    throw new Error(`unexpected request: ${url}`)
+  })
+  let devices!: ReturnType<typeof useDevices>
+  const wrapper = mount(defineComponent({ setup() { devices = useDevices(); return () => null } }))
+  try {
+    await flushPromises()
+    const firstRows = devices.deviceList.value
+    const firstCounts = devices.alertCounts.value
+    await devices.loadDevices()
+    expect(devices.deviceList.value).toBe(firstRows)
+    expect(devices.alertCounts.value).toBe(firstCounts)
+    online = 0
+    await devices.loadDevices()
+    expect(devices.deviceList.value).not.toBe(firstRows)
+    expect(devices.deviceList.value[0]?.online).toBe(0)
+  } finally {
+    wrapper.unmount()
+    vi.restoreAllMocks()
+  }
+})
