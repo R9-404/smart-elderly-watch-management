@@ -33,7 +33,6 @@ export function useDevices() {
   let filterTimer: ReturnType<typeof setTimeout> | undefined
   let refreshTimer: ReturnType<typeof setTimeout> | undefined
   let disposed = false
-  let deviceRequestPending = false
   let displayedQuery = ''
   let consecutivePollFailures = 0
   // Only the newest read may publish state, even if an older request ignores cancellation.
@@ -70,12 +69,23 @@ export function useDevices() {
     }
   }
 
-  async function loadDevices() {
-    if (disposed) return
-    if (deviceRequestPending) {
+  let deviceReadTask: Promise<void> | undefined
+  function loadDevices(): Promise<void> {
+    if (disposed) return Promise.resolve()
+    if (deviceReadTask) {
       state.reloadPending = true
-      return
+      return deviceReadTask
     }
+    deviceReadTask = (async () => {
+      do {
+        state.reloadPending = false
+        await readDeviceSnapshot()
+      } while (state.reloadPending && !disposed)
+    })().finally(() => { deviceReadTask = undefined })
+    return deviceReadTask
+  }
+
+  async function readDeviceSnapshot(): Promise<void> {
     const query = {
       page: state.currentPage, pageSize: state.pageSize,
       query: state.deviceQuery, state: state.deviceState
@@ -83,7 +93,6 @@ export function useDevices() {
     const isCurrentQuery = () =>
       query.page === state.currentPage && query.pageSize === state.pageSize &&
       query.query === state.deviceQuery && query.state === state.deviceState
-    deviceRequestPending = true
     const queryKey = JSON.stringify(query)
     // Keep the table responsive on unchanged background reads, but signal a changed filter.
     state.deviceLoading = state.deviceList.length === 0 || displayedQuery !== queryKey
@@ -125,15 +134,10 @@ export function useDevices() {
         loadAlertCounts()
       ])
     } finally {
-      deviceRequestPending = false
       if (disposed) return
       consecutivePollFailures = state.deviceLoadError || state.alertLoadError
         ? Math.min(consecutivePollFailures + 1, 3) : 0
       state.deviceLoading = false
-      if (state.reloadPending) {
-        state.reloadPending = false
-        void loadDevices()
-      }
     }
   }
   function scheduleFilter() {
