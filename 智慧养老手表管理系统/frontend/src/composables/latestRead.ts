@@ -66,7 +66,7 @@ export function createLatestRead<P, T>(
   function run(params: P): Promise<void> {
     if (disposed) return Promise.resolve()
     const key = options.key?.(params)
-    if (key !== undefined && active && (pending ? options.key?.(pending.params) === key : currentKey === key)) {
+    if (key !== undefined && active && (pending ? options.key?.(pending.params) === key : controller !== undefined && !controller.signal.aborted && currentKey === key)) {
       return active
     }
     pending = { params, revision: ++revision }
