@@ -456,3 +456,37 @@ it('ignores an alert detail response after its dialog has closed', async () => {
     vi.restoreAllMocks()
   }
 })
+
+it('does not repeat a pending alert resolution and only locks the affected row', async () => {
+  let complete!: (value: unknown) => void
+  let writes = 0
+  vi.spyOn(axios, 'post').mockImplementation(url => {
+    if (url === '/api/v1/device/resolveAlert') {
+      writes++
+      return new Promise(resolve => { complete = resolve })
+    }
+    if (url === '/api/v1/device/list') return Promise.resolve({ data: { devices: [], total: 0 } })
+    if (url === '/api/v1/device/alertCounts') return Promise.resolve({ data: { items: [], total: 0 } })
+    if (url === '/api/v1/inviteCode/oldPersonList') return Promise.resolve({ data: { oldPeople: [] } })
+    throw new Error(`unexpected request: ${url}`)
+  })
+  let devices!: ReturnType<typeof useDevices>
+  const wrapper = mount(defineComponent({ setup() { devices = useDevices(); return () => null } }))
+  const row = { deviceId: 1, deviceNo: 'watch-1', kind: 'person', recordId: 14 }
+  const another = { deviceId: 2, deviceNo: 'watch-2', kind: 'person', recordId: 15 }
+  try {
+    await flushPromises()
+    const first = devices.resolveAlertRow(row)
+    const duplicate = devices.resolveAlertRow(row)
+    expect(writes).toBe(1)
+    expect(devices.isResolvingAlert(row)).toBe(true)
+    expect(devices.isResolvingAlert(another)).toBe(false)
+    complete({ data: { returnCode: '1111' } })
+    await Promise.all([first, duplicate])
+    expect(devices.isResolvingAlert(row)).toBe(false)
+    expect(writes).toBe(1)
+  } finally {
+    wrapper.unmount()
+    vi.restoreAllMocks()
+  }
+})
