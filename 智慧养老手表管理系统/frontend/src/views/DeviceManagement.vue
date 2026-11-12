@@ -26,7 +26,7 @@
     
     <DeviceAlertDialog :alert="alertDialog" @close="alertDialog.visible = false" @resolve="resolveAlert" @navigate="gotoPage(alertDialog.kind)" />
 
-    <DeviceAlertWorkbench :workbench="workbench" @close="closeWorkbench" @view="row => showAlert(row, row.kind || 'person')" @resolve="resolveAlertRow" />
+    <DeviceAlertWorkbench :workbench="workbench" :is-resolving="isResolvingAlert" @close="closeWorkbench" @view="row => showAlert(row, row.kind || 'person')" @resolve="resolveAlertRow" />
 
     <DeviceRegistrationDialog
       :visible="createDialogVisible" :creating="creating" :form="createForm"
