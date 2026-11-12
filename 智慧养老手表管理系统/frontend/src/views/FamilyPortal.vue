@@ -39,9 +39,12 @@ const descriptions: Record<string, string> = {
 const showPageIntro = computed(() => !pagesWithoutIntro.includes(route.path))
 const pageDescription = computed(() => descriptions[route.path] || '查看家人的照护信息与服务内容。')
 function focusMain() { workspaceMain.value?.focus() }
-watch(() => route.fullPath, async () => {
+watch(() => route.path, async () => {
   await nextTick()
-  if (workspaceMain.value) workspaceMain.value.scrollTop = 0
+  if (workspaceMain.value) {
+    workspaceMain.value.scrollTop = 0
+    workspaceMain.value.focus({ preventScroll: true })
+  }
 })
 </script>
 
