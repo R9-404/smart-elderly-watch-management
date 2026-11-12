@@ -23,3 +23,15 @@ export function wgs84ToGcj02(lng: number, lat: number): [number, number] {
   dLng = dLng * 180 / (a / sqrtMagic * Math.cos(radLat) * pi)
   return [lng + dLng, lat + dLat]
 }
+
+export function gcj02ToWgs84(lng: number, lat: number): [number, number] {
+  // Two corrections remove the map offset to sub-meter precision for typical GPS positions.
+  let longitude = lng
+  let latitude = lat
+  for (let index = 0; index < 2; index++) {
+    const [convertedLng, convertedLat] = wgs84ToGcj02(longitude, latitude)
+    longitude += lng - convertedLng
+    latitude += lat - convertedLat
+  }
+  return [longitude, latitude]
+}
