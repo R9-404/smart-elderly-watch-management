@@ -1,6 +1,7 @@
 import { createApp } from 'vue'
 import { ElMessage } from 'element-plus'
 import App from './App.vue'
+import { applyMapPreferences } from './utils/mapProviders'
 import DatabaseNotice from './components/DatabaseNotice.vue'
 import { installDesktopKeys } from './desktop'
 import router from './router'
@@ -15,6 +16,7 @@ import '@/assets/css/element-theme.css'
 import '@/assets/css/accessibility.css'
 import '@/assets/css/commercial.css'
 
+applyMapPreferences()
 const app = createApp(App)
 app.component('database-notice', DatabaseNotice)
 installElement(app)
