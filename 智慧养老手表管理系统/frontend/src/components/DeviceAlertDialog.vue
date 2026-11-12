@@ -1,5 +1,5 @@
 <template>
-<el-dialog :title="alert.title" :model-value="alert.visible" @update:model-value="onVisibleChange" width="620px">
+<el-dialog :title="alert.title" :model-value="alert.visible" @update:model-value="onVisibleChange" width="min(620px, 94vw)">
       <div v-if="alert.loading" style="text-align:center;padding:20px;">正在读取 ...</div>
       <div v-else-if="alert.hasAlert === 0" class="no-alert">
         <el-icon style="color:#52BAB5;font-size:32px;"><CircleCheckFilled /></el-icon>
@@ -56,7 +56,7 @@ function onVisibleChange(visible: boolean) {
   width: 100%;
   margin-top: 12px;
   border-collapse: collapse;
-  font-size: 13px;
+  font-size: 15px;
 }
 .alert-table th {
   width: 90px;
@@ -76,5 +76,5 @@ function onVisibleChange(visible: boolean) {
 }
 .alert-actions { margin-top: 14px; }
 .no-alert { text-align: center; padding: 20px; color: #606266; }
-.tip { color: #909399; font-size: 12px; line-height: 24px; padding-top: 6px; }
+.tip { color: var(--care-text-muted); font-size: 14px; line-height: 1.65; padding-top: 6px; }
 </style>
