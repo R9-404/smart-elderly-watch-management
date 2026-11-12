@@ -1,5 +1,5 @@
 <template>
-<el-dialog title="待处理异常" :model-value="workbench.visible" @update:model-value="onVisibleChange" width="760px">
+<el-dialog title="待处理异常" :model-value="workbench.visible" @update:model-value="onVisibleChange" width="min(760px, 94vw)">
       <div class="tip" role="status">{{ workbench.loading ? '正在读取异常详情，已完成 ' + workbench.list.length + ' 条…' : '共 ' + workbench.list.length + ' 条未处理异常。' }}点「查看原因」看具体问题和处理办法，处理完点「标记已处理」消除红点。</div>
       <el-table v-loading="workbench.loading && !workbench.list.length" :data="workbench.list" size="small" border style="width:100%;margin-top:8px;">
         <el-table-column prop="deviceNo" label="设备号" width="120" align="center"></el-table-column>
@@ -13,7 +13,7 @@
         <el-table-column label="操作" width="170" align="center">
           <template #default="scope" >
             <el-button size="small" plain type="primary" @click="emit('view', scope.row)">查看原因</el-button>
-            <el-button size="small" plain :loading="isResolving(scope.row)" :disabled="isResolving(scope.row)" @click="emit('resolve', scope.row)">已处理</el-button>
+            <el-button size="small" plain :loading="isResolving(scope.row)" :disabled="isResolving(scope.row)" @click="emit('resolve', scope.row)">标记已处理</el-button>
           </template>
         </el-table-column>
       </el-table>
@@ -39,5 +39,5 @@ function onVisibleChange(visible: boolean) {
 </script>
 
 <style scoped>
-.tip { color: #909399; font-size: 12px; line-height: 24px; padding-top: 6px; }
+.tip { color: var(--care-text-muted); font-size: 14px; line-height: 1.65; padding-top: 6px; }
 </style>
