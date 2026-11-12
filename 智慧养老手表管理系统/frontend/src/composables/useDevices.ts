@@ -22,7 +22,7 @@ export function useDevices() {
   const visibleDevices = computed(() => state.deviceList)
   const onlineCount = computed(() => state.serverOnlineCount)
   const { openBindCodeDialog, loadBindCodes, createBindCode, deleteBindCode } = useDeviceBindings(state, post)
-  const { openWorkbench, disposeWorkbench } = useDeviceWorkbench(state, async (deviceId, kind, signal) => {
+  const { openWorkbench, closeWorkbench, disposeWorkbench } = useDeviceWorkbench(state, async (deviceId, kind, signal) => {
     const { data } = await api.post<Envelope & AlertDetailResponse>(
       '/api/v1/device/alertDetail',
       { deviceId, kind },
@@ -319,7 +319,7 @@ export function useDevices() {
   return {
     ...toRefs(state), visibleDevices, onlineCount,
     loadDevices, loadAlertCounts, scheduleFilter, changeDevicePage, handleDeviceCommand,
-    alertOf, showAlert, resolveAlert, resolveAlertRow, openWorkbench, gotoPage,
+    alertOf, showAlert, resolveAlert, resolveAlertRow, openWorkbench, closeWorkbench, gotoPage,
     loadOldPeople, startTimer, stopTimer, handleVisibilityChange,
     closeCreateDialog, createDevice, openBindCodeDialog, loadBindCodes,
     createBindCode, deleteBindCode, resetSecret, unbind, deleteDevice, copy
