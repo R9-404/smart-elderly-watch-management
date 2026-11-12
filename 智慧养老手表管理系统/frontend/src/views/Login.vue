@@ -51,14 +51,19 @@ import axios from 'axios'
 import { loadSession } from '../auth'
 
 const router = useRouter()
-const registeredPhone = localStorage.getItem('login_phone') || ''
-localStorage.removeItem('login_phone')
+let registeredPhone = ''
+let savedLargeText = false
+try {
+  registeredPhone = localStorage.getItem('login_phone') || ''
+  localStorage.removeItem('login_phone')
+  savedLargeText = localStorage.getItem('large_text') === 'true'
+} catch { /* Login remains available when browser storage is blocked. */ }
 const heroImage = '/static/img/care-lakeside-artisan.webp'
 const submitting = ref(false)
 const showPassword = ref(false)
 const mfaRequired = ref(false)
 const errorMessage = ref('')
-const largeText = ref(localStorage.getItem('large_text') === 'true')
+const largeText = ref(savedLargeText)
 const loginForm = reactive({ phone: registeredPhone, password: '', otp: '', recoveryCode: '' })
 const loginFormRef = ref<FormInstance | null>(null)
 const rules = {
@@ -78,17 +83,17 @@ function applyTextSize() {
 }
 function toggleTextSize() {
   largeText.value = !largeText.value
-  localStorage.setItem('large_text', String(largeText.value))
+  try { localStorage.setItem('large_text', String(largeText.value)) } catch { /* Session-only preference. */ }
   applyTextSize()
 }
 function goRegister() { void router.push('/join-family') }
 async function submitForm() {
   if (submitting.value) return
-  const valid = await loginFormRef.value?.validate().catch(() => false)
-  if (!valid) return
   submitting.value = true
-  errorMessage.value = ''
   try {
+    const valid = await loginFormRef.value?.validate().catch(() => false)
+    if (!valid) return
+    errorMessage.value = ''
     const { data } = await api.post<{ authenticated?: boolean; message?: string }>('/api/v1/auth/login', { ...loginForm })
     if (data?.authenticated === true) {
       const account = await loadSession(true)
