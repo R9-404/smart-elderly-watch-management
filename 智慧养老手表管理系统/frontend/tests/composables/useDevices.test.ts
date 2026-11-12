@@ -356,3 +356,45 @@ it('preserves reactive device and alert-count identities for unchanged polling r
     vi.restoreAllMocks()
   }
 })
+
+it('backs off failed device polling and refreshes on network recovery', async () => {
+  vi.useFakeTimers()
+  let fail = true
+  let listCalls = 0
+  vi.spyOn(axios, 'post').mockImplementation(url => {
+    if (url === '/api/v1/device/list') {
+      listCalls++
+      return fail
+        ? Promise.reject({ code: 'ERR_NETWORK' })
+        : Promise.resolve({ data: { devices: [{ deviceId: 1, deviceNo: 'watch-1' }], total: 1 } })
+    }
+    if (url === '/api/v1/device/alertCounts') return Promise.resolve({ data: { items: [], total: 0 } })
+    if (url === '/api/v1/inviteCode/oldPersonList') return Promise.resolve({ data: { oldPeople: [] } })
+    throw new Error(`unexpected request: ${url}`)
+  })
+  let devices!: ReturnType<typeof useDevices>
+  const wrapper = mount(defineComponent({ setup() { devices = useDevices(); return () => null } }))
+  try {
+    await vi.advanceTimersByTimeAsync(0)
+    expect(listCalls).toBe(1)
+    expect(devices.deviceLoadError.value).toContain('网络')
+    await vi.advanceTimersByTimeAsync(9999)
+    expect(listCalls).toBe(1)
+    await vi.advanceTimersByTimeAsync(1)
+    expect(listCalls).toBe(2)
+    fail = false
+    window.dispatchEvent(new Event('online'))
+    await vi.advanceTimersByTimeAsync(0)
+    expect(listCalls).toBe(3)
+    expect(devices.deviceLoadError.value).toBe('')
+    expect(devices.deviceList.value).toHaveLength(1)
+    await vi.advanceTimersByTimeAsync(4999)
+    expect(listCalls).toBe(3)
+    await vi.advanceTimersByTimeAsync(1)
+    expect(listCalls).toBe(4)
+  } finally {
+    wrapper.unmount()
+    vi.useRealTimers()
+    vi.restoreAllMocks()
+  }
+})
