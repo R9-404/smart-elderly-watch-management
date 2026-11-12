@@ -26,7 +26,9 @@ import { apiErrorMessage } from '../api/httpContract'
 
 const router = useRouter()
 const login_username = computed(() => authState.account?.displayName || '')
-const largeText = ref(localStorage.getItem('large_text') === 'true')
+const largeText = ref((() => {
+  try { return localStorage.getItem('large_text') === 'true' } catch { return false }
+})())
 const isFamily = computed(() => authState.account?.role === 'FAMILY')
 const userInitial = computed(() => (login_username.value || '用').slice(0, 1))
 function applyTextSize() {
@@ -34,7 +36,7 @@ function applyTextSize() {
 }
 function toggleTextSize() {
   largeText.value = !largeText.value
-  localStorage.setItem('large_text', String(largeText.value))
+  try { localStorage.setItem('large_text', String(largeText.value)) } catch { /* In-memory preference when storage is blocked. */ }
   applyTextSize()
 }
 async function logout() {
