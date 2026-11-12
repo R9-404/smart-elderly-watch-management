@@ -6,9 +6,9 @@
 
 1. 记录当前 `preview` 的完整 40 位 SHA。
 2. 冻结该候选。候选期只接受缺陷、安全、构建或发布阻断修复；新功能、架构重构和依赖大升级进入下一候选。
-3. 在该 SHA 上手动运行 Preview CI，并启用正式候选需要的原生手表与 Windows 桌面构建。
+3. 将同一候选 SHA 引入 `preview` 后，分支推送自动运行完整 Preview CI，启用原生手表与 Windows 桌面构建。手动复验时也必须启用这两项。
 4. Security 必须在同一 SHA 上成功。
-5. 运行 Tauri preview candidate，输入同一 SHA。release gate 必须确认当前 `preview` HEAD、必需 job、artifact digest 与来源全部一致。
+5. 分支推送同时启动 Tauri preview candidate；它等待同一 SHA 的 CI 与 Security 成功后运行 release gate，确认当前 `preview` HEAD、必需 job、artifact digest 与来源全部一致。手动复验时输入同一 SHA。
 
 ## 首次切换
 

@@ -46,7 +46,7 @@ jobs:
     with:
       sdk_url: ${{ inputs.sdk_url || vars.HARMONY_SDK_URL || '' }}
       sdk_sha256: ${{ inputs.sdk_sha256 || vars.HARMONY_SDK_SHA256 || '' }}
-      require_native: ${{ inputs.require_native || false }}
+      require_native: ${{ inputs.require_native || github.event_name == 'push' }}
 
   simulator-tests:
     name: Watch simulator tests
@@ -90,7 +90,7 @@ jobs:
     name: Windows sidecar contract
     uses: ./.github/workflows/reusable-windows-package.yml
     with:
-      build_desktop: ${{ inputs.build_desktop || false }}
+      build_desktop: ${{ inputs.build_desktop || github.event_name == 'push' }}
 
   deployment:
     name: Deployment and alerts

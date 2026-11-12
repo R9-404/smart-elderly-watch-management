@@ -29,8 +29,9 @@ CodeQL 或依赖审查因 fork 权限、配置缺失而未运行时，应由维�
 UI Quality 由 Preview CI 在每个候选提交上调用，不再按前端路径过滤；复用工作流明确
 检出 PR head SHA，UI 日志与图片归入 `ui-quality-<SHA>`，不自动更新视觉基线。
 
-正式候选需在当前 `preview` SHA 上手动运行 Preview CI，启用 `require_native` 与
-`build_desktop`。原生构建读取显式 SDK URL / SHA-256，或仓库变量 `HARMONY_SDK_URL` /
+`preview` 与 `main` 的分支推送自动启用完整原生 Preview CI，并启动对应通道的候选工作流；
+候选工作流等待同一 SHA 的 CI 与 Security 成功，再执行来源与产物门禁。手动复验时仍需启用
+`require_native` 与 `build_desktop`。原生构建读取显式 SDK URL / SHA-256，或仓库变量 `HARMONY_SDK_URL` /
 `HARMONY_SDK_SHA256`。缺少配置必须失败；普通 PR 的可选原生 job 被跳过时，只能声明
 基础检查通过。SDK 工具链版本为 Command Line Tools 6.1.1.280 / HarmonyOS API 24，
 URL 必须为 HTTPS，并在解压和执行前核对预期归档 SHA-256。
@@ -50,6 +51,9 @@ Preview CI 与 Security 工作流分别验证当前提交的后端、数据库�
 OpenAPI、前端 test/typecheck/build/audit、Windows sidecar 及漏洞扫描。具体执行范围以当前
 workflow 文件和对应 commit 的 job 结果为准；未配置的数据库测试、跳过的原生 SDK 编译、
 未进行的真实设备或生产环境演练不得报告为通过。
+
+Go 漏洞扫描同时保存 JSON 与文本报告。`govulncheck -json` 即使发现漏洞也返回 0；
+必须再用工具自身的文本转换器检查同一份 JSON，并通过 Bash pipefail 保留漏洞退出码。
 
 发布门禁应校验明确的 40 位 commit SHA 与目标分支 head 一致，防止验证期间分支移动；选择
 该 SHA 对应的最新工作流运行，拒绝用旧的成功运行覆盖新提交的失败/取消结果；同时核对聚合

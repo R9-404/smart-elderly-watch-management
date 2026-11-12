@@ -1,5 +1,7 @@
 name: Tauri preview candidate
 on:
+  push:
+    branches: [preview]
   workflow_dispatch:
     inputs:
       source_sha:
@@ -12,7 +14,7 @@ jobs:
   exact-source:
     uses: ./.github/workflows/reusable-exact-source.yml
     with:
-      source_sha: ${{ inputs.source_sha }}
+      source_sha: ${{ inputs.source_sha || github.sha }}
       source_branch: preview
     permissions:
       contents: read
@@ -29,7 +31,7 @@ jobs:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
         with:
           persist-credentials: false
-          ref: ${{ inputs.source_sha }}
+          ref: ${{ inputs.source_sha || github.sha }}
       - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1
         with:
           node-version: '24'
@@ -54,17 +56,17 @@ jobs:
         shell: pwsh
         env:
           GITHUB_TOKEN: ${{ github.token }}
-        run: python scripts/reliability/release-gate.py --repo '${{ github.repository }}' --branch preview --sha '${{ inputs.source_sha }}' --output release-provenance.json
+        run: python scripts/reliability/release-gate.py --repo '${{ github.repository }}' --branch preview --sha '${{ inputs.source_sha || github.sha }}' --output release-provenance.json
       - uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f
         with:
-          name: suining-windows-release-${{ inputs.source_sha }}
+          name: suining-windows-release-${{ inputs.source_sha || github.sha }}
           path: |
             智慧养老手表管理系统/outputs/*/release/*
             release-provenance.json
           if-no-files-found: error
       - uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f
         with:
-          name: suining-setup-${{ inputs.source_sha }}
+          name: suining-setup-${{ inputs.source_sha || github.sha }}
           path: |
             智慧养老手表管理系统/outputs/*/release/Suining-Setup-*.exe
             智慧养老手表管理系统/outputs/*/release/SHA256SUMS.txt
@@ -73,7 +75,7 @@ jobs:
           if-no-files-found: error
       - uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f
         with:
-          name: suining-portable-${{ inputs.source_sha }}
+          name: suining-portable-${{ inputs.source_sha || github.sha }}
           path: |
             智慧养老手表管理系统/outputs/*/release/Suining-Portable-*.zip
             智慧养老手表管理系统/outputs/*/release/SHA256SUMS.txt
@@ -82,7 +84,7 @@ jobs:
           if-no-files-found: error
       - uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f
         with:
-          name: suining-source-${{ inputs.source_sha }}
+          name: suining-source-${{ inputs.source_sha || github.sha }}
           path: |
             智慧养老手表管理系统/outputs/*/release/Suining-Source-*.zip
             智慧养老手表管理系统/outputs/*/release/SHA256SUMS.txt
@@ -91,7 +93,7 @@ jobs:
           if-no-files-found: error
       - uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f
         with:
-          name: suining-native-nofonts-win-x64-${{ inputs.source_sha }}
+          name: suining-native-nofonts-win-x64-${{ inputs.source_sha || github.sha }}
           path: |
             智慧养老手表管理系统/outputs/*/release/Suining-Native-NoFonts-*-win-x64.exe
             智慧养老手表管理系统/outputs/*/release/SHA256SUMS.txt
@@ -100,7 +102,7 @@ jobs:
           if-no-files-found: error
       - uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f
         with:
-          name: suining-native-nofonts-linux-x64-${{ inputs.source_sha }}
+          name: suining-native-nofonts-linux-x64-${{ inputs.source_sha || github.sha }}
           path: |
             智慧养老手表管理系统/outputs/*/release/Suining-Native-NoFonts-*-linux-x64.tar.gz
             智慧养老手表管理系统/outputs/*/release/SHA256SUMS.txt
@@ -109,7 +111,7 @@ jobs:
           if-no-files-found: error
       - uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f
         with:
-          name: suining-native-nofonts-linux-arm64-${{ inputs.source_sha }}
+          name: suining-native-nofonts-linux-arm64-${{ inputs.source_sha || github.sha }}
           path: |
             智慧养老手表管理系统/outputs/*/release/Suining-Native-NoFonts-*-linux-arm64.tar.gz
             智慧养老手表管理系统/outputs/*/release/SHA256SUMS.txt
