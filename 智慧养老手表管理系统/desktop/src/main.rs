@@ -148,6 +148,32 @@ fn open_external_link(
 }
 
 
+#[cfg(test)]
+mod external_link_tests {
+    use super::permitted_external_link;
+
+    #[test]
+    fn accepts_confirmed_public_https_destinations() {
+        assert!(permitted_external_link("https://www.amap.com/ssr/embed/place?lat=30").is_ok());
+        assert!(permitted_external_link("https://example.org/help").is_ok());
+    }
+
+    #[test]
+    fn rejects_insecure_local_and_advertising_redirects() {
+        for url in [
+            "http://example.org",
+            "javascript:alert(1)",
+            "https://user:pass@example.org/",
+            "https://127.0.0.1/private",
+            "https://localhost/private",
+            "https://ad.doubleclick.net/redirect",
+            "https://googleadservices.com/pagead/aclk",
+        ] {
+            assert!(permitted_external_link(url).is_err(), "{url}");
+        }
+    }
+}
+
 fn start_backend(app: &tauri::App) -> Result<Backend, Box<dyn std::error::Error>> {
     let data = if let Some(path) = std::env::var_os("SUINING_USER_DATA") {
         PathBuf::from(path)
