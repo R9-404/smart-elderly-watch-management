@@ -26,7 +26,8 @@ import { computed, onBeforeUnmount, onMounted, ref, watch, type PropType } from 
 import L from 'leaflet'
 import 'leaflet/dist/leaflet.css'
 import { describePositionContext, type PositionContext } from '../utils/positionContext'
-import { mapPreferences, mapLocationUrl } from '../utils/mapProviders'
+import { mapPreferences } from '../utils/mapProviders'
+import { mapLocationUrl } from '../utils/mapLinks'
 
 interface PositionSelection extends PositionContext {
   lng?: number | string | null
