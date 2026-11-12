@@ -11,6 +11,7 @@
       <el-select id="setting-map-provider" v-model="mapPreferences.provider" @change="saveMapPreferences">
         <el-option value="amap" label="高德地图 · 内嵌，无需 Key" />
         <el-option value="tencent" label="腾讯地图 · 在浏览器打开" />
+        <el-option value="google" label="Google 地图 · 官方免 Key 链接" />
         <el-option value="offline" label="仅显示原始坐标（不联网）" />
       </el-select>
       <label for="setting-coordinate-system">设备上报坐标系</label>
@@ -26,7 +27,7 @@
         </el-select>
         <div class="setting"><label for="setting-map-auto">选中位置后自动加载地图</label><el-switch id="setting-map-auto" v-model="mapPreferences.loadOnlineAutomatically" @change="saveMapPreferences" /></div>
       </template>
-      <p class="hint">默认按需加载。加载在线地图时，所选坐标会发送给地图服务商；不会发送老人姓名。腾讯地图使用官方位置链接打开。坐标系必须与设备真实上报格式一致，错误设置会产生位置偏移。需要自定义轨迹、多点图层和 Key 认证时，应通过独立 SDK 接口实现。</p>
+      <p class="hint">默认按需加载。加载在线地图时，所选坐标会发送给地图服务商；不会发送老人姓名。腾讯地图与 Google 地图使用官方位置链接，经确认后由浏览器打开；Google 地图在中国大陆网络可能不可用。坐标系必须与设备真实上报格式一致，错误设置会产生位置偏移。需要自定义轨迹、多点图层和 Key 认证时，应通过独立 SDK 接口实现。</p>
     </section>
     <template #footer><el-button @click="resetMapPreferences">恢复地图及动画默认设置</el-button><el-button type="primary" @click="visible=false">完成</el-button></template>
   </el-dialog>
