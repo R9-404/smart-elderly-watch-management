@@ -2,10 +2,13 @@
   <section class="position-map" aria-label="位置地图">
     <div class="position-map-heading">
       <div><h2>位置地图</h2><p>{{ valid ? `${selection?.name || '长者'} · ${selection?.lng}，${selection?.lat}` : '选择一条位置记录，在此查看。' }}</p></div>
-      <el-button v-if="valid && !online" @click="enableTiles">加载在线地图</el-button>
+      <el-button v-if="valid && !online" @click="enableTiles">加载高德地图</el-button>
       <el-button v-if="online" link @click="disableTiles">关闭在线地图</el-button>
     </div>
-    <div ref="canvas" class="position-map-canvas" :class="{ 'has-location': valid }" role="region" aria-label="可缩放的位置地图"></div>
+    <iframe v-if="online && embeddedUrl" :src="embeddedUrl" class="position-map-canvas online-map"
+      title="高德地图 · 设备最近上报位置" loading="lazy" referrerpolicy="strict-origin-when-cross-origin"
+      allowfullscreen></iframe>
+    <div v-show="!online" ref="canvas" class="position-map-canvas" :class="{ 'has-location': valid }" role="region" aria-label="离线位置标记"></div>
     <p v-if="valid" class="position-map-note">{{ describePositionContext(selection ?? {}) }}</p>
     <p class="position-map-note" role="status">{{ message }}</p>
   </section>
@@ -16,6 +19,7 @@ import { computed, onBeforeUnmount, onMounted, ref, watch, type PropType } from 
 import L from 'leaflet'
 import 'leaflet/dist/leaflet.css'
 import { describePositionContext, type PositionContext } from '../utils/positionContext'
+import { wgs84ToGcj02 } from '../utils/gcj02'
 
 interface PositionSelection extends PositionContext {
   lng?: number | string | null
@@ -31,11 +35,24 @@ const valid = computed(() => {
   return value && value.lng != null && value.lat != null && String(value.lng).trim() !== '' && String(value.lat).trim() !== '' &&
     Number.isFinite(Number(value.lng)) && Number.isFinite(Number(value.lat)) && Math.abs(Number(value.lng)) <= 180 && Math.abs(Number(value.lat)) <= 90
 })
+const embeddedUrl = computed(() => {
+  if (!valid.value || !props.selection) return ''
+  const [lng, lat] = wgs84ToGc02Position(props.selection)
+  const params = new URLSearchParams({
+    lng: String(lng), lat: String(lat), zoom: '16',
+    name: props.selection.name || '最近上报位置',
+    platform: 'pc', src: 'suining'
+  })
+  return `https://www.amap.com/ssr/embed/place?${params.toString()}`
+})
+function wgs84ToGc02Position(position: PositionSelection): [number, number] {
+  return wgs84ToGcj02(Number(position.lng), Number(position.lat))
+}
 const message = computed(() => !valid.value ? '暂无可用坐标。' : failed.value ? '在线地图加载失败；位置标记与原始坐标仍可查看。' :
-  online.value ? '坐标以设备上报为准，地图仅作参考。' : '所选上报坐标已标记。在线底图按需加载，需要网络连接。')
+  online.value ? '在线底图由高德地图提供，显示坐标按 WGS84 → GCJ-02 转换，仅供参考；请以设备原始上报与采样时间为准。' :
+  '所选上报坐标已标记。高德地图按需加载，需联网。')
 let map: L.Map | null = null
 let marker: L.CircleMarker | null = null
-let tiles: L.TileLayer | null = null
 let observer: ResizeObserver | null = null
 let resizeFrame: number | null = null
 function scheduleResize () {
@@ -57,20 +74,14 @@ function updateLocation () {
   marker.bindTooltip(label, { direction: 'top', permanent: true, offset: [0, -12] })
 }
 function enableTiles () {
-  if (!map || !valid.value || tiles) return
+  if (!map || !valid.value) return
   online.value = true
   failed.value = false
-  tiles = L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
-    maxZoom: 19, minZoom: 2, updateWhenIdle: true, keepBuffer: 1,
-    attribution: '© OpenStreetMap contributors'
-  })
-  tiles.on('tileerror', () => { failed.value = true })
-  tiles.addTo(map)
 }
 function disableTiles () {
-  if (tiles) { tiles.off(); tiles.remove(); tiles = null }
   online.value = false
   failed.value = false
+  scheduleResize()
 }
 onMounted(() => {
   if (!canvas.value) return
@@ -93,6 +104,7 @@ onBeforeUnmount(() => { observer?.disconnect(); if (resizeFrame !== null) cancel
 .position-map-heading p, .position-map-note { color: var(--care-text-muted); line-height: 1.7; overflow-wrap: anywhere; }
 .position-map-heading p { margin: 6px 0 0; }
 .position-map-canvas { height: clamp(240px, 46vh, 440px); z-index: 0; border-radius: 16px; background-color: #eef1e9; background-image: linear-gradient(#dce3d833 1px, transparent 1px), linear-gradient(90deg, #dce3d833 1px, transparent 1px); background-size: 32px 32px; }
+.online-map { display: block; width: 100%; border: 0; }
 .position-map-canvas:not(.has-location) { opacity: .55; pointer-events: none; }
 .position-map-note { margin: 12px 0 0; font-size: 15px; }
 .position-map :deep(.leaflet-container) { font-family: inherit; }
