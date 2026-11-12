@@ -52,6 +52,9 @@ export function readTimeoutError(): Error & { code: string } {
 
 export function readErrorMessage(error: unknown, fallback = '数据暂时无法加载'): string {
   if ((error as { code?: unknown } | null)?.code === 'ERR_READ_TIMEOUT') return READ_TIMEOUT_MESSAGE
+  const outcome = transportOutcome(error)
+  if (outcome === 'timeout') return READ_TIMEOUT_MESSAGE
+  if (outcome === 'network') return '查询时网络连接中断，请检查网络后重试'
   return apiErrorMessage(error, fallback)
 }
 
