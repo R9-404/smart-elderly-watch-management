@@ -114,7 +114,7 @@ func buildLatest(ctx context.Context, q *sql.Tx, oldID int64) ([]Record, error) 
 	sql := "SELECT s.sample_id,s.device_id,s.epoch,s.revision,s.payload FROM health_sample s INNER JOIN (" +
 		"SELECT sample_id,RANK() OVER (PARTITION BY " + partition + " ORDER BY sample_start DESC) AS latest_rank " +
 		"FROM health_sample WHERE old_id=? AND NOT deleted) ranked ON ranked.sample_id=s.sample_id " +
-		"WHERE ranked.latest_rank=1 ORDER BY s.sample_id LIMIT 10001"
+		"WHERE ranked.latest_rank=1 ORDER BY s.sample_id DESC LIMIT 10001"
 	rows, err := q.QueryContext(ctx, sql, oldID)
 	if err != nil {
 		return nil, err
