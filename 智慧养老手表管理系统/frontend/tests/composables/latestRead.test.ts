@@ -185,4 +185,18 @@ describe('cancelable latest read scheduler', () => {
     expect(accept.mock.calls).toEqual([[2, 2]])
   })
 
+  it('allows an identical query immediately after cancel', async () => {
+    const read = vi.fn((page: number) => page === 1 && read.mock.calls.length === 1
+      ? new Promise<number>(() => {}) : Promise.resolve(page))
+    const accept = vi.fn()
+    const queue = createLatestRead(read, accept, vi.fn(), vi.fn(), { key: page => String(page) })
+    const first = queue.run(1)
+    await flushPromises()
+    queue.cancel()
+    const second = queue.run(1)
+    await Promise.all([first, second])
+    expect(read).toHaveBeenCalledTimes(2)
+    expect(accept.mock.calls).toEqual([[1, 1]])
+  })
+
 })
