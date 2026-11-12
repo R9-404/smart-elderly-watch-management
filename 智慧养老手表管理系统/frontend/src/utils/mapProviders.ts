@@ -1,7 +1,7 @@
 import { reactive } from 'vue'
-import { wgs84ToGcj02 } from './gcj02'
+import { wgs84ToGcj02, gcj02ToWgs84 } from './gcj02'
 
-export type MapProvider = 'amap' | 'tencent' | 'offline'
+export type MapProvider = 'amap' | 'tencent' | 'google' | 'offline'
 export type MapStyle = 'roadmap' | 'satellite'
 export type MapCoordinateSystem = 'wgs84' | 'gcj02'
 export interface MapPreferences {
@@ -25,7 +25,7 @@ function readPreferences(): MapPreferences {
     if (!data || typeof data !== 'object') return { ...defaults }
     const value = data as Partial<MapPreferences>
     return {
-      provider: value.provider === 'amap' || value.provider === 'tencent' || value.provider === 'offline' ? value.provider : defaults.provider,
+      provider: value.provider === 'amap' || value.provider === 'tencent' || value.provider === 'google' || value.provider === 'offline' ? value.provider : defaults.provider,
       style: value.style === 'satellite' ? 'satellite' : 'roadmap',
       coordinateSystem: value.coordinateSystem === 'gcj02' ? 'gcj02' : 'wgs84',
       loadOnlineAutomatically: value.loadOnlineAutomatically === true,
@@ -49,6 +49,13 @@ export function mapDisplayPosition(longitude: number, latitude: number, coordina
   return coordinateSystem === 'wgs84' ? wgs84ToGcj02(longitude, latitude) : [longitude, latitude]
 }
 export function mapLocationUrl(provider: Exclude<MapProvider, 'offline'>, longitude: number, latitude: number, style: MapStyle, coordinateSystem: MapCoordinateSystem = 'wgs84'): string {
+  if (provider === 'google') {
+    // Google Maps URLs use geographic GPS coordinates; GCJ-02 is only for Chinese map providers.
+    const [lng, lat] = coordinateSystem === 'gcj02'
+      ? gcj02ToWgs84(longitude, latitude) : [longitude, latitude]
+    const params = new URLSearchParams({ api: '1', query: `${lat},${lng}` })
+    return 'https://www.google.com/maps/search/?' + params
+  }
   const [lng, lat] = mapDisplayPosition(longitude, latitude, coordinateSystem)
   if (provider === 'amap') {
     const params = new URLSearchParams({
