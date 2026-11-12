@@ -290,3 +290,38 @@ it('ignores a binding-code revocation response after switching residents', async
     vi.restoreAllMocks()
   }
 })
+
+it('keeps the device table interactive during same-query refresh but shows loading for changed pages', async () => {
+  const requests: Array<(value: unknown) => void> = []
+  vi.spyOn(axios, 'post').mockImplementation(url => {
+    if (url === '/api/v1/device/list') return new Promise(resolve => { requests.push(resolve) })
+    if (url === '/api/v1/device/alertCounts') return Promise.resolve({ data: { items: [], total: 0 } })
+    if (url === '/api/v1/inviteCode/oldPersonList') return Promise.resolve({ data: { oldPeople: [] } })
+    throw new Error(`unexpected request: ${url}`)
+  })
+  let devices!: ReturnType<typeof useDevices>
+  const wrapper = mount(defineComponent({ setup() { devices = useDevices(); return () => null } }))
+  try {
+    await flushPromises()
+    expect(devices.deviceLoading.value).toBe(true)
+    requests[0]({ data: { devices: [{ deviceId: 1, deviceNo: 'watch-1' }], total: 21 } })
+    await flushPromises()
+    expect(devices.deviceLoading.value).toBe(false)
+
+    const refresh = devices.loadDevices()
+    expect(devices.deviceLoading.value).toBe(false)
+    expect(devices.deviceList.value).toHaveLength(1)
+    requests[1]({ data: { devices: [{ deviceId: 1, deviceNo: 'watch-1' }], total: 21 } })
+    await refresh
+
+    devices.changeDevicePage(2)
+    expect(devices.deviceLoading.value).toBe(true)
+    requests[2]({ data: { devices: [{ deviceId: 2, deviceNo: 'watch-2' }], total: 21 } })
+    await flushPromises()
+    expect(devices.deviceLoading.value).toBe(false)
+    expect(devices.deviceList.value[0]?.deviceId).toBe(2)
+  } finally {
+    wrapper.unmount()
+    vi.restoreAllMocks()
+  }
+})
