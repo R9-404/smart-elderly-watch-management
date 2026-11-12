@@ -6,9 +6,9 @@
       <el-button v-if="online" link @click="disableOnlineMap">关闭在线地图</el-button>
       <a v-if="valid && mapPreferences.provider === 'tencent' && providerUrl"
         class="online-map-link" :href="providerUrl" target="_blank" rel="noopener noreferrer"
-        referrerpolicy="no-referrer">在腾讯地图查看位置</a>
+        referrerpolicy="no-referrer" @click="openInSystemMap">在腾讯地图查看位置</a>
       <a v-if="online && embeddedUrl" class="online-map-link" :href="embeddedUrl"
-        target="_blank" rel="noopener noreferrer" referrerpolicy="no-referrer">在高德地图中打开</a>
+        target="_blank" rel="noopener noreferrer" referrerpolicy="no-referrer" @click="openInSystemMap">在高德地图中打开</a>
     </div>
     <iframe v-if="online && embeddedUrl" :src="embeddedUrl" class="position-map-canvas online-map"
       title="高德地图 · 设备最近上报位置" loading="lazy" referrerpolicy="strict-origin-when-cross-origin"
@@ -22,6 +22,9 @@
 <script setup lang="ts">
 import { computed, onBeforeUnmount, onMounted, ref, watch, type PropType } from 'vue'
 import L from 'leaflet'
+import { isTauri, invoke } from '@tauri-apps/api/core'
+import { ElMessage } from 'element-plus'
+import { wgs84ToGcj02 } from '../utils/gcj02'
 import 'leaflet/dist/leaflet.css'
 import { describePositionContext, type PositionContext } from '../utils/positionContext'
 import { mapPreferences, mapLocationUrl } from '../utils/mapProviders'
@@ -73,6 +76,16 @@ function updateLocation () {
   const label = document.createElement('span')
   label.textContent = props.selection.name || '最近上报位置'
   marker.bindTooltip(label, { direction: 'top', permanent: true, offset: [0, -12] })
+}
+async function openInSystemMap(event: MouseEvent) {
+  if (!isTauri() || !props.selection || !valid.value || mapPreferences.provider === 'offline') return
+  event.preventDefault()
+  const [longitude, latitude] = wgs84ToGcj02(Number(props.selection.lng), Number(props.selection.lat))
+  try {
+    await invoke('open_map_location', { provider: mapPreferences.provider, latitude, longitude })
+  } catch {
+    ElMessage.error('无法打开系统浏览器，请检查桌面环境')
+  }
 }
 function enableOnlineMap () {
   if (!map || !valid.value || mapPreferences.provider !== 'amap') return
