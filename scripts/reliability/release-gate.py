@@ -11,7 +11,7 @@ from pathlib import Path
 
 # The backend CI matrix is the single source of truth; the guard in
 # test_release_gate.py fails if this constant drifts from the workflow.
-BACKEND_GO_VERSION = "1.27.3"
+BACKEND_GO_VERSION = "1.27.4"
 
 REQUIRED_CI_JOBS = (
     "Core CI / required",

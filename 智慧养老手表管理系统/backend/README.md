@@ -6,7 +6,7 @@ Go 服务端负责处理业务 API、手表设备接入、服务端会话、图�
 
 ## 技术栈与代码结构
 
-Go 模块名为 `suining-care`，使用 Go 1.27.3。HTTP 层基于标准库 `net/http`，MySQL 访问使用 `database/sql` 与 `go-sql-driver/mysql`，PostgreSQL 分析投影使用 `pgx/v5`，不依赖外部消息队列或分布式事务协调器。
+Go 模块名为 `suining-care`，使用 Go 1.27.4。HTTP 层基于标准库 `net/http`，MySQL 访问使用 `database/sql` 与 `go-sql-driver/mysql`，PostgreSQL 分析投影使用 `pgx/v5`，不依赖外部消息队列或分布式事务协调器。
 
 | 目录 / 入口 | 职责说明 |
 | --- | --- |

@@ -35,7 +35,7 @@ UI Quality 由 Preview CI 在每个候选提交上调用，不再按前端路径
 基础检查通过。SDK 工具链版本为 Command Line Tools 6.1.1.280 / HarmonyOS API 24，
 URL 必须为 HTTPS，并在解压和执行前核对预期归档 SHA-256。
 
-`scripts/reliability/release-gate.py` 对正式候选独立检查 UI、Go 1.27.3、手表协议与真实
+`scripts/reliability/release-gate.py` 对正式候选独立检查 UI、Go 1.27.4、手表协议与真实
 后端联调、原生 HAP、模拟器协议、Windows sidecar、实际 Tauri 构建和安装/卸载测试、
 部署合同及漏洞扫描。另查两项 CodeQL 结果。每项必需 job 必须在最新运行 attempt 中
 明确完成且成功，不能由聚合 job 的绿色状态代替，也不接受 skipped/cancelled。
