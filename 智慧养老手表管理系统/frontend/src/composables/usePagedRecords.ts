@@ -1,6 +1,6 @@
 import { onBeforeUnmount, onMounted, ref, shallowRef } from 'vue'
 import { api } from '../api/client'
-import { apiErrorMessage } from '../api/httpContract'
+import { readErrorMessage } from '../api/httpContract'
 import { createLatestRead } from './latestRead'
 
 export interface PagedOptions<TQuery extends Record<string, unknown>> {
@@ -49,7 +49,7 @@ export function usePagedRecords<TRecord, TQuery extends Record<string, unknown> 
     error => {
       records.value = []
       total.value = 0
-      loadError.value = apiErrorMessage(error, options.failure ?? '请求未完成，请重试')
+      loadError.value = readErrorMessage(error, options.failure ?? '请求未完成，请重试')
     },
     loading => { isLoading.value = loading }
   )
