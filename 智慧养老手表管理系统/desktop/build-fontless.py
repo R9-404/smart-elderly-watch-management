@@ -56,6 +56,8 @@ with TemporaryDirectory(prefix="suining-web-backup-") as temporary:
 
         for goos, goarch, suffix in targets:
             output = release / f"Suining-Native-NoFonts-{version['version']}-{suffix}"
+            output.unlink(missing_ok=True)
+            built.append(output)
             env = dict(os.environ, GOOS=goos, GOARCH=goarch, CGO_ENABLED="0")
             binary = output if goos == "windows" else Path(temporary) / f"suining-server-{goarch}"
             subprocess.run(
@@ -68,7 +70,8 @@ with TemporaryDirectory(prefix="suining-web-backup-") as temporary:
                     member.mode = 0o755
                     with binary.open("rb") as stream:
                         archive.addfile(member, stream)
-            built.append(output)
+            if not output.is_file() or output.stat().st_size == 0:
+                raise RuntimeError(f"Missing or empty native distribution: {output.name}")
             print(f"{output.name}: {output.stat().st_size} bytes")
         print(f"Font-free native builds passed; removed {faces} embedded @font-face rules.")
     except BaseException:
