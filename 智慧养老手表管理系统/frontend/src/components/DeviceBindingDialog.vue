@@ -45,6 +45,7 @@
           </template>
         </el-table-column>
       </el-table>
+      </div>
     </el-dialog>
 </template>
 
