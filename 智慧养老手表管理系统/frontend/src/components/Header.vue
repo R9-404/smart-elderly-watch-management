@@ -92,6 +92,13 @@ onMounted(applyTextSize)
   .header-right { gap: 7px; }
   .text-size-button { min-width: 64px; padding: 10px 8px; }
 }
+@media (max-width: 360px) {
+  .brand-copy { display: none; }
+  .brand-mark { width: 44px; height: 44px; }
+  .text-size-button { min-width: 56px; }
+  .care-header { padding-inline: 10px; }
+  .header-right { gap: 4px; }
+}
 @media (max-width: 420px) {
   .brand-copy small { display: none; }
   .user-avatar { display: none; }
