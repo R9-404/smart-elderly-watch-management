@@ -93,40 +93,60 @@ async fn setup_admin(
     Ok(serde_json::json!({"status": status, "data": data}))
 }
 
+// Only HTTPS destinations with a normal DNS name may leave the local desktop shell.
+// Actual navigation happens in the system browser, never inside the care WebView.
+fn permitted_external_link(raw: &str) -> Result<reqwest::Url, String> {
+    let url = reqwest::Url::parse(raw).map_err(|_| "无效的网页地址")?;
+    if url.scheme() != "https"
+        || !url.username().is_empty()
+        || url.password().is_some()
+        || url.port().is_some()
+    {
+        return Err("只允许安全的 HTTPS 网页链接".into());
+    }
+    let host = url.host_str().ok_or("缺少网页域名")?;
+    if host.parse::<std::net::IpAddr>().is_ok()
+        || host == "localhost"
+        || !host.contains('.')
+        || host.ends_with(".local")
+        || host.ends_with(".internal")
+    {
+        return Err("不允许打开本地或 IP 地址链接".into());
+    }
+    // Reject known advertising and redirect gateways; other external sites
+    // still require the user's explicit confirmation in the UI.
+    const BLOCKED: &[&str] = &[
+        "doubleclick.net",
+        "googlesyndication.com",
+        "googleadservices.com",
+        "adservice.google.com",
+        "taboola.com",
+        "outbrain.com",
+    ];
+    if BLOCKED.iter().any(|domain| host == *domain || host.ends_with(&format!(".{domain}"))) {
+        return Err("已拦截广告跳转域名".into());
+    }
+    Ok(url)
+}
+
 #[tauri::command]
-fn open_map_location(
+fn open_external_link(
     window: tauri::WebviewWindow,
     state: tauri::State<'_, Backend>,
-    latitude: f64,
-    longitude: f64,
-    provider: &str,
+    url: String,
 ) -> Result<(), String> {
-    let origin = window.url().map_err(|_| "无法验证应用页面")?;
-    if window.label() != "main" || origin.origin().ascii_serialization() != state.origin {
+    let page = window.url().map_err(|_| "无法验证应用页面")?;
+    if window.label() != "main" || page.origin().ascii_serialization() != state.origin {
         return Err("请求未获授权".into());
     }
-    if !latitude.is_finite()
-        || !longitude.is_finite()
-        || !(-90.0..=90.0).contains(&latitude)
-        || !(-180.0..=180.0).contains(&longitude)
-    {
-        return Err("无效的位置坐标".into());
-    }
-    let url = match provider {
-        "tencent" => format!(
-            "https://apis.map.qq.com/uri/v1/marker?marker=coord:{latitude},{longitude}%3Btitle%3ASuining&referer=suining"
-        ),
-        "amap" => format!(
-            "https://uri.amap.com/marker?position={longitude},{latitude}&name=Suining"
-        ),
-        _ => return Err("不支持的地图服务".into()),
-    };
+    let destination = permitted_external_link(&url)?;
     Command::new("explorer.exe")
-        .arg(url)
+        .arg(destination.as_str())
         .spawn()
         .map_err(|_| "无法启动系统浏览器".to_string())?;
     Ok(())
 }
+
 
 fn start_backend(app: &tauri::App) -> Result<Backend, Box<dyn std::error::Error>> {
     let data = if let Some(path) = std::env::var_os("SUINING_USER_DATA") {
@@ -263,7 +283,7 @@ fn main() {
                 let _ = window.set_focus();
             }
         }))
-        .invoke_handler(tauri::generate_handler![setup_admin, open_map_location])
+        .invoke_handler(tauri::generate_handler![setup_admin, open_external_link])
         .setup(|app| {
             let backend = start_backend(app)?;
             let origin = backend.origin.clone();
