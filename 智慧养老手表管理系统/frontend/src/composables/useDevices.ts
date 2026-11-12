@@ -35,6 +35,7 @@ export function useDevices() {
   let disposed = false
   let deviceRequestPending = false
   let displayedQuery = ''
+  let consecutivePollFailures = 0
   // Only the newest read may publish state, even if an older request ignores cancellation.
   let alertRequest = 0
   let alertCountsRequest = 0
@@ -123,6 +124,8 @@ export function useDevices() {
     } finally {
       deviceRequestPending = false
       if (disposed) return
+      consecutivePollFailures = state.deviceLoadError || state.alertLoadError
+        ? Math.min(consecutivePollFailures + 1, 3) : 0
       state.deviceLoading = false
       if (state.reloadPending) {
         state.reloadPending = false
@@ -236,10 +239,11 @@ export function useDevices() {
   function startTimer() {
     stopTimer()
     if (!state.autoRefresh || document.hidden || disposed) return
+    const delay = 5000 * (2 ** consecutivePollFailures)
     refreshTimer = setTimeout(async () => {
       refreshTimer = undefined
       try { await loadDevices() } finally { startTimer() }
-    }, 5000)
+    }, delay)
   }
   async function handleVisibilityChange() {
     stopTimer()
@@ -247,6 +251,12 @@ export function useDevices() {
       await loadDevices()
       startTimer()
     }
+  }
+  function handleOnline() {
+    if (disposed || !state.autoRefresh || document.hidden) return
+    consecutivePollFailures = 0
+    stopTimer()
+    void loadDevices().finally(startTimer)
   }
   function closeCreateDialog() {
     state.createDialogVisible = false
@@ -322,6 +332,7 @@ export function useDevices() {
     void loadDevices()
     void loadOldPeople()
     document.addEventListener('visibilitychange', handleVisibilityChange)
+    window.addEventListener('online', handleOnline)
     startTimer()
   })
   onBeforeUnmount(() => {
@@ -331,6 +342,7 @@ export function useDevices() {
     disposeWorkbench()
     clearTimeout(filterTimer)
     document.removeEventListener('visibilitychange', handleVisibilityChange)
+    window.removeEventListener('online', handleOnline)
     stopTimer()
   })
   return {
