@@ -1,5 +1,7 @@
 # 支持与问题反馈
 
+首次使用步骤、各角色功能及可逐项核对的故障解决清单见[岁宁使用指南](USER_GUIDE.md)。
+
 项目通过 [GitHub Issues](https://github.com/WatchTestCs/smart-elderly-watch-management/issues) 接收缺陷报告和功能建议，可使用中文或英文。维护者按实际时间处理，不提供响应时限或生产可用性保证。
 
 安全漏洞请按照 [安全政策](../.github/SECURITY.md) 私下报告。公开 Issue 不要包含真实长者资料、健康数据、位置记录、数据库文件、密码、设备密钥或私钥。日志和截图先脱敏。
