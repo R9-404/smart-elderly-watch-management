@@ -248,3 +248,45 @@ it('reloads page one after deleting the final device on a later page', async () 
     vi.restoreAllMocks()
   }
 })
+
+it('ignores a binding-code revocation response after switching residents', async () => {
+  const replies = new Map<string, (value: unknown) => void>()
+  let finishDelete!: (value: unknown) => void
+  const listRequests: string[] = []
+  vi.spyOn(axios, 'post').mockImplementation((url, body) => {
+    if (url === '/api/v1/device/bindCodeList') {
+      const oldId = String((body as { oldId: number }).oldId)
+      listRequests.push(oldId)
+      return new Promise(resolve => { replies.set(oldId, resolve) })
+    }
+    if (url === '/api/v1/device/deleteBindCode') {
+      return new Promise(resolve => { finishDelete = resolve })
+    }
+    if (url === '/api/v1/device/list') return Promise.resolve({ data: { devices: [], total: 0 } })
+    if (url === '/api/v1/device/alertCounts') return Promise.resolve({ data: { items: [], total: 0 } })
+    if (url === '/api/v1/inviteCode/oldPersonList') return Promise.resolve({ data: { oldPeople: [] } })
+    throw new Error(`unexpected request: ${url}`)
+  })
+  let devices!: ReturnType<typeof useDevices>
+  const wrapper = mount(defineComponent({ setup() { devices = useDevices(); return () => null } }))
+  try {
+    await flushPromises()
+    devices.openBindCodeDialog({ deviceId: 1, deviceNo: 'watch-1', oldId: 1 })
+    await flushPromises()
+    replies.get('1')?.({ data: { bindCodes: [{ id: 10, code: 'old' }] } })
+    await flushPromises()
+    const removing = devices.deleteBindCode({ id: 10 })
+    await flushPromises()
+    devices.bindOldId.value = 2
+    await flushPromises()
+    replies.get('2')?.({ data: { bindCodes: [{ id: 20, code: 'current' }] } })
+    await flushPromises()
+    finishDelete({ data: { returnCode: '1111' } })
+    await removing
+    expect(devices.bindCodeList.value).toEqual([{ id: 20, code: 'current' }])
+    expect(listRequests).toEqual(['1', '2'])
+  } finally {
+    wrapper.unmount()
+    vi.restoreAllMocks()
+  }
+})
