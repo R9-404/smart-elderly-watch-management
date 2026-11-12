@@ -21,6 +21,7 @@ export function usePagedRecords<TRecord, TQuery extends Record<string, unknown> 
   const total = ref(0)
   const pageSize = ref(options.initialPageSize ?? 10)
   const currentPage = ref(1)
+  let displayedQuery = ''
 
   function pageQuery(): PageQuery {
     return { ...(options.buildQuery?.() ?? {}), page: currentPage.value, pageSize: pageSize.value } as PageQuery
@@ -29,7 +30,7 @@ export function usePagedRecords<TRecord, TQuery extends Record<string, unknown> 
   const reader = createLatestRead(
     (query: PageQuery, signal: AbortSignal) =>
       api.post<Record<string, unknown>>(options.path, query, { signal }),
-    ({ data }) => {
+    ({ data }, query) => {
       const list = data[options.responseKey]
       const count = data.total ?? (Array.isArray(list) ? list.length : undefined)
       if (!Array.isArray(list) || typeof count !== 'number' || !Number.isSafeInteger(count) || count < 0) {
@@ -44,11 +45,11 @@ export function usePagedRecords<TRecord, TQuery extends Record<string, unknown> 
       }
       records.value = list as TRecord[]
       total.value = count
+      displayedQuery = JSON.stringify(query)
       loadError.value = ''
     },
     error => {
-      records.value = []
-      total.value = 0
+      // Keep the last confirmed page on a failed refresh. Query changes clear it in load().
       loadError.value = readErrorMessage(error, options.failure ?? '请求未完成，请重试')
     },
     loading => { isLoading.value = loading },
@@ -57,8 +58,12 @@ export function usePagedRecords<TRecord, TQuery extends Record<string, unknown> 
 
   function load(keepPage = false): Promise<void> {
     if (keepPage !== true) currentPage.value = 1
-    loadError.value = ''
-    return reader.run(pageQuery())
+    const query = pageQuery()
+    if (displayedQuery && displayedQuery !== JSON.stringify(query)) {
+      records.value = []
+      displayedQuery = ''
+    }
+    return reader.run(query)
   }
 
   function handleSizeChange(size: number): Promise<void> {
