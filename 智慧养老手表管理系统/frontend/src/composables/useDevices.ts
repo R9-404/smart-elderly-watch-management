@@ -33,6 +33,7 @@ export function useDevices() {
   let filterTimer: ReturnType<typeof setTimeout> | undefined
   let refreshTimer: ReturnType<typeof setTimeout> | undefined
   let disposed = false
+  let deviceRequestPending = false
   // Only the newest read may publish state, even if an older request ignores cancellation.
   let alertRequest = 0
   let alertCountsRequest = 0
@@ -64,7 +65,7 @@ export function useDevices() {
 
   async function loadDevices() {
     if (disposed) return
-    if (state.deviceLoading) {
+    if (deviceRequestPending) {
       state.reloadPending = true
       return
     }
@@ -75,7 +76,9 @@ export function useDevices() {
     const isCurrentQuery = () =>
       query.page === state.currentPage && query.pageSize === state.pageSize &&
       query.query === state.deviceQuery && query.state === state.deviceState
-    state.deviceLoading = true
+    deviceRequestPending = true
+    // Preserve the current table during background polling; first load still shows a busy state.
+    state.deviceLoading = state.deviceList.length === 0
     state.deviceLoadError = ''
     try {
       await Promise.all([
@@ -113,6 +116,7 @@ export function useDevices() {
         loadAlertCounts()
       ])
     } finally {
+      deviceRequestPending = false
       if (disposed) return
       state.deviceLoading = false
       if (state.reloadPending) {
@@ -193,8 +197,15 @@ export function useDevices() {
       })
       accepted(data)
       ElMessage({ type: 'success', message: '已处理，红点已消除' })
-      await loadDevices()
-      await openWorkbench()
+      // A successful write may update the visible result immediately; reads reconcile in parallel.
+      const wasOpen = state.workbench.visible
+      if (wasOpen) {
+        state.workbench.list = state.workbench.list.filter(item =>
+          !(String(item.deviceId) === String(row.deviceId) && item.kind === row.kind &&
+            String(item.recordId ?? '') === String(row.recordId ?? '')))
+      }
+      void loadDevices()
+      if (wasOpen && state.workbench.visible) void openWorkbench()
     } catch (error) {
       ElMessage({ type: 'error', message: apiErrorMessage(error, '处理失败') })
     }
