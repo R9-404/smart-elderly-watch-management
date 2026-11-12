@@ -1,4 +1,5 @@
 import { expect, it } from 'vitest'
+import { flushPromises } from '@vue/test-utils'
 import { createDeviceState } from '@/composables/deviceModels'
 import { useDeviceWorkbench } from '@/composables/useDeviceWorkbench'
 
@@ -50,8 +51,7 @@ it('shows the first completed alert while another request is still waiting', asy
     ? Promise.resolve({ hasAlert: 1, kindText: '人员' })
     : new Promise(resolve => { finishSlow = resolve }))
   const pending = workbench.openWorkbench()
-  await Promise.resolve()
-  await Promise.resolve()
+  await flushPromises()
   expect(state.workbench.loading).toBe(true)
   expect(state.workbench.list.map(row => row.deviceId)).toEqual([1])
   finishSlow({ hasAlert: 1, kindText: '人员' })
