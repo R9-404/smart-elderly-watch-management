@@ -185,9 +185,16 @@ export function useDevices() {
     } catch (error) {
       if (revision === alertRequest && !disposed && state.alertDialog.visible) {
         state.alertDialog.loading = false
-        ElMessage({ type: 'error', message: readErrorMessage(error, '读取异常详情失败') })
+        state.alertDialog.hasAlert = -1
+        state.alertDialog.message = readErrorMessage(error, '读取异常详情失败')
       }
     }
+  }
+  function retryAlertDetail() {
+    if (!state.alertDialog.visible || state.alertDialog.loading || state.alertDialog.resolving ||
+        state.alertDialog.deviceId == null) return
+    const { deviceId, deviceNo, alias, kind } = state.alertDialog
+    void showAlert({ deviceId, deviceNo, alias }, kind)
   }
   async function resolveAlert() {
     if (state.alertDialog.resolving) return
@@ -359,7 +366,7 @@ export function useDevices() {
   return {
     ...toRefs(state), visibleDevices, onlineCount,
     loadDevices, loadAlertCounts, scheduleFilter, changeDevicePage, handleDeviceCommand,
-    alertOf, showAlert, resolveAlert, resolveAlertRow, isResolvingAlert, openWorkbench, closeWorkbench, gotoPage,
+    alertOf, showAlert, retryAlertDetail, resolveAlert, resolveAlertRow, isResolvingAlert, openWorkbench, closeWorkbench, gotoPage,
     loadOldPeople, startTimer, stopTimer, handleVisibilityChange,
     closeCreateDialog, createDevice, openBindCodeDialog, loadBindCodes,
     createBindCode, deleteBindCode, resetSecret, unbind, deleteDevice, copy
