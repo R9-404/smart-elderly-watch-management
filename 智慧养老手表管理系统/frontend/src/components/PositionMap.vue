@@ -93,7 +93,7 @@ onMounted(() => {
   if (!canvas.value) return
   map = L.map(canvas.value, { scrollWheelZoom: false, attributionControl: true, zoomControl: false }).setView([30, 110], 5)
   L.control.zoom({ zoomInTitle: '放大地图', zoomOutTitle: '缩小地图' }).addTo(map)
-  // Links are disabled in the desktop shell; retain readable attribution locally.
+  // The offline marker has no provider tiles, so keep Leaflet branding out of its controls.
   map.attributionControl.setPrefix(false)
   observer = new ResizeObserver(scheduleResize)
   observer.observe(canvas.value)
