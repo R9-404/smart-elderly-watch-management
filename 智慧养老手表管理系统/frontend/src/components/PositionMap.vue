@@ -10,7 +10,9 @@
       <a v-if="online && embeddedUrl" class="online-map-link" :href="embeddedUrl"
         target="_blank" rel="noopener noreferrer" referrerpolicy="no-referrer">在高德地图中打开</a>
     </div>
+    <p v-if="online && mapLoading" class="position-map-note" role="status">正在加载高德地图，位置坐标仍可查看…</p>
     <iframe v-if="online && embeddedUrl" :src="embeddedUrl" class="position-map-canvas online-map"
+      @load="mapLoading = false"
       title="高德地图 · 设备最近上报位置" loading="lazy" referrerpolicy="no-referrer" sandbox="allow-scripts allow-same-origin"
       allowfullscreen></iframe>
     <div v-show="!online" ref="canvas" class="position-map-canvas" :class="{ 'has-location': valid }" role="region" aria-label="离线位置标记"></div>
@@ -34,6 +36,7 @@ interface PositionSelection extends PositionContext {
 const props = defineProps({ selection: { type: Object as PropType<PositionSelection | null>, default: null } })
 const canvas = ref<HTMLElement | null>(null)
 const online = ref(false)
+const mapLoading = ref(false)
 const valid = computed(() => {
   const value = props.selection
   return value && value.lng != null && value.lat != null && String(value.lng).trim() !== '' && String(value.lat).trim() !== '' &&
@@ -78,9 +81,11 @@ function updateLocation () {
 function enableOnlineMap () {
   if (!map || !valid.value || mapPreferences.provider !== 'amap') return
   online.value = true
+  mapLoading.value = true
 }
 function disableOnlineMap () {
   online.value = false
+  mapLoading.value = false
   scheduleResize()
 }
 onMounted(() => {
@@ -92,12 +97,15 @@ onMounted(() => {
   observer = new ResizeObserver(scheduleResize)
   observer.observe(canvas.value)
   updateLocation()
-  if (valid.value && mapPreferences.provider === 'amap' && mapPreferences.loadOnlineAutomatically) online.value = true
+  if (valid.value && mapPreferences.provider === 'amap' && mapPreferences.loadOnlineAutomatically) enableOnlineMap()
 })
 watch(() => props.selection, updateLocation)
-watch(() => [mapPreferences.provider, mapPreferences.loadOnlineAutomatically, mapPreferences.coordinateSystem, props.selection?.lng, props.selection?.lat] as const, () => {
-  online.value = mapPreferences.provider === 'amap' && mapPreferences.loadOnlineAutomatically && Boolean(valid.value)
-  if (!online.value) scheduleResize()
+watch(() => [mapPreferences.provider, mapPreferences.loadOnlineAutomatically, valid.value] as const, () => {
+  if (mapPreferences.provider !== 'amap' || !valid.value) disableOnlineMap()
+  else if (mapPreferences.loadOnlineAutomatically && !online.value) enableOnlineMap()
+})
+watch(embeddedUrl, (url, previous) => {
+  if (online.value && url && url !== previous) mapLoading.value = true
 })
 onBeforeUnmount(() => { observer?.disconnect(); if (resizeFrame !== null) cancelAnimationFrame(resizeFrame); resizeFrame = null; disableOnlineMap(); map?.remove(); map = null })
 </script>
