@@ -43,7 +43,14 @@ export function installDesktopKeys(): () => void {
     if (!(element instanceof Element)) return
     const link = element.closest('a[href]')
     if (!link) return
-    const destination = new URL(link.href, window.location.href)
+    let destination: URL
+    try {
+      destination = new URL(link.href, window.location.href)
+    } catch {
+      event.preventDefault()
+      ElMessage.warning('无效的网页链接')
+      return
+    }
     if (destination.origin === window.location.origin) return
     event.preventDefault()
     event.stopPropagation()
