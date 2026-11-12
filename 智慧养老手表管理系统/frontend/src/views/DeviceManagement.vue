@@ -63,7 +63,7 @@ const {
   bindCodeList, newBindCode, bindOldId, bindExpireDays,
   createForm, alertTotals, alertDialog, workbench,
   visibleDevices, onlineCount, loadDevices, changeDevicePage, handleDeviceCommand,
-  alertOf, showAlert, resolveAlert, resolveAlertRow, openWorkbench, closeWorkbench, gotoPage,
+  alertOf, showAlert, resolveAlert, resolveAlertRow, isResolvingAlert, openWorkbench, closeWorkbench, gotoPage,
   closeCreateDialog, createDevice, openBindCodeDialog,
   createBindCode, deleteBindCode, resetSecret, unbind, deleteDevice, copy
 } = useDevices()
