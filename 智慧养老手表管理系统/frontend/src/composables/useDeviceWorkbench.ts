@@ -6,7 +6,7 @@ import type { AlertDetailResponse, DeviceId, DeviceRecord, DeviceState } from '.
 type AlertKind = 'person' | 'rate' | 'pre'
 interface AlertRequest { device: DeviceRecord; kind: AlertKind }
 
-const detailTimeoutMs = 3000
+const detailTimeoutMs = 7000
 
 // Owns the bounded detail queue and prevents obsolete dialog reads from publishing.
 export function useDeviceWorkbench(
@@ -61,6 +61,8 @@ export function useDeviceWorkbench(
             oldPersonName: detail.oldPersonName ?? device.oldPersonName ?? '',
             kind, kindText: detail.kindText, reason: detail.reason, recordId: detail.recordId
           }
+          // Show usable results as soon as they arrive; keep the original device order.
+          state.workbench.list = results.filter((row): row is DeviceRecord => row !== null)
         } catch (error) {
           if (!current()) return
           failed = true
