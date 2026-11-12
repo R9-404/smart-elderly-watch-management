@@ -105,3 +105,37 @@ it('returns to page one after deleting the final record in a collection', async 
   expect(state.records.value).toEqual([])
   wrapper.unmount()
 })
+
+it('keeps confirmed records on failed same-page refresh but clears old rows on page change', async () => {
+  mock.post.mockReset()
+  mock.post.mockResolvedValueOnce({ data: { items: [{ id: 1 }], total: 30 } })
+  let state!: ReturnType<typeof usePagedRecords<{ id: number }>>
+  const wrapper = mount(defineComponent({
+    setup() {
+      state = usePagedRecords<{ id: number }>({ path: '/api/v1/items', responseKey: 'items' })
+      return () => null
+    }
+  }))
+  try {
+    await flushPromises()
+    expect(state.records.value).toEqual([{ id: 1 }])
+    mock.post.mockRejectedValueOnce({ code: 'ERR_NETWORK' })
+    await state.load(true)
+    expect(state.records.value).toEqual([{ id: 1 }])
+    expect(state.total.value).toBe(30)
+    expect(state.loadError.value).toContain('网络')
+
+    let resolveNext!: (response: { data: { items: { id: number }[]; total: number } }) => void
+    mock.post.mockImplementationOnce(() => new Promise(resolve => { resolveNext = resolve }))
+    const nextPage = state.changePage(2)
+    expect(state.records.value).toEqual([])
+    expect(state.isLoading.value).toBe(true)
+    resolveNext({ data: { items: [{ id: 11 }], total: 30 } })
+    await nextPage
+    expect(state.records.value).toEqual([{ id: 11 }])
+    expect(state.loadError.value).toBe('')
+  } finally {
+    wrapper.unmount()
+    mock.post.mockReset()
+  }
+})
