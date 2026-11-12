@@ -2,8 +2,8 @@
   <section class="position-map" aria-label="位置地图">
     <div class="position-map-heading">
       <div><h2>位置地图</h2><p>{{ valid ? `${selection?.name || '长者'} · ${selection?.lng}，${selection?.lat}` : '选择一条位置记录，在此查看。' }}</p></div>
-      <el-button v-if="valid && !online" @click="enableTiles">加载高德地图</el-button>
-      <el-button v-if="online" link @click="disableTiles">关闭在线地图</el-button>
+      <el-button v-if="valid && !online" @click="enableOnlineMap">加载高德地图</el-button>
+      <el-button v-if="online" link @click="disableOnlineMap">关闭在线地图</el-button>
     </div>
     <iframe v-if="online && embeddedUrl" :src="embeddedUrl" class="position-map-canvas online-map"
       title="高德地图 · 设备最近上报位置" loading="lazy" referrerpolicy="strict-origin-when-cross-origin"
@@ -63,7 +63,7 @@ function scheduleResize () {
 function updateLocation () {
   if (!map) return
   if (marker) { marker.remove(); marker = null }
-  if (!valid.value || !props.selection) { disableTiles(); return }
+  if (!valid.value || !props.selection) { disableOnlineMap(); return }
   const point: L.LatLngTuple = [Number(props.selection.lat), Number(props.selection.lng)]
   map.setView(point, 15, { animate: false })
   marker = L.circleMarker(point, { radius: 9, color: '#fff', weight: 3, fillColor: '#215c4a', fillOpacity: 1 }).addTo(map)
@@ -71,13 +71,12 @@ function updateLocation () {
   label.textContent = props.selection.name || '最近上报位置'
   marker.bindTooltip(label, { direction: 'top', permanent: true, offset: [0, -12] })
 }
-function enableTiles () {
+function enableOnlineMap () {
   if (!map || !valid.value) return
   online.value = true
 }
-function disableTiles () {
+function disableOnlineMap () {
   online.value = false
-  failed.value = false
   scheduleResize()
 }
 onMounted(() => {
@@ -91,7 +90,7 @@ onMounted(() => {
   updateLocation()
 })
 watch(() => props.selection, updateLocation)
-onBeforeUnmount(() => { observer?.disconnect(); if (resizeFrame !== null) cancelAnimationFrame(resizeFrame); resizeFrame = null; disableTiles(); map?.remove(); map = null })
+onBeforeUnmount(() => { observer?.disconnect(); if (resizeFrame !== null) cancelAnimationFrame(resizeFrame); resizeFrame = null; disableOnlineMap(); map?.remove(); map = null })
 </script>
 
 <style scoped>
