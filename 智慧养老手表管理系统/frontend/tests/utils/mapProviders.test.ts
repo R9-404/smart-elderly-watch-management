@@ -26,3 +26,9 @@ it('stores only supported map providers, display preferences and no credentials'
   expect(mapPreferences.provider).toBe('amap')
   expect(document.documentElement.classList.contains('reduce-motion')).toBe(false)
 })
+
+it('does not double-transform coordinates already reported as GCJ-02', () => {
+  const uri = new URL(mapLocationUrl('amap', 116.403, 39.91, 'roadmap', 'gcj02'))
+  expect(uri.searchParams.get('lng')).toBe('116.403')
+  expect(uri.searchParams.get('lat')).toBe('39.91')
+})
