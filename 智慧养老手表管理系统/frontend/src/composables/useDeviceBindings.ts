@@ -73,14 +73,18 @@ export function useDeviceBindings(state: DeviceState, post: DevicePost) {
     } finally { creatingCode = false }
   }
   async function deleteBindCode(row: { id: DeviceId }) {
+    const revision = bindDialogRevision
+    const oldId = state.bindOldId
+    const isCurrent = () => !disposed && revision === bindDialogRevision &&
+      state.bindCodeDialogVisible && String(state.bindOldId) === String(oldId)
     try {
       const { data } = await post('deleteBindCode', { id: row.id })
       accepted(data)
-      if (disposed || !state.bindCodeDialogVisible) return
+      if (!isCurrent()) return
       ElMessage({ type: 'success', message: '已作废' })
-      await loadBindCodes(state.bindOldId)
+      await loadBindCodes(oldId)
     } catch (error) {
-      if (disposed || !state.bindCodeDialogVisible) return
+      if (!isCurrent()) return
       ElMessage({ type: 'error', message: apiErrorMessage(error, '请求未完成，请重试') })
     }
   }
