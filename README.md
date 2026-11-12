@@ -192,6 +192,7 @@ UI Quality 随每次 Preview CI 执行。`Core CI / required` 仅表示基础检
 
 | 主题 | 相关文档 |
 | --- | --- |
+| 首次使用、功能入口与问题解决清单 | [用户使用指南](docs/USER_GUIDE.md) |
 | 下载、版本与升级 | [2.1.0 发布说明](docs/releases/2.1.0.md) · [更新日志](CHANGELOG.md) |
 | 数据库、迁移与备份 | [双库配置指南](docs/DUAL_DATABASES.md) · [备份与恢复手册](docs/runbooks/backup-restore.md) |
 | 设备接入与照护运维 | [照护服务部署](docs/CARE_SERVICE_DEPLOYMENT.md) · [支持与故障排查](docs/SUPPORT.md) |
