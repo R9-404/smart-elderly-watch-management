@@ -111,6 +111,13 @@ foreach ($entry in @(
         trustedOnBuildMachine = ($signature.Status -eq 'Valid')
     }
 }
+$signed = @($signatures.Values | Where-Object { $_.thumbprint })
+if ($signed.Count -ne 0 -and $signed.Count -ne $signatures.Count) {
+    throw 'Mixed signed and unsigned Windows executables in the same release'
+}
+if (@($signed | Select-Object -ExpandProperty thumbprint -Unique).Count -gt 1) {
+    throw 'Windows release executables were signed using different certificates'
+}
 $manifest = [ordered]@{
     version = $version; sourceCommit = $commit; branch = $releaseBranch; channel = $channel; signing = $signatures
     workflowRun = $env:GITHUB_RUN_ID; backendSHA256 = $backendHash
