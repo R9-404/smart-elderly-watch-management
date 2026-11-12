@@ -27,6 +27,7 @@ export function useDeviceWorkbench(
     const request = ++revision
     const current = () => !disposed && request === revision
     state.workbench.visible = true
+    state.workbench.loading = true
     state.workbench.list = []
 
     const pending: AlertRequest[] = []
@@ -71,17 +72,27 @@ export function useDeviceWorkbench(
       }
     }
 
-    await Promise.all(Array.from({ length: Math.min(6, pending.length) }, () => worker()))
-    if (!current()) return
-    state.workbench.list = results.filter((row): row is DeviceRecord => row !== null)
-    if (failed) ElMessage({ type: 'warning', message: readErrorMessage(firstError, '部分异常详情加载失败') })
+    try {
+      await Promise.all(Array.from({ length: Math.min(6, pending.length) }, () => worker()))
+      if (!current()) return
+      state.workbench.list = results.filter((row): row is DeviceRecord => row !== null)
+      if (failed) ElMessage({ type: 'warning', message: readErrorMessage(firstError, '部分异常详情加载失败') })
+    } finally {
+      if (current()) state.workbench.loading = false
+    }
   }
 
-  function disposeWorkbench(): void {
-    disposed = true
+  function closeWorkbench(): void {
+    state.workbench.visible = false
+    state.workbench.loading = false
     revision++
     abortReads()
   }
 
-  return { openWorkbench, disposeWorkbench }
+  function disposeWorkbench(): void {
+    disposed = true
+    closeWorkbench()
+  }
+
+  return { openWorkbench, closeWorkbench, disposeWorkbench }
 }
