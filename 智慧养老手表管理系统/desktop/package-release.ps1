@@ -95,8 +95,24 @@ try {
 if (Test-Path -LiteralPath $installedApp) { throw 'Uninstall left application executable' }
 if (!(Test-Path -LiteralPath $sentinel)) { throw 'Uninstall removed user data' }
 $releaseBranch = if ($channel -eq 'stable') { 'main' } else { 'preview' }
+$signatures = [ordered]@{}
+foreach ($entry in @(
+    @{ Name = 'setup'; Path = $setup },
+    @{ Name = 'desktop'; Path = (Join-Path $portable 'suining.exe') },
+    @{ Name = 'backend'; Path = (Join-Path $portable 'suining-server.exe') }
+)) {
+    $signature = Get-AuthenticodeSignature -LiteralPath $entry.Path
+    if ($signature.Status -notin @('NotSigned', 'NotTrusted', 'Valid')) {
+        throw "Unexpected signature status for $($entry.Name): $($signature.Status)"
+    }
+    $signatures[$entry.Name] = [ordered]@{
+        status = $signature.Status.ToString()
+        thumbprint = if ($signature.SignerCertificate) { $signature.SignerCertificate.Thumbprint } else { $null }
+        trustedOnBuildMachine = ($signature.Status -eq 'Valid')
+    }
+}
 $manifest = [ordered]@{
-    version = $version; sourceCommit = $commit; branch = $releaseBranch; channel = $channel; signing = 'unsigned'
+    version = $version; sourceCommit = $commit; branch = $releaseBranch; channel = $channel; signing = $signatures
     workflowRun = $env:GITHUB_RUN_ID; backendSHA256 = $backendHash
     checks = $checks; silentInstall = $true; uninstallPreservesData = $true
     limitations = @('Headless startup, not visual UI acceptance', 'No real devices or SMS gateway', 'WebView2 missing-runtime bootstrap not tested', 'No production migration or sustained HTTP load test')
