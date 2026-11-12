@@ -43,7 +43,6 @@ export function useDevices() {
   async function loadAlertCounts() {
     const revision = ++alertCountsRequest
     if (disposed) return
-    state.alertLoadError = ''
     try {
       const { data } = await post<AlertCountsResponse>('alertCounts')
       if (disposed || revision !== alertCountsRequest) return
@@ -60,6 +59,7 @@ export function useDevices() {
       }
       if (JSON.stringify(state.alertTotals) !== JSON.stringify(totals)) state.alertTotals = totals
       state.alertsReady = true
+      state.alertLoadError = ''
     } catch (error) {
       if (disposed || revision !== alertCountsRequest) return
       state.alertsReady = false
@@ -84,7 +84,6 @@ export function useDevices() {
     const queryKey = JSON.stringify(query)
     // Keep the table responsive on unchanged background reads, but signal a changed filter.
     state.deviceLoading = state.deviceList.length === 0 || displayedQuery !== queryKey
-    state.deviceLoadError = ''
     try {
       await Promise.all([
         post<DeviceListResponse>('list', query).then(({ data }) => {
@@ -108,6 +107,7 @@ export function useDevices() {
           }
           if (JSON.stringify(state.deviceList) !== JSON.stringify(data.devices)) state.deviceList = data.devices
           displayedQuery = queryKey
+          state.deviceLoadError = ''
           state.deviceTotal = data.total ?? data.devices.length
           state.serverOnlineCount = data.onlineCount ??
             data.devices.filter(item => item.online === 1 || item.online === '1').length
