@@ -1,7 +1,8 @@
 <template>
 <el-dialog title="待处理异常" :model-value="workbench.visible" @update:model-value="onVisibleChange" width="min(760px, 94vw)">
       <div class="tip" role="status">{{ workbench.loading ? '正在读取异常详情，已完成 ' + workbench.list.length + ' 条…' : '共 ' + workbench.list.length + ' 条未处理异常。' }}点「查看原因」看具体问题和处理办法，处理完点「标记已处理」消除红点。</div>
-      <el-table v-loading="workbench.loading && !workbench.list.length" :data="workbench.list" size="small" border style="width:100%;margin-top:8px;">
+      <el-table v-loading="workbench.loading && !workbench.list.length" :data="workbench.list" size="small" border style="width:100%;margin-top:8px;" :aria-busy="workbench.loading">
+        <template #empty><div class="empty-alerts">{{ workbench.loading ? '正在查找待处理异常…' : '当前没有待处理异常' }}</div></template>
         <el-table-column prop="deviceNo" label="设备号" width="120" align="center"></el-table-column>
         <el-table-column prop="alias" label="别名" width="110" align="center"></el-table-column>
         <el-table-column label="问题" width="120" align="center">
@@ -40,4 +41,5 @@ function onVisibleChange(visible: boolean) {
 
 <style scoped>
 .tip { color: var(--care-text-muted); font-size: 14px; line-height: 1.65; padding-top: 6px; }
+.empty-alerts { padding: 20px 8px; font-size: 14px; color: var(--care-text-muted); }
 </style>
