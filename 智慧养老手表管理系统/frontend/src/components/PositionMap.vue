@@ -100,7 +100,7 @@ onMounted(() => {
   updateLocation()
   if (valid.value && mapPreferences.provider === 'amap' && mapPreferences.loadOnlineAutomatically) enableOnlineMap()
 })
-watch(() => props.selection, updateLocation)
+watch(() => [props.selection?.lng, props.selection?.lat, props.selection?.name] as const, updateLocation)
 watch(() => [mapPreferences.provider, mapPreferences.loadOnlineAutomatically, valid.value] as const, () => {
   if (mapPreferences.provider !== 'amap' || !valid.value) disableOnlineMap()
   else if (mapPreferences.loadOnlineAutomatically && !online.value) enableOnlineMap()
@@ -108,7 +108,17 @@ watch(() => [mapPreferences.provider, mapPreferences.loadOnlineAutomatically, va
 watch(embeddedUrl, (url, previous) => {
   if (online.value && url && url !== previous) mapLoading.value = true
 })
-onBeforeUnmount(() => { observer?.disconnect(); if (resizeFrame !== null) cancelAnimationFrame(resizeFrame); resizeFrame = null; disableOnlineMap(); map?.remove(); map = null })
+onBeforeUnmount(() => {
+  observer?.disconnect()
+  observer = null
+  online.value = false
+  mapLoading.value = false
+  if (resizeFrame !== null) cancelAnimationFrame(resizeFrame)
+  resizeFrame = null
+  marker = null
+  map?.remove()
+  map = null
+})
 </script>
 
 <style scoped>
