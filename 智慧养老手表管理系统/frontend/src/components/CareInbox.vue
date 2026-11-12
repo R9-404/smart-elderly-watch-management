@@ -100,7 +100,8 @@ const reads = createLatestRead(
     tasks.value = []; total.value = 0; duty.value = ''; actorId.value = null
     error.value = apiErrorMessage(cause, '照护任务暂时无法加载')
   },
-  value => { loading.value = value }
+  value => { loading.value = value },
+  { key: query => `${query.state}:${query.page}:${query.pageSize}` }
 )
 function load () {
   return reads.run({page:page.value,pageSize,state:scope.value})
