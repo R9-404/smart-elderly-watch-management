@@ -93,6 +93,41 @@ async fn setup_admin(
     Ok(serde_json::json!({"status": status, "data": data}))
 }
 
+#[tauri::command]
+fn open_map_location(
+    window: tauri::WebviewWindow,
+    state: tauri::State<'_, Backend>,
+    latitude: f64,
+    longitude: f64,
+    provider: &str,
+) -> Result<(), String> {
+    let origin = window.url().map_err(|_| "无法验证应用页面")?;
+    if window.label() != "main" || origin.origin().ascii_serialization() != state.origin {
+        return Err("请求未获授权".into());
+    }
+    if !latitude.is_finite()
+        || !longitude.is_finite()
+        || !(-90.0..=90.0).contains(&latitude)
+        || !(-180.0..=180.0).contains(&longitude)
+    {
+        return Err("无效的位置坐标".into());
+    }
+    let url = match provider {
+        "tencent" => format!(
+            "https://apis.map.qq.com/uri/v1/marker?marker=coord:{latitude},{longitude}%3Btitle%3ASuining&referer=suining"
+        ),
+        "amap" => format!(
+            "https://uri.amap.com/marker?position={longitude},{latitude}&name=Suining"
+        ),
+        _ => return Err("不支持的地图服务".into()),
+    };
+    Command::new("explorer.exe")
+        .arg(url)
+        .spawn()
+        .map_err(|_| "无法启动系统浏览器".to_string())?;
+    Ok(())
+}
+
 fn start_backend(app: &tauri::App) -> Result<Backend, Box<dyn std::error::Error>> {
     let data = if let Some(path) = std::env::var_os("SUINING_USER_DATA") {
         PathBuf::from(path)
@@ -228,7 +263,7 @@ fn main() {
                 let _ = window.set_focus();
             }
         }))
-        .invoke_handler(tauri::generate_handler![setup_admin])
+        .invoke_handler(tauri::generate_handler![setup_admin, open_map_location])
         .setup(|app| {
             let backend = start_backend(app)?;
             let origin = backend.origin.clone();
