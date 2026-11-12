@@ -2,7 +2,7 @@ import { computed, onBeforeUnmount, onMounted, reactive, toRefs, watch } from 'v
 import { useRouter } from 'vue-router'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { accepted, api, type Envelope } from '../api/client'
-import { apiErrorMessage } from '../api/httpContract'
+import { apiErrorMessage, readErrorMessage } from '../api/httpContract'
 import { copyText } from '../utils/clipboard'
 import { createDeviceState, emptyDeviceAlert, isValidCount } from './deviceModels'
 import { useDeviceBindings } from './useDeviceBindings'
@@ -58,7 +58,7 @@ export function useDevices() {
     } catch (error) {
       if (disposed || revision !== alertCountsRequest) return
       state.alertsReady = false
-      state.alertLoadError = apiErrorMessage(error, '异常统计暂时无法更新，请重新加载。')
+      state.alertLoadError = readErrorMessage(error, '异常统计暂时无法更新，请重新加载。')
     }
   }
 
@@ -108,7 +108,7 @@ export function useDevices() {
             state.reloadPending = true
             return
           }
-          state.deviceLoadError = apiErrorMessage(error, '设备列表暂时无法更新，请重新加载。')
+          state.deviceLoadError = readErrorMessage(error, '设备列表暂时无法更新，请重新加载。')
         }),
         loadAlertCounts()
       ])
@@ -166,7 +166,7 @@ export function useDevices() {
     } catch (error) {
       if (revision === alertRequest && !disposed) {
         state.alertDialog.loading = false
-        ElMessage({ type: 'error', message: apiErrorMessage(error, '读取异常详情失败') })
+        ElMessage({ type: 'error', message: readErrorMessage(error, '读取异常详情失败') })
       }
     }
   }
@@ -209,7 +209,7 @@ export function useDevices() {
       const { data } = await api.post<{ oldPeople: ResidentRecord[] }>('/api/v1/inviteCode/oldPersonList', {})
       if (!disposed) state.oldPeople = Array.isArray(data.oldPeople) ? data.oldPeople : []
     } catch (error) {
-      if (!disposed) ElMessage({ type: 'error', message: apiErrorMessage(error, '读取老人列表失败') })
+      if (!disposed) ElMessage({ type: 'error', message: readErrorMessage(error, '读取老人列表失败') })
     }
   }
   function stopTimer() {
