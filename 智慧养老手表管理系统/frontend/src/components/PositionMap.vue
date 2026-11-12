@@ -29,7 +29,6 @@ interface PositionSelection extends PositionContext {
 const props = defineProps({ selection: { type: Object as PropType<PositionSelection | null>, default: null } })
 const canvas = ref<HTMLElement | null>(null)
 const online = ref(false)
-const failed = ref(false)
 const valid = computed(() => {
   const value = props.selection
   return value && value.lng != null && value.lat != null && String(value.lng).trim() !== '' && String(value.lat).trim() !== '' &&
@@ -37,19 +36,18 @@ const valid = computed(() => {
 })
 const embeddedUrl = computed(() => {
   if (!valid.value || !props.selection) return ''
-  const [lng, lat] = wgs84ToGc02Position(props.selection)
+  const [lng, lat] = displayedMapPosition(props.selection)
   const params = new URLSearchParams({
     lng: String(lng), lat: String(lat), zoom: '16',
-    name: props.selection.name || '最近上报位置',
+    name: '设备最近上报位置',
     platform: 'pc', src: 'suining'
   })
   return `https://www.amap.com/ssr/embed/place?${params.toString()}`
 })
-function wgs84ToGc02Position(position: PositionSelection): [number, number] {
+function displayedMapPosition(position: PositionSelection): [number, number] {
   return wgs84ToGcj02(Number(position.lng), Number(position.lat))
 }
-const message = computed(() => !valid.value ? '暂无可用坐标。' : failed.value ? '在线地图加载失败；位置标记与原始坐标仍可查看。' :
-  online.value ? '在线底图由高德地图提供，显示坐标按 WGS84 → GCJ-02 转换，仅供参考；请以设备原始上报与采样时间为准。' :
+const message = computed(() => !valid.value ? '暂无可用坐标。' : online.value ? '在线底图由高德地图提供，显示坐标按 WGS84 → GCJ-02 转换，仅供参考；请以设备原始上报与采样时间为准。' :
   '所选上报坐标已标记。高德地图按需加载，需联网。')
 let map: L.Map | null = null
 let marker: L.CircleMarker | null = null
@@ -76,7 +74,6 @@ function updateLocation () {
 function enableTiles () {
   if (!map || !valid.value) return
   online.value = true
-  failed.value = false
 }
 function disableTiles () {
   online.value = false
