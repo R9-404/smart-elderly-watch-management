@@ -51,11 +51,13 @@ export function useDevices() {
         ![data.personTotal, data.rateTotal, data.preTotal].every(count => count === undefined || isValidCount(count))) {
         throw new Error('invalid alert counters')
       }
-      state.alertCounts = Object.fromEntries(data.items.map(item => [item.deviceId, item]))
-      state.alertTotals = {
+      const counts = Object.fromEntries(data.items.map(item => [item.deviceId, item]))
+      if (JSON.stringify(state.alertCounts) !== JSON.stringify(counts)) state.alertCounts = counts
+      const totals = {
         personTotal: data.personTotal ?? 0, rateTotal: data.rateTotal ?? 0,
         preTotal: data.preTotal ?? 0, total: data.total
       }
+      if (JSON.stringify(state.alertTotals) !== JSON.stringify(totals)) state.alertTotals = totals
       state.alertsReady = true
     } catch (error) {
       if (disposed || revision !== alertCountsRequest) return
@@ -103,7 +105,7 @@ export function useDevices() {
               return
             }
           }
-          state.deviceList = data.devices
+          if (JSON.stringify(state.deviceList) !== JSON.stringify(data.devices)) state.deviceList = data.devices
           displayedQuery = queryKey
           state.deviceTotal = data.total ?? data.devices.length
           state.serverOnlineCount = data.onlineCount ??
