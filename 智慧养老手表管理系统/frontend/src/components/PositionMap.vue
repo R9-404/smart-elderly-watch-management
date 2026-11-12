@@ -104,7 +104,7 @@ onBeforeUnmount(() => { observer?.disconnect(); if (resizeFrame !== null) cancel
 .position-map-canvas { height: clamp(240px, 46vh, 440px); z-index: 0; border-radius: 16px; background-color: #eef1e9; background-image: linear-gradient(#dce3d833 1px, transparent 1px), linear-gradient(90deg, #dce3d833 1px, transparent 1px); background-size: 32px 32px; }
 .online-map { display: block; width: 100%; border: 0; }
 .online-map-link { color: var(--care-primary); font-size: 14px; text-underline-offset: 3px; }
-.position-map-canvas:not(.has-location) { opacity: .55; pointer-events: none; }
+.position-map-canvas:not(.has-location):not(.online-map) { opacity: .55; pointer-events: none; }
 .position-map-note { margin: 12px 0 0; font-size: 15px; }
 .position-map :deep(.leaflet-container) { font-family: inherit; }
 .position-map :deep(.leaflet-control-zoom a) { width: 44px; height: 44px; line-height: 44px; }
