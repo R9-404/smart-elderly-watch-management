@@ -130,6 +130,7 @@ it('keeps confirmed records on failed same-page refresh but clears old rows on p
     const nextPage = state.changePage(2)
     expect(state.records.value).toEqual([])
     expect(state.isLoading.value).toBe(true)
+    await flushPromises()
     resolveNext({ data: { items: [{ id: 11 }], total: 30 } })
     await nextPage
     expect(state.records.value).toEqual([{ id: 11 }])
