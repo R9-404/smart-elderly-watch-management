@@ -430,3 +430,29 @@ it('submits one binding-code revocation when the user clicks twice', async () =>
     vi.restoreAllMocks()
   }
 })
+
+it('ignores an alert detail response after its dialog has closed', async () => {
+  let finish!: (value: unknown) => void
+  vi.spyOn(axios, 'post').mockImplementation(url => {
+    if (url === '/api/v1/device/alertDetail') return new Promise(resolve => { finish = resolve })
+    if (url === '/api/v1/device/list') return Promise.resolve({ data: { devices: [], total: 0 } })
+    if (url === '/api/v1/device/alertCounts') return Promise.resolve({ data: { items: [], total: 0 } })
+    if (url === '/api/v1/inviteCode/oldPersonList') return Promise.resolve({ data: { oldPeople: [] } })
+    throw new Error(`unexpected request: ${url}`)
+  })
+  let devices!: ReturnType<typeof useDevices>
+  const wrapper = mount(defineComponent({ setup() { devices = useDevices(); return () => null } }))
+  try {
+    await flushPromises()
+    const pending = devices.showAlert({ deviceId: 1, deviceNo: 'watch-1' }, 'rate')
+    await flushPromises()
+    devices.alertDialog.value.visible = false
+    finish({ data: { hasAlert: 1, reason: 'late result' } })
+    await pending
+    expect(devices.alertDialog.value.reason).toBe('')
+    expect(devices.alertDialog.value.visible).toBe(false)
+  } finally {
+    wrapper.unmount()
+    vi.restoreAllMocks()
+  }
+})
