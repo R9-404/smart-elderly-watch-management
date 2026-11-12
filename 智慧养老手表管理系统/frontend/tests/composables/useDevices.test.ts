@@ -398,3 +398,35 @@ it('backs off failed device polling and refreshes on network recovery', async ()
     vi.restoreAllMocks()
   }
 })
+
+it('submits one binding-code revocation when the user clicks twice', async () => {
+  let finishDelete!: (value: unknown) => void
+  let deletes = 0
+  vi.spyOn(axios, 'post').mockImplementation((url) => {
+    if (url === '/api/v1/device/deleteBindCode') {
+      deletes++
+      return new Promise(resolve => { finishDelete = resolve })
+    }
+    if (url === '/api/v1/device/bindCodeList') return Promise.resolve({ data: { bindCodes: [] } })
+    if (url === '/api/v1/device/list') return Promise.resolve({ data: { devices: [], total: 0 } })
+    if (url === '/api/v1/device/alertCounts') return Promise.resolve({ data: { items: [], total: 0 } })
+    if (url === '/api/v1/inviteCode/oldPersonList') return Promise.resolve({ data: { oldPeople: [] } })
+    throw new Error(`unexpected request: ${url}`)
+  })
+  let devices!: ReturnType<typeof useDevices>
+  const wrapper = mount(defineComponent({ setup() { devices = useDevices(); return () => null } }))
+  try {
+    await flushPromises()
+    devices.openBindCodeDialog({ deviceId: 1, deviceNo: 'watch-1', oldId: 1 })
+    await flushPromises()
+    const first = devices.deleteBindCode({ id: 11 })
+    const second = devices.deleteBindCode({ id: 11 })
+    expect(deletes).toBe(1)
+    finishDelete({ data: { returnCode: '1111' } })
+    await Promise.all([first, second])
+    expect(deletes).toBe(1)
+  } finally {
+    wrapper.unmount()
+    vi.restoreAllMocks()
+  }
+})
