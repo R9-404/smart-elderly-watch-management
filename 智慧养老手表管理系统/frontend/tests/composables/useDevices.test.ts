@@ -519,3 +519,36 @@ it('waits for queued device snapshots before reporting a refresh complete', asyn
     vi.restoreAllMocks()
   }
 })
+
+it('offers an explicit retry after alert detail fails without allowing an unverified resolution', async () => {
+  let attempts = 0
+  vi.spyOn(axios, 'post').mockImplementation(url => {
+    if (url === '/api/v1/device/alertDetail') {
+      attempts++
+      return attempts === 1
+        ? Promise.reject({ code: 'ERR_NETWORK' })
+        : Promise.resolve({ data: { hasAlert: 1, reason: '心率超出阈值', recordId: 8 } })
+    }
+    if (url === '/api/v1/device/list') return Promise.resolve({ data: { devices: [], total: 0 } })
+    if (url === '/api/v1/device/alertCounts') return Promise.resolve({ data: { items: [], total: 0 } })
+    if (url === '/api/v1/inviteCode/oldPersonList') return Promise.resolve({ data: { oldPeople: [] } })
+    throw new Error(`unexpected request: ${url}`)
+  })
+  let devices!: ReturnType<typeof useDevices>
+  const wrapper = mount(defineComponent({ setup() { devices = useDevices(); return () => null } }))
+  try {
+    await flushPromises()
+    await devices.showAlert({ deviceId: 3, deviceNo: 'watch-3' }, 'rate')
+    expect(devices.alertDialog.value.hasAlert).toBe(-1)
+    expect(devices.alertDialog.value.message).toContain('网络')
+    devices.retryAlertDetail()
+    await flushPromises()
+    expect(attempts).toBe(2)
+    expect(devices.alertDialog.value.hasAlert).toBe(1)
+    expect(devices.alertDialog.value.reason).toBe('心率超出阈值')
+    expect(devices.alertDialog.value.recordId).toBe(8)
+  } finally {
+    wrapper.unmount()
+    vi.restoreAllMocks()
+  }
+})
