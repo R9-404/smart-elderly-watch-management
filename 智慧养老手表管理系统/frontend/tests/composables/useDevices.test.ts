@@ -490,3 +490,32 @@ it('does not repeat a pending alert resolution and only locks the affected row',
     vi.restoreAllMocks()
   }
 })
+
+it('waits for queued device snapshots before reporting a refresh complete', async () => {
+  const pendingReads: Array<(reply: unknown) => void> = []
+  vi.spyOn(axios, 'post').mockImplementation(url => {
+    if (url === '/api/v1/device/list') return new Promise(resolve => { pendingReads.push(resolve) })
+    if (url === '/api/v1/device/alertCounts') return Promise.resolve({ data: { items: [], total: 0 } })
+    if (url === '/api/v1/inviteCode/oldPersonList') return Promise.resolve({ data: { oldPeople: [] } })
+    throw new Error(`unexpected request: ${url}`)
+  })
+  let devices!: ReturnType<typeof useDevices>
+  const wrapper = mount(defineComponent({ setup() { devices = useDevices(); return () => null } }))
+  try {
+    await flushPromises()
+    expect(pendingReads).toHaveLength(1)
+    let complete = false
+    const refresh = devices.loadDevices().then(() => { complete = true })
+    pendingReads[0]({ data: { devices: [{ deviceId: 1, deviceNo: 'previous' }], total: 1 } })
+    await flushPromises()
+    expect(pendingReads).toHaveLength(2)
+    expect(complete).toBe(false)
+    pendingReads[1]({ data: { devices: [{ deviceId: 2, deviceNo: 'current' }], total: 1 } })
+    await refresh
+    expect(complete).toBe(true)
+    expect(devices.deviceList.value[0]?.deviceId).toBe(2)
+  } finally {
+    wrapper.unmount()
+    vi.restoreAllMocks()
+  }
+})
