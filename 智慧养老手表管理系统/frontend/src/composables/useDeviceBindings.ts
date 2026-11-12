@@ -14,6 +14,7 @@ export function useDeviceBindings(state: DeviceState, post: DevicePost) {
   let bindCodeRequest = 0
   let bindDialogRevision = 0
   let creatingCode = false
+  const deletingCodes = new Set<string>()
 
   function openBindCodeDialog(row: DeviceRecord) {
     const wasVisible = state.bindCodeDialogVisible
@@ -73,6 +74,9 @@ export function useDeviceBindings(state: DeviceState, post: DevicePost) {
     } finally { creatingCode = false }
   }
   async function deleteBindCode(row: { id: DeviceId }) {
+    const key = String(row.id)
+    if (deletingCodes.has(key)) return
+    deletingCodes.add(key)
     const revision = bindDialogRevision
     const oldId = state.bindOldId
     const isCurrent = () => !disposed && revision === bindDialogRevision &&
@@ -86,6 +90,8 @@ export function useDeviceBindings(state: DeviceState, post: DevicePost) {
     } catch (error) {
       if (!isCurrent()) return
       ElMessage({ type: 'error', message: apiErrorMessage(error, '请求未完成，请重试') })
+    } finally {
+      deletingCodes.delete(key)
     }
   }
 
