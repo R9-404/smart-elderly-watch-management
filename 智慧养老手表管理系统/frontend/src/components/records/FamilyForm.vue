@@ -1,5 +1,5 @@
 <template>
-<el-form ref="form" label-width="80px" :model="draft" :rules="rules" >
+<el-form ref="form" label-position="top" :model="draft" :rules="rules" >
         <el-form-item label="姓名" prop="familyName">
           <el-input v-model="draft.familyName"></el-input>
         </el-form-item>
@@ -14,13 +14,13 @@
     </el-radio-group>
     </el-form-item>
     <el-form-item label="电话" prop="familyPhone">
-    <el-input v-model="draft.familyPhone"></el-input>
+    <el-input v-model="draft.familyPhone" inputmode="tel" autocomplete="tel"></el-input>
     </el-form-item>
     <el-form-item label="地址" prop="familyAddress">
     <el-input v-model="draft.familyAddress"></el-input>
     </el-form-item>
     <el-form-item v-if="!editing" label="老人电话" prop="oldPhone">
-    <el-input v-model="draft.oldPhone"></el-input>
+    <el-input v-model="draft.oldPhone" inputmode="tel" autocomplete="tel"></el-input>
     </el-form-item>
       </el-form>
 </template>
