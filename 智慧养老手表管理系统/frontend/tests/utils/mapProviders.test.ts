@@ -1,5 +1,6 @@
 import { expect, it } from 'vitest'
-import { mapLocationUrl, mapPreferences, resetMapPreferences, saveMapPreferences } from '@/utils/mapProviders'
+import { mapPreferences, resetMapPreferences, saveMapPreferences } from '@/utils/mapProviders'
+import { mapLocationUrl } from '@/utils/mapLinks'
 
 it('builds only official map destinations with generic coordinate markers', () => {
   const amap = new URL(mapLocationUrl('amap', 116.397, 39.908, 'satellite'))
