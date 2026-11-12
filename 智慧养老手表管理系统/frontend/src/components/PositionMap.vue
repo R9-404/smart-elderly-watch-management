@@ -24,10 +24,9 @@ import { computed, onBeforeUnmount, onMounted, ref, watch, type PropType } from 
 import L from 'leaflet'
 import { isTauri, invoke } from '@tauri-apps/api/core'
 import { ElMessage } from 'element-plus'
-import { wgs84ToGcj02 } from '../utils/gcj02'
 import 'leaflet/dist/leaflet.css'
 import { describePositionContext, type PositionContext } from '../utils/positionContext'
-import { mapPreferences, mapLocationUrl } from '../utils/mapProviders'
+import { mapPreferences, mapLocationUrl, mapDisplayPosition } from '../utils/mapProviders'
 
 interface PositionSelection extends PositionContext {
   lng?: number | string | null
@@ -44,7 +43,7 @@ const valid = computed(() => {
 })
 const providerUrl = computed(() => {
   if (!valid.value || !props.selection || mapPreferences.provider === 'offline') return ''
-  return mapLocationUrl(mapPreferences.provider, Number(props.selection.lng), Number(props.selection.lat), mapPreferences.style)
+  return mapLocationUrl(mapPreferences.provider, Number(props.selection.lng), Number(props.selection.lat), mapPreferences.style, mapPreferences.coordinateSystem)
 })
 const embeddedUrl = computed(() => mapPreferences.provider === 'amap' ? providerUrl.value : '')
 const message = computed(() => {
@@ -80,7 +79,7 @@ function updateLocation () {
 async function openInSystemMap(event: MouseEvent) {
   if (!isTauri() || !props.selection || !valid.value || mapPreferences.provider === 'offline') return
   event.preventDefault()
-  const [longitude, latitude] = wgs84ToGcj02(Number(props.selection.lng), Number(props.selection.lat))
+  const [longitude, latitude] = mapDisplayPosition(Number(props.selection.lng), Number(props.selection.lat), mapPreferences.coordinateSystem)
   try {
     await invoke('open_map_location', { provider: mapPreferences.provider, latitude, longitude })
   } catch {
@@ -107,7 +106,7 @@ onMounted(() => {
   if (valid.value && mapPreferences.provider === 'amap' && mapPreferences.loadOnlineAutomatically) online.value = true
 })
 watch(() => props.selection, updateLocation)
-watch(() => [mapPreferences.provider, mapPreferences.loadOnlineAutomatically, props.selection?.lng, props.selection?.lat] as const, () => {
+watch(() => [mapPreferences.provider, mapPreferences.loadOnlineAutomatically, mapPreferences.coordinateSystem, props.selection?.lng, props.selection?.lat] as const, () => {
   online.value = mapPreferences.provider === 'amap' && mapPreferences.loadOnlineAutomatically && Boolean(valid.value)
   if (!online.value) scheduleResize()
 })
