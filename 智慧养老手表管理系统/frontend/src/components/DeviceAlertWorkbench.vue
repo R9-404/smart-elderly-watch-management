@@ -1,7 +1,7 @@
 <template>
 <el-dialog title="待处理异常" :model-value="workbench.visible" @update:model-value="onVisibleChange" width="760px">
-      <div class="tip">共 {{ workbench.list.length }} 条未处理异常。点「查看原因」看具体问题和处理办法，处理完点「标记已处理」消除红点。</div>
-      <el-table :data="workbench.list" size="small" border style="width:100%;margin-top:8px;">
+      <div class="tip" role="status">{{ workbench.loading ? '正在读取异常详情，已完成 ' + workbench.list.length + ' 条…' : '共 ' + workbench.list.length + ' 条未处理异常。' }}点「查看原因」看具体问题和处理办法，处理完点「标记已处理」消除红点。</div>
+      <el-table v-loading="workbench.loading" :data="workbench.list" size="small" border style="width:100%;margin-top:8px;">
         <el-table-column prop="deviceNo" label="设备号" width="120" align="center"></el-table-column>
         <el-table-column prop="alias" label="别名" width="110" align="center"></el-table-column>
         <el-table-column label="问题" width="120" align="center">
