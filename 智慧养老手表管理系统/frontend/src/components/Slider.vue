@@ -1,5 +1,5 @@
 <template>
-  <aside class="care-sidebar" aria-label="管理端导航">
+  <nav class="care-sidebar" aria-label="管理端导航">
     <button class="navigation-toggle" type="button" :aria-expanded="expanded ? 'true' : 'false'" aria-controls="admin-navigation" @click="expanded = !expanded"><span><el-icon aria-hidden="true"><Menu /></el-icon> 功能导航</span><span>{{ expanded ? '收起' : '展开' }} <el-icon aria-hidden="true"><ArrowUp v-if="expanded" /><ArrowDown v-else /></el-icon></span></button>
     <div class="sidebar-label">工作空间</div>
     <el-menu ref="navigationMenu" :default-active="route.path" :default-openeds="openedGroups" unique-opened id="admin-navigation" :class="['care-menu', { 'is-expanded': expanded }]" router>
@@ -28,7 +28,7 @@
       </el-sub-menu>
     </el-menu>
     <div class="sidebar-note"><span class="note-dot"></span><span>照护信息请以设备上报为准</span></div>
-  </aside>
+  </nav>
 </template>
 
 <script setup lang="ts">
