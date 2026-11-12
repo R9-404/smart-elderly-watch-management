@@ -26,9 +26,9 @@
 }
 
 @media (prefers-reduced-motion: reduce) {
-  #app *,
-  #app *::before,
-  #app *::after {
+  body *,
+  body *::before,
+  body *::after {
     scroll-behavior: auto !important;
     animation-duration: 0.01ms !important;
     animation-iteration-count: 1 !important;
@@ -43,9 +43,9 @@
   outline: none;
 }
 
-html.reduce-motion #app *,
-html.reduce-motion #app *::before,
-html.reduce-motion #app *::after {
+html.reduce-motion body *,
+html.reduce-motion body *::before,
+html.reduce-motion body *::after {
   scroll-behavior: auto !important;
   animation-duration: 0.01ms !important;
   animation-iteration-count: 1 !important;
