@@ -107,7 +107,7 @@ onMounted(() => {
   if (valid.value && mapPreferences.provider === 'amap' && mapPreferences.loadOnlineAutomatically) online.value = true
 })
 watch(() => props.selection, updateLocation)
-watch(() => [mapPreferences.provider, mapPreferences.loadOnlineAutomatically, valid.value] as const, () => {
+watch(() => [mapPreferences.provider, mapPreferences.loadOnlineAutomatically, props.selection?.lng, props.selection?.lat] as const, () => {
   online.value = mapPreferences.provider === 'amap' && mapPreferences.loadOnlineAutomatically && Boolean(valid.value)
   if (!online.value) scheduleResize()
 })
