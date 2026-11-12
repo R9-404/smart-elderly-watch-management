@@ -102,7 +102,7 @@ export interface DeviceState {
   alertCounts: Record<string, DeviceAlertCounts>
   alertTotals: { personTotal: number; rateTotal: number; preTotal: number; total: number }
   alertDialog: DeviceAlert
-  workbench: { visible: boolean; list: DeviceRecord[] }
+  workbench: { visible: boolean; loading: boolean; list: DeviceRecord[] }
 }
 
 
@@ -121,7 +121,7 @@ export function createDeviceState(): DeviceState {
     alertCounts: {},
     alertTotals: { personTotal: 0, rateTotal: 0, preTotal: 0, total: 0 },
     alertDialog: emptyDeviceAlert(),
-    workbench: { visible: false, list: [] }
+    workbench: { visible: false, loading: false, list: [] }
   }
 }
 
