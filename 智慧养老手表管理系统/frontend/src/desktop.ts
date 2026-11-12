@@ -41,7 +41,7 @@ export function installDesktopKeys(): () => void {
     if (event.defaultPrevented || (event.button !== 0 && event.button !== 1)) return
     const element = event.target
     if (!(element instanceof Element)) return
-    const link = element.closest('a[href]')
+    const link = element.closest<HTMLAnchorElement>('a[href]')
     if (!link) return
     let destination: URL
     try {
