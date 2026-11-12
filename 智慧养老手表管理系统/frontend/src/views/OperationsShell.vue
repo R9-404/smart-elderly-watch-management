@@ -78,10 +78,13 @@ function addCurrentTab(nextRoute: ReturnType<typeof useRoute>) {
   store.activate(nextRoute.path)
 }
 onMounted(() => addCurrentTab(route))
-watch(() => route.fullPath, async () => {
+watch(() => route.path, async () => {
   addCurrentTab(route)
   await nextTick()
-  if (workspaceMain.value) workspaceMain.value.scrollTop = 0
+  if (workspaceMain.value) {
+    workspaceMain.value.scrollTop = 0
+    workspaceMain.value.focus({ preventScroll: true })
+  }
 })
 </script>
 
