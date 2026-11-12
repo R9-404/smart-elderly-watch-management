@@ -26,7 +26,7 @@
     
     <DeviceAlertDialog :alert="alertDialog" @close="alertDialog.visible = false" @resolve="resolveAlert" @navigate="gotoPage(alertDialog.kind)" />
 
-    <DeviceAlertWorkbench :workbench="workbench" @close="workbench.visible = false" @view="row => showAlert(row, row.kind || 'person')" @resolve="resolveAlertRow" />
+    <DeviceAlertWorkbench :workbench="workbench" @close="closeWorkbench" @view="row => showAlert(row, row.kind || 'person')" @resolve="resolveAlertRow" />
 
     <DeviceRegistrationDialog
       :visible="createDialogVisible" :creating="creating" :form="createForm"
@@ -63,7 +63,7 @@ const {
   bindCodeList, newBindCode, bindOldId, bindExpireDays,
   createForm, alertTotals, alertDialog, workbench,
   visibleDevices, onlineCount, loadDevices, changeDevicePage, handleDeviceCommand,
-  alertOf, showAlert, resolveAlert, resolveAlertRow, openWorkbench, gotoPage,
+  alertOf, showAlert, resolveAlert, resolveAlertRow, openWorkbench, closeWorkbench, gotoPage,
   closeCreateDialog, createDevice, openBindCodeDialog,
   createBindCode, deleteBindCode, resetSecret, unbind, deleteDevice, copy
 } = useDevices()
