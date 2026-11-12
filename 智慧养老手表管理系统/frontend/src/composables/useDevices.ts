@@ -329,11 +329,10 @@ export function useDevices() {
   watch(() => state.deviceState, scheduleFilter)
   watch(() => state.autoRefresh, enabled => enabled ? startTimer() : stopTimer())
   onMounted(() => {
-    void loadDevices()
+    void loadDevices().finally(startTimer)
     void loadOldPeople()
     document.addEventListener('visibilitychange', handleVisibilityChange)
     window.addEventListener('online', handleOnline)
-    startTimer()
   })
   onBeforeUnmount(() => {
     disposed = true
