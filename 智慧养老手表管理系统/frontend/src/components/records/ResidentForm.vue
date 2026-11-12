@@ -1,11 +1,9 @@
 <template>
-<el-form ref="form" label-width="80px" :model="draft" :rules="rules" >
+<el-form ref="form" label-position="top" :model="draft" :rules="rules" >
         <el-form-item label="姓名" prop="name">
           <el-input v-model="draft.name"></el-input>
         </el-form-item>
-<el-form-item v-if="editing" label="年龄" prop="oldId" style="display: none;">
-              <el-input v-model="draft.oldId"></el-input>
-            </el-form-item>
+
 
     <el-form-item label="性别" prop="sex">
     <el-radio-group v-model="draft.sex">
@@ -14,7 +12,7 @@
     </el-radio-group>
     </el-form-item>
     <el-form-item label="电话" prop="phone">
-    <el-input v-model="draft.phone"></el-input>
+    <el-input v-model="draft.phone" inputmode="tel" autocomplete="tel"></el-input>
     </el-form-item>
     <el-form-item label="房间" prop="room">
     <el-input v-model="draft.room"></el-input>
