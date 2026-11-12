@@ -4,9 +4,9 @@
       <div><h2>位置地图</h2><p>{{ valid ? `${selection?.name || '长者'} · ${selection?.lng}，${selection?.lat}` : '选择一条位置记录，在此查看。' }}</p></div>
       <el-button v-if="valid && mapPreferences.provider === 'amap' && !online" @click="enableOnlineMap">加载高德地图</el-button>
       <el-button v-if="online" link @click="disableOnlineMap">关闭在线地图</el-button>
-      <a v-if="valid && mapPreferences.provider === 'tencent' && providerUrl"
+      <a v-if="valid && (mapPreferences.provider === 'tencent' || mapPreferences.provider === 'google') && providerUrl"
         class="online-map-link" :href="providerUrl" target="_blank" rel="noopener noreferrer"
-        referrerpolicy="no-referrer">在腾讯地图查看位置</a>
+        referrerpolicy="no-referrer">在{{ mapPreferences.provider === 'google' ? 'Google' : '腾讯' }}地图查看位置</a>
       <a v-if="online && embeddedUrl" class="online-map-link" :href="embeddedUrl"
         target="_blank" rel="noopener noreferrer" referrerpolicy="no-referrer">在高德地图中打开</a>
     </div>
@@ -47,7 +47,8 @@ const embeddedUrl = computed(() => mapPreferences.provider === 'amap' ? provider
 const message = computed(() => {
   if (!valid.value) return '暂无可用坐标。'
   if (mapPreferences.provider === 'offline') return '当前只显示本地位置标记；未向地图服务发送坐标。'
-  if (mapPreferences.provider === 'tencent') return '使用腾讯官方地图链接查看位置；仅在点击链接后发送坐标。'
+  if (mapPreferences.provider === 'tencent' || mapPreferences.provider === 'google')
+    return `使用${mapPreferences.provider === 'google' ? 'Google' : '腾讯'}官方地图链接查看位置；仅在确认打开链接后发送坐标。`
   return online.value
     ? '高德底图使用转换后的 GCJ-02 显示坐标，仅供参考；原始上报数据未修改。'
     : '原始坐标已在本地标记。高德地图可按需加载，加载后将向服务商发送坐标。'
