@@ -34,6 +34,7 @@ export function useDevices() {
   let refreshTimer: ReturnType<typeof setTimeout> | undefined
   let disposed = false
   let deviceRequestPending = false
+  let displayedQuery = ''
   // Only the newest read may publish state, even if an older request ignores cancellation.
   let alertRequest = 0
   let alertCountsRequest = 0
@@ -77,8 +78,9 @@ export function useDevices() {
       query.page === state.currentPage && query.pageSize === state.pageSize &&
       query.query === state.deviceQuery && query.state === state.deviceState
     deviceRequestPending = true
-    // Preserve the current table during background polling; first load still shows a busy state.
-    state.deviceLoading = state.deviceList.length === 0
+    const queryKey = JSON.stringify(query)
+    // Keep the table responsive on unchanged background reads, but signal a changed filter.
+    state.deviceLoading = state.deviceList.length === 0 || displayedQuery !== queryKey
     state.deviceLoadError = ''
     try {
       await Promise.all([
@@ -102,6 +104,7 @@ export function useDevices() {
             }
           }
           state.deviceList = data.devices
+          displayedQuery = queryKey
           state.deviceTotal = data.total ?? data.devices.length
           state.serverOnlineCount = data.onlineCount ??
             data.devices.filter(item => item.online === 1 || item.online === '1').length
@@ -204,8 +207,9 @@ export function useDevices() {
           !(String(item.deviceId) === String(row.deviceId) && item.kind === row.kind &&
             String(item.recordId ?? '') === String(row.recordId ?? '')))
       }
-      void loadDevices()
-      if (wasOpen && state.workbench.visible) void openWorkbench()
+      void loadDevices().then(() => {
+        if (wasOpen && state.workbench.visible && !disposed) void openWorkbench()
+      })
     } catch (error) {
       ElMessage({ type: 'error', message: apiErrorMessage(error, '处理失败') })
     }
