@@ -1,19 +1,19 @@
 <template>
-<el-dialog :close-on-click-modal="false" title="设备绑定码" :model-value="visible" @update:model-value="onVisibleChange" width="560px">
+<el-dialog :close-on-click-modal="false" title="设备绑定码" :model-value="visible" @update:model-value="onVisibleChange" width="min(560px, 94vw)">
       <HarmonyWatchSetup v-if="currentDevice" :device-no="currentDevice.deviceNo" />
       <div v-if="currentDevice" class="tip">
         设备：{{ currentDevice.deviceNo }}（{{ currentDevice.alias }}）；
         当前绑定老人：{{ currentDevice.oldPersonName }}
       </div>
-      <el-form :inline="true" label-width="80px">
+      <el-form class="binding-form" label-position="top">
         <el-form-item label="绑定老人">
-          <el-select v-model="selectedResident" placeholder="请选择老人" style="width: 160px;">
+          <el-select v-model="selectedResident" placeholder="请选择老人" style="width: 100%;">
             <el-option v-for="item in oldPeople" :key="item.oldId"
                        :label="item.name + '（编号 ' + item.oldId + '）'" :value="item.oldId"></el-option>
           </el-select>
         </el-form-item>
         <el-form-item label="有效天数">
-          <el-input v-model="expiryDays" style="width: 90px;"></el-input>
+          <el-input v-model="expiryDays" inputmode="numeric" maxlength="3" placeholder="天数" style="width: 100%;"></el-input>
         </el-form-item>
         <el-form-item>
           <el-button type="primary" @click="emit('create')">生成绑定码</el-button>
@@ -83,7 +83,10 @@ function onVisibleChange(visible: boolean) {
 </script>
 
 <style scoped>
-.tip { color: #909399; font-size: 12px; line-height: 24px; padding-top: 6px; }
+.tip { color: var(--care-text-muted); font-size: 14px; line-height: 1.6; padding-top: 6px; }
+.binding-form { display: grid; grid-template-columns: minmax(0, 1fr) 100px; gap: 0 12px; }
+.binding-form :deep(.el-form-item:last-child) { grid-column: 1 / -1; }
+@media (max-width: 480px) { .binding-form { grid-template-columns: minmax(0, 1fr); } }
 .new-code { padding: 10px; background: #f0f9f8; border-radius: 6px; }
-.code-text { font-size: 26px; letter-spacing: 4px; color: #52bab5; font-weight: bold; padding: 4px 0; }
+.code-text { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; font-size: 24px; letter-spacing: 2px; color: var(--care-primary); font-weight: 700; padding: 8px 0; overflow-wrap: anywhere; }
 </style>
