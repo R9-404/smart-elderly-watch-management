@@ -51,7 +51,8 @@ export function usePagedRecords<TRecord, TQuery extends Record<string, unknown> 
       total.value = 0
       loadError.value = readErrorMessage(error, options.failure ?? '请求未完成，请重试')
     },
-    loading => { isLoading.value = loading }
+    loading => { isLoading.value = loading },
+    { key: query => JSON.stringify(query) }
   )
 
   function load(keepPage = false): Promise<void> {
