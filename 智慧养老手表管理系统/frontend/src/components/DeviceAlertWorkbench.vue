@@ -26,7 +26,7 @@
 <script setup lang="ts">
 import type { DeviceRecord, DeviceState } from '../composables/deviceModels'
 
-defineProps<{ workbench: DeviceState['workbench'] }>()
+defineProps<{ workbench: DeviceState['workbench']; isResolving: (row: DeviceRecord) => boolean }>()
 const emit = defineEmits<{
   close: []
   view: [row: DeviceRecord]
