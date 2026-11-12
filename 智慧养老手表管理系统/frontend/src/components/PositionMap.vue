@@ -4,6 +4,8 @@
       <div><h2>位置地图</h2><p>{{ valid ? `${selection?.name || '长者'} · ${selection?.lng}，${selection?.lat}` : '选择一条位置记录，在此查看。' }}</p></div>
       <el-button v-if="valid && !online" @click="enableOnlineMap">加载高德地图</el-button>
       <el-button v-if="online" link @click="disableOnlineMap">关闭在线地图</el-button>
+      <a v-if="online && embeddedUrl" class="online-map-link" :href="embeddedUrl"
+        target="_blank" rel="noopener noreferrer" referrerpolicy="no-referrer">在高德地图中打开</a>
     </div>
     <iframe v-if="online && embeddedUrl" :src="embeddedUrl" class="position-map-canvas online-map"
       title="高德地图 · 设备最近上报位置" loading="lazy" referrerpolicy="strict-origin-when-cross-origin"
@@ -101,6 +103,7 @@ onBeforeUnmount(() => { observer?.disconnect(); if (resizeFrame !== null) cancel
 .position-map-heading p { margin: 6px 0 0; }
 .position-map-canvas { height: clamp(240px, 46vh, 440px); z-index: 0; border-radius: 16px; background-color: #eef1e9; background-image: linear-gradient(#dce3d833 1px, transparent 1px), linear-gradient(90deg, #dce3d833 1px, transparent 1px); background-size: 32px 32px; }
 .online-map { display: block; width: 100%; border: 0; }
+.online-map-link { color: var(--care-primary); font-size: 14px; text-underline-offset: 3px; }
 .position-map-canvas:not(.has-location) { opacity: .55; pointer-events: none; }
 .position-map-note { margin: 12px 0 0; font-size: 15px; }
 .position-map :deep(.leaflet-container) { font-family: inherit; }
