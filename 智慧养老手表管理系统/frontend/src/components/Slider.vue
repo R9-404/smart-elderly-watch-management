@@ -2,7 +2,7 @@
   <aside class="care-sidebar" aria-label="管理端导航">
     <button class="navigation-toggle" type="button" :aria-expanded="expanded ? 'true' : 'false'" aria-controls="admin-navigation" @click="expanded = !expanded"><span><el-icon aria-hidden="true"><Menu /></el-icon> 功能导航</span><span>{{ expanded ? '收起' : '展开' }} <el-icon aria-hidden="true"><ArrowUp v-if="expanded" /><ArrowDown v-else /></el-icon></span></button>
     <div class="sidebar-label">工作空间</div>
-    <el-menu :key="route.path" :default-active="route.path" :default-openeds="openedGroups" unique-opened id="admin-navigation" :class="['care-menu', { 'is-expanded': expanded }]" router>
+    <el-menu ref="navigationMenu" :default-active="route.path" :default-openeds="openedGroups" unique-opened id="admin-navigation" :class="['care-menu', { 'is-expanded': expanded }]" router>
       <el-menu-item index="/operations/overview"><el-icon aria-hidden="true"><Menu /></el-icon><template #title><span >运营总览</span></template></el-menu-item>
       <el-menu-item v-if="!restrictedDuty" index="/operations/devices"><el-icon aria-hidden="true"><Clock /></el-icon><template #title><span >设备管理</span></template></el-menu-item>
       <el-sub-menu v-if="!restrictedDuty" index="health">
@@ -33,12 +33,14 @@
 
 <script setup lang="ts">
 import { ArrowDown, ArrowUp, Clock, Document, Menu, Message, User } from '@element-plus/icons-vue'
-import { computed, ref, watch } from 'vue'
+import { computed, nextTick, ref, watch } from 'vue'
+import type { MenuInstance } from 'element-plus'
 import { useRoute } from 'vue-router'
 import { authState } from '@/auth'
 import { isRestrictedAdmin } from '@/domain/permissions'
 
 const route = useRoute()
+const navigationMenu = ref<MenuInstance | null>(null)
 const expanded = ref(false)
 const restrictedDuty = computed(() => isRestrictedAdmin(authState.account))
 const groups: Record<string, string[]> = {
@@ -47,7 +49,12 @@ const groups: Record<string, string[]> = {
   service: ['/operations/notices/new', '/operations/notices', '/operations/comments', '/operations/notices/edit', '/operations/notices/detail']
 }
 const openedGroups = computed(() => Object.keys(groups).filter(group => groups[group].includes(route.path)))
-watch(() => route.fullPath, () => { expanded.value = false })
+watch(() => route.path, async () => {
+  expanded.value = false
+  await nextTick()
+  const group = Object.keys(groups).find(key => groups[key].includes(route.path))
+  if (group) navigationMenu.value?.open(group)
+})
 </script>
 
 <style scoped>
