@@ -166,7 +166,7 @@ export function useDevices() {
     }
     try {
       const { data } = await post<AlertDetailResponse>('alertDetail', { deviceId: row.deviceId, kind })
-      if (revision !== alertRequest || disposed) return
+      if (revision !== alertRequest || disposed || !state.alertDialog.visible) return
       Object.assign(state.alertDialog, {
         loading: false, hasAlert: data.hasAlert === undefined ? 1 : data.hasAlert,
         message: data.message || '', oldPersonName: data.oldPersonName || '',
@@ -176,7 +176,7 @@ export function useDevices() {
         recordId: data.recordId === undefined ? null : data.recordId
       })
     } catch (error) {
-      if (revision === alertRequest && !disposed) {
+      if (revision === alertRequest && !disposed && state.alertDialog.visible) {
         state.alertDialog.loading = false
         ElMessage({ type: 'error', message: readErrorMessage(error, '读取异常详情失败') })
       }
