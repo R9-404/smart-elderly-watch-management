@@ -37,6 +37,14 @@ let map: L.Map | null = null
 let marker: L.CircleMarker | null = null
 let tiles: L.TileLayer | null = null
 let observer: ResizeObserver | null = null
+let resizeFrame: number | null = null
+function scheduleResize () {
+  if (resizeFrame !== null) return
+  resizeFrame = requestAnimationFrame(() => {
+    resizeFrame = null
+    map?.invalidateSize({ animate: false })
+  })
+}
 function updateLocation () {
   if (!map) return
   if (marker) { marker.remove(); marker = null }
@@ -70,12 +78,12 @@ onMounted(() => {
   L.control.zoom({ zoomInTitle: '放大地图', zoomOutTitle: '缩小地图' }).addTo(map)
   // Links are disabled in the desktop shell; retain readable attribution locally.
   map.attributionControl.setPrefix(false)
-  observer = new ResizeObserver(() => map?.invalidateSize({ animate: false }))
+  observer = new ResizeObserver(scheduleResize)
   observer.observe(canvas.value)
   updateLocation()
 })
 watch(() => props.selection, updateLocation)
-onBeforeUnmount(() => { observer?.disconnect(); disableTiles(); map?.remove(); map = null })
+onBeforeUnmount(() => { observer?.disconnect(); if (resizeFrame !== null) cancelAnimationFrame(resizeFrame); resizeFrame = null; disableTiles(); map?.remove(); map = null })
 </script>
 
 <style scoped>
