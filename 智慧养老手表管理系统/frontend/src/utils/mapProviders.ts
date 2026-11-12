@@ -3,15 +3,18 @@ import { wgs84ToGcj02 } from './gcj02'
 
 export type MapProvider = 'amap' | 'tencent' | 'offline'
 export type MapStyle = 'roadmap' | 'satellite'
+export type MapCoordinateSystem = 'wgs84' | 'gcj02'
 export interface MapPreferences {
   provider: MapProvider
   style: MapStyle
+  coordinateSystem: MapCoordinateSystem
   loadOnlineAutomatically: boolean
   reducedMotion: boolean
 }
 const defaults: MapPreferences = {
   provider: 'amap',
   style: 'roadmap',
+  coordinateSystem: 'wgs84',
   loadOnlineAutomatically: false,
   reducedMotion: false
 }
@@ -24,6 +27,7 @@ function readPreferences(): MapPreferences {
     return {
       provider: value.provider === 'amap' || value.provider === 'tencent' || value.provider === 'offline' ? value.provider : defaults.provider,
       style: value.style === 'satellite' ? 'satellite' : 'roadmap',
+      coordinateSystem: value.coordinateSystem === 'gcj02' ? 'gcj02' : 'wgs84',
       loadOnlineAutomatically: value.loadOnlineAutomatically === true,
       reducedMotion: value.reducedMotion === true
     }
@@ -41,8 +45,11 @@ export function resetMapPreferences() {
 export function applyMapPreferences() {
   document.documentElement.classList.toggle('reduce-motion', mapPreferences.reducedMotion)
 }
-export function mapLocationUrl(provider: Exclude<MapProvider, 'offline'>, longitude: number, latitude: number, style: MapStyle): string {
-  const [lng, lat] = wgs84ToGcj02(longitude, latitude)
+export function mapDisplayPosition(longitude: number, latitude: number, coordinateSystem: MapCoordinateSystem): [number, number] {
+  return coordinateSystem === 'wgs84' ? wgs84ToGcj02(longitude, latitude) : [longitude, latitude]
+}
+export function mapLocationUrl(provider: Exclude<MapProvider, 'offline'>, longitude: number, latitude: number, style: MapStyle, coordinateSystem: MapCoordinateSystem = 'wgs84'): string {
+  const [lng, lat] = mapDisplayPosition(longitude, latitude, coordinateSystem)
   if (provider === 'amap') {
     const params = new URLSearchParams({
       lng: String(lng), lat: String(lat), name: '设备最近上报位置',
