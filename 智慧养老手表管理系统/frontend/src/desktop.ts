@@ -38,7 +38,7 @@ export function installDesktopKeys(): () => void {
   if (!isTauri()) return () => {}
 
   const onExternalClick = (event: MouseEvent) => {
-    if (event.defaultPrevented || event.button !== 0 || event.ctrlKey || event.altKey || event.shiftKey || event.metaKey) return
+    if (event.defaultPrevented || (event.button !== 0 && event.button !== 1)) return
     const element = event.target
     if (!(element instanceof Element)) return
     const link = element.closest('a[href]')
@@ -62,7 +62,7 @@ export function installDesktopKeys(): () => void {
     void (async () => {
       try {
         await ElMessageBox.confirm(
-          `即将离开岁宁并使用系统浏览器打开：\\n${destination.hostname}\\n${destination.href}\\n仅在信任目标网站时继续。`,
+          `即将离开岁宁并使用系统浏览器打开：\n${destination.hostname}\n${destination.href}\n仅在信任目标网站时继续。`,
           '确认打开外部链接',
           { confirmButtonText: '打开网站', cancelButtonText: '留在岁宁', type: 'warning' }
         )
@@ -76,6 +76,7 @@ export function installDesktopKeys(): () => void {
   }
 
   window.addEventListener('click', onExternalClick, true)
+  window.addEventListener('auxclick', onExternalClick, true)
 
   const onKeyDown = async (event: KeyboardEvent) => {
     if (event.repeat || !['F11', 'Escape'].includes(event.key)) return
@@ -95,5 +96,6 @@ export function installDesktopKeys(): () => void {
   return () => {
     window.removeEventListener('keydown', onKeyDown)
     window.removeEventListener('click', onExternalClick, true)
+    window.removeEventListener('auxclick', onExternalClick, true)
   }
 }
