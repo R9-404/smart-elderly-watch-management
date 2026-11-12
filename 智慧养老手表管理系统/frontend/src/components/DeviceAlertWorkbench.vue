@@ -13,7 +13,7 @@
         <el-table-column label="操作" width="170" align="center">
           <template #default="scope" >
             <el-button size="small" plain type="primary" @click="emit('view', scope.row)">查看原因</el-button>
-            <el-button size="small" plain @click="emit('resolve', scope.row)">已处理</el-button>
+            <el-button size="small" plain :loading="isResolving(scope.row)" :disabled="isResolving(scope.row)" @click="emit('resolve', scope.row)">已处理</el-button>
           </template>
         </el-table-column>
       </el-table>
