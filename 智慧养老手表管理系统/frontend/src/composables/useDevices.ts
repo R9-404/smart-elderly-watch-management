@@ -39,6 +39,9 @@ export function useDevices() {
   // Only the newest read may publish state, even if an older request ignores cancellation.
   let alertRequest = 0
   let alertCountsRequest = 0
+  const pendingResolutions = reactive(new Set<string>())
+  const alertKey = (row: DeviceRecord) => `${row.deviceId}:${row.kind ?? ''}:${row.recordId ?? ''}`
+  const isResolvingAlert = (row: DeviceRecord) => pendingResolutions.has(alertKey(row))
 
   async function loadAlertCounts() {
     const revision = ++alertCountsRequest
@@ -199,6 +202,9 @@ export function useDevices() {
     } finally { state.alertDialog.resolving = false }
   }
   async function resolveAlertRow(row: DeviceRecord) {
+    const key = alertKey(row)
+    if (pendingResolutions.has(key)) return
+    pendingResolutions.add(key)
     try {
       const { data } = await post('resolveAlert', {
         deviceId: row.deviceId, kind: row.kind, recordId: row.recordId ?? ''
@@ -216,7 +222,9 @@ export function useDevices() {
         if (wasOpen && state.workbench.visible && !disposed) void openWorkbench()
       })
     } catch (error) {
-      ElMessage({ type: 'error', message: apiErrorMessage(error, '处理失败') })
+      if (!disposed) ElMessage({ type: 'error', message: apiErrorMessage(error, '处理失败') })
+    } finally {
+      pendingResolutions.delete(key)
     }
   }
   function gotoPage(kind: string) {
@@ -347,7 +355,7 @@ export function useDevices() {
   return {
     ...toRefs(state), visibleDevices, onlineCount,
     loadDevices, loadAlertCounts, scheduleFilter, changeDevicePage, handleDeviceCommand,
-    alertOf, showAlert, resolveAlert, resolveAlertRow, openWorkbench, closeWorkbench, gotoPage,
+    alertOf, showAlert, resolveAlert, resolveAlertRow, isResolvingAlert, openWorkbench, closeWorkbench, gotoPage,
     loadOldPeople, startTimer, stopTimer, handleVisibilityChange,
     closeCreateDialog, createDevice, openBindCodeDialog, loadBindCodes,
     createBindCode, deleteBindCode, resetSecret, unbind, deleteDevice, copy
