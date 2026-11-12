@@ -2,8 +2,11 @@
   <section class="position-map" aria-label="位置地图">
     <div class="position-map-heading">
       <div><h2>位置地图</h2><p>{{ valid ? `${selection?.name || '长者'} · ${selection?.lng}，${selection?.lat}` : '选择一条位置记录，在此查看。' }}</p></div>
-      <el-button v-if="valid && !online" @click="enableOnlineMap">加载高德地图</el-button>
+      <el-button v-if="valid && mapPreferences.provider === 'amap' && !online" @click="enableOnlineMap">加载高德地图</el-button>
       <el-button v-if="online" link @click="disableOnlineMap">关闭在线地图</el-button>
+      <a v-if="valid && mapPreferences.provider === 'tencent' && providerUrl"
+        class="online-map-link" :href="providerUrl" target="_blank" rel="noopener noreferrer"
+        referrerpolicy="no-referrer">在腾讯地图查看位置</a>
       <a v-if="online && embeddedUrl" class="online-map-link" :href="embeddedUrl"
         target="_blank" rel="noopener noreferrer" referrerpolicy="no-referrer">在高德地图中打开</a>
     </div>
@@ -21,7 +24,7 @@ import { computed, onBeforeUnmount, onMounted, ref, watch, type PropType } from 
 import L from 'leaflet'
 import 'leaflet/dist/leaflet.css'
 import { describePositionContext, type PositionContext } from '../utils/positionContext'
-import { wgs84ToGcj02 } from '../utils/gcj02'
+import { mapPreferences, mapLocationUrl } from '../utils/mapProviders'
 
 interface PositionSelection extends PositionContext {
   lng?: number | string | null
@@ -36,21 +39,19 @@ const valid = computed(() => {
   return value && value.lng != null && value.lat != null && String(value.lng).trim() !== '' && String(value.lat).trim() !== '' &&
     Number.isFinite(Number(value.lng)) && Number.isFinite(Number(value.lat)) && Math.abs(Number(value.lng)) <= 180 && Math.abs(Number(value.lat)) <= 90
 })
-const embeddedUrl = computed(() => {
-  if (!valid.value || !props.selection) return ''
-  const [lng, lat] = displayedMapPosition(props.selection)
-  const params = new URLSearchParams({
-    lng: String(lng), lat: String(lat), zoom: '16',
-    name: '设备最近上报位置',
-    platform: 'pc', src: 'suining'
-  })
-  return `https://www.amap.com/ssr/embed/place?${params.toString()}`
+const providerUrl = computed(() => {
+  if (!valid.value || !props.selection || mapPreferences.provider === 'offline') return ''
+  return mapLocationUrl(mapPreferences.provider, Number(props.selection.lng), Number(props.selection.lat), mapPreferences.style)
 })
-function displayedMapPosition(position: PositionSelection): [number, number] {
-  return wgs84ToGcj02(Number(position.lng), Number(position.lat))
-}
-const message = computed(() => !valid.value ? '暂无可用坐标。' : online.value ? '在线底图由高德地图提供，显示坐标按 WGS84 → GCJ-02 转换，仅供参考；请以设备原始上报与采样时间为准。' :
-  '所选上报坐标已标记。高德地图按需加载，需联网。')
+const embeddedUrl = computed(() => mapPreferences.provider === 'amap' ? providerUrl.value : '')
+const message = computed(() => {
+  if (!valid.value) return '暂无可用坐标。'
+  if (mapPreferences.provider === 'offline') return '当前只显示本地位置标记；未向地图服务发送坐标。'
+  if (mapPreferences.provider === 'tencent') return '使用腾讯官方地图链接查看位置；仅在点击链接后发送坐标。'
+  return online.value
+    ? '高德底图使用转换后的 GCJ-02 显示坐标，仅供参考；原始上报数据未修改。'
+    : '原始坐标已在本地标记。高德地图可按需加载，加载后将向服务商发送坐标。'
+})
 let map: L.Map | null = null
 let marker: L.CircleMarker | null = null
 let observer: ResizeObserver | null = null
@@ -74,7 +75,7 @@ function updateLocation () {
   marker.bindTooltip(label, { direction: 'top', permanent: true, offset: [0, -12] })
 }
 function enableOnlineMap () {
-  if (!map || !valid.value) return
+  if (!map || !valid.value || mapPreferences.provider !== 'amap') return
   online.value = true
 }
 function disableOnlineMap () {
@@ -90,8 +91,13 @@ onMounted(() => {
   observer = new ResizeObserver(scheduleResize)
   observer.observe(canvas.value)
   updateLocation()
+  if (valid.value && mapPreferences.provider === 'amap' && mapPreferences.loadOnlineAutomatically) online.value = true
 })
 watch(() => props.selection, updateLocation)
+watch(() => [mapPreferences.provider, mapPreferences.loadOnlineAutomatically, valid.value] as const, () => {
+  online.value = mapPreferences.provider === 'amap' && mapPreferences.loadOnlineAutomatically && Boolean(valid.value)
+  if (!online.value) scheduleResize()
+})
 onBeforeUnmount(() => { observer?.disconnect(); if (resizeFrame !== null) cancelAnimationFrame(resizeFrame); resizeFrame = null; disableOnlineMap(); map?.remove(); map = null })
 </script>
 
