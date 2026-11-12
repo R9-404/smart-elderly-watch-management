@@ -31,6 +31,7 @@
 import { ref } from 'vue'
 import { mapPreferences, saveMapPreferences, resetMapPreferences } from '../utils/mapProviders'
 
+const emit = defineEmits<{ textSizeChanged: [value: boolean] }>()
 const visible = ref(false)
 const largeText = ref(false)
 function open() {
@@ -40,6 +41,7 @@ function open() {
 function setLargeText(value: string | number | boolean) {
   largeText.value = Boolean(value)
   document.documentElement.classList.toggle('large-text', largeText.value)
+  emit('textSizeChanged', largeText.value)
   try { localStorage.setItem('large_text', String(largeText.value)) } catch { /* Session-only preference. */ }
 }
 defineExpose({ open })
