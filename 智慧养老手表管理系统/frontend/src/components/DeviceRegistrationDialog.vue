@@ -14,7 +14,7 @@
           </el-select>
         </el-form-item>
       </el-form>
-      <div v-if="createdDevice" class="created" role="status">
+      <div v-if="createdDevice" class="created">
         <div class="created-title">设备已登记，请把下面的信息填到手表端：</div>
         <div class="created-line">设备号：<b>{{ createdDevice.deviceNo }}</b>
           <el-button size="small" plain type="primary" @click="emit('copy', createdDevice.deviceNo)">复制</el-button>
