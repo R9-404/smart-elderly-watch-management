@@ -37,3 +37,26 @@ it('cancels pending detail work when the alert dialog closes, then allows reopen
   expect(state.workbench.list).toHaveLength(1)
   workbench.disposeWorkbench()
 })
+
+it('shows the first completed alert while another request is still waiting', async () => {
+  const state = createDeviceState()
+  state.deviceList = [{ deviceId: 1, deviceNo: 'watch-1' }, { deviceId: 2, deviceNo: 'watch-2' }]
+  state.alertCounts = {
+    '1': { personCount: 1, rateCount: 0, preCount: 0 },
+    '2': { personCount: 1, rateCount: 0, preCount: 0 }
+  }
+  let finishSlow!: (value: { hasAlert: number; kindText: string }) => void
+  const workbench = useDeviceWorkbench(state, (deviceId) => deviceId === 1
+    ? Promise.resolve({ hasAlert: 1, kindText: '人员' })
+    : new Promise(resolve => { finishSlow = resolve }))
+  const pending = workbench.openWorkbench()
+  await Promise.resolve()
+  await Promise.resolve()
+  expect(state.workbench.loading).toBe(true)
+  expect(state.workbench.list.map(row => row.deviceId)).toEqual([1])
+  finishSlow({ hasAlert: 1, kindText: '人员' })
+  await pending
+  expect(state.workbench.loading).toBe(false)
+  expect(state.workbench.list.map(row => row.deviceId)).toEqual([1, 2])
+  workbench.disposeWorkbench()
+})
