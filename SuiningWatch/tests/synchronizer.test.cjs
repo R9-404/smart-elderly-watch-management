@@ -3,6 +3,7 @@ const test = require('node:test');
 const load = require('./load-ets.cjs');
 const { storeFixture } = require('./storage-fixture.cjs');
 const { signatureBoundary } = require('./signature-fixture.cjs');
+const { Request, reply } = require('./rcp-fixture.cjs');
 const p = load('model/Protocol');
 const config = p.normalizeConfig('https://care.example.com', 'WATCH001');
 const secret = 'authenticated-device-secret-123456';
@@ -14,20 +15,20 @@ async function fixture(context) {
   const state = { offline: false, epoch: 1, authStatus: 200, dialogs: 0, listeners: 0, loginGate: undefined,
     steps: 100, sensorTime: 1, permissions: 0, lostAck: false, failUploads: false, uploadStatus: 200, calls: [], records: new Map(), duplicates: 0 };
   const requests = new Set();
-  const network = { http: { RequestMethod: { POST: 'POST' }, HttpDataType: { STRING: 'STRING' }, createHttp: () => {
-    const request = { request: async (url, options) => {
-      const path = new URL(url).pathname.split('/').pop(), body = JSON.parse(options.extraData);
+  const network = { rcp: { Request, createSession: () => {
+    const request = { fetch: async ({ url, content }) => {
+      const path = new URL(url).pathname.split('/').pop(), body = JSON.parse(content);
       state.calls.push({ path, body });
       if (state.offline) throw new Error('network offline');
       if (path === 'login') {
         if (state.loginGate) await state.loginGate;
-        if (state.authStatus !== 200 || body.secret !== secret) return { responseCode: 401, result: JSON.stringify({ returnCode: '0000', code: 'UNAUTHORIZED', message: 'unauthorized' }) };
-        return { responseCode: 200, result: JSON.stringify({ returnCode: '1111', bound: 1, residentId: 7, bindingVersion: state.epoch, protocolVersion: 1, maxBatchSize: 200 }) };
+        if (state.authStatus !== 200 || body.secret !== secret) return reply(401, { returnCode: '0000', code: 'UNAUTHORIZED', message: 'unauthorized' });
+        return reply(200, { returnCode: '1111', bound: 1, residentId: 7, bindingVersion: state.epoch, protocolVersion: 1, maxBatchSize: 200 });
       }
       assert.equal(path, 'healthBatch');
-      if (state.uploadStatus !== 200) return { responseCode: state.uploadStatus, result: JSON.stringify({ returnCode: '0000', code: 'DEVICE_AUTH_FAILED' }) };
+      if (state.uploadStatus !== 200) return reply(state.uploadStatus, { returnCode: '0000', code: 'DEVICE_AUTH_FAILED' });
       if (state.failUploads) throw new Error('upload connection failure');
-      if (body.bindingVersion !== state.epoch) return { responseCode: 409, result: JSON.stringify({ returnCode: '0000', code: 'EPOCH_EXPIRED' }) };
+      if (body.bindingVersion !== state.epoch) return reply(409, { returnCode: '0000', code: 'EPOCH_EXPIRED' });
       let duplicates = 0;
       for (const sample of body.samples) {
         if (state.records.has(sample.recordId)) duplicates++;
@@ -35,8 +36,8 @@ async function fixture(context) {
       }
       state.duplicates += duplicates;
       if (state.lostAck) { state.lostAck = false; throw new Error('connection lost after commit'); }
-      return { responseCode: 200, result: JSON.stringify({ returnCode: '1111', accepted: body.samples.length, duplicates }) };
-    }, destroy: () => requests.delete(request) };
+      return reply(200, { returnCode: '1111', accepted: body.samples.length, duplicates });
+    }, close: () => requests.delete(request), cancel() {} };
     requests.add(request); return request;
   } } };
   const sensors = { SensorId: { HEART_RATE: 1, PEDOMETER: 2 },
@@ -45,7 +46,7 @@ async function fixture(context) {
       state.listeners++;
       queueMicrotask(() => callback(id === 1 ? { heartRate: 72, timestamp: state.sensorTime * 1e9 } : { steps: state.steps, timestamp: state.sensorTime * 1e9 }));
     }, off() {} };
-  const { WatchApi } = load('services/WatchApi', { ...signatureBoundary().mocks, '@kit.NetworkKit': network });
+  const { WatchApi } = load('services/WatchApi', { ...signatureBoundary().mocks, '@kit.RemoteCommunicationKit': network });
   const { HealthSensors } = load('services/HealthSensors', {
     '@kit.SensorServiceKit': { sensor: sensors }, '@kit.AbilityKit': { abilityAccessCtrl: { createAtManager: () => ({
       checkAccessToken: async () => state.permissions,

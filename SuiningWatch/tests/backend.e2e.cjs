@@ -20,16 +20,18 @@ mod._compile(ts.transpileModule(fs.readFileSync(source, 'utf8'), {
 const protocol = mod.exports;
 const load = require('./load-ets.cjs');
 const { signatureBoundary } = require('./signature-fixture.cjs');
+const { Request } = require('./rcp-fixture.cjs');
 let transportProxy = '';
 const signedAttempts = [];
 // Real HTTP to the disposable Go server through the production WatchApi.
-const { WatchApi } = load('services/WatchApi', { ...signatureBoundary().mocks, '@kit.NetworkKit': { http: {
-  RequestMethod: { POST: 'POST' }, HttpDataType: { STRING: 'STRING' },
-  createHttp: () => ({ request: async (url, options) => {
-    signedAttempts.push({ path: new URL(url).pathname, headers: { ...options.header } });
-    const response = await fetch(transportProxy ? transportProxy + new URL(url).pathname : url, { method: options.method, headers: options.header, body: options.extraData, signal: AbortSignal.timeout(options.readTimeout) });
-    return { responseCode: response.status, result: await response.text() };
-  }, destroy() {} })
+const { WatchApi } = load('services/WatchApi', { ...signatureBoundary().mocks, '@kit.RemoteCommunicationKit': { rcp: {
+  Request,
+  createSession: configuration => ({ fetch: async ({ url, method, headers, content }) => {
+    signedAttempts.push({ path: new URL(url).pathname, headers: { ...headers } });
+    const response = await fetch(transportProxy ? transportProxy + new URL(url).pathname : url, { method, headers, body: content, signal: AbortSignal.timeout(configuration.requestConfiguration.transfer.timeout.transferMs) });
+    const text = await response.text();
+    return { statusCode: response.status, toString: () => text };
+  }, close() {}, cancel() {} })
 } } });
 const { NativeSampling } = load('model/NativeSampling');
 const watch = new WatchApi();

@@ -4,6 +4,7 @@ param(
   [string]$SdkHome = $env:DEVECO_SDK_HOME,
   [ValidateSet('default', 'ohosTest')][string]$BuildTarget = 'default',
   [ValidateSet('debug', 'release')][string]$BuildMode = 'debug',
+  [ValidateSet('default', 'quality')][string]$Product = 'default',
   [string]$ReportPath = ''
 )
 $ErrorActionPreference = 'Stop'
@@ -11,7 +12,7 @@ $projectRoot = Split-Path $PSScriptRoot -Parent
 if (!$ReportPath) { $ReportPath = Join-Path $projectRoot 'artifacts\native-build.json' }
 $ReportPath = [IO.Path]::GetFullPath($ReportPath)
 New-Item -ItemType Directory -Path (Split-Path $ReportPath -Parent) -Force | Out-Null
-$report = [ordered]@{ status = 'blocked'; source = ''; dirty = $false; target = $BuildTarget; buildMode = $BuildMode; toolchain = ''; sdk = ''; versions = $null; artifact = $null; error = ''; startedAt = [DateTime]::UtcNow.ToString('o') }
+$report = [ordered]@{ status = 'blocked'; source = ''; dirty = $false; target = $BuildTarget; buildMode = $BuildMode; product = $Product; toolchain = ''; sdk = ''; versions = $null; artifact = $null; error = ''; startedAt = [DateTime]::UtcNow.ToString('o') }
 $savedEnvironment = @{}
 foreach ($name in @('NODE_PATH', 'NODE_HOME', 'DEVECO_NODE_HOME', 'DEVECO_SDK_HOME', 'JAVA_HOME', 'PATH')) {
   $savedEnvironment[$name] = [Environment]::GetEnvironmentVariable($name, 'Process')
@@ -85,10 +86,10 @@ try {
   }
   # A clean SDK build prevents an old HAP from satisfying this run's gate.
   foreach ($task in @('clean', 'assembleHap')) {
-    & $runner @prefix $task --mode module -p "module=entry@$BuildTarget" -p product=default -p "buildMode=$BuildMode" --no-daemon 2>&1 | Tee-Object -FilePath ($ReportPath + '.log') -Append
+    & $runner @prefix $task --mode module -p "module=entry@$BuildTarget" -p "product=$Product" -p "buildMode=$BuildMode" --no-daemon 2>&1 | Tee-Object -FilePath ($ReportPath + '.log') -Append
     if ($LASTEXITCODE -ne 0) { throw "Hvigor $task 失败（$LASTEXITCODE）" }
   }
-  $hap = Join-Path $projectRoot "entry/build/default/outputs/$BuildTarget/entry-$BuildTarget-unsigned.hap"
+  $hap = Join-Path $projectRoot "entry/build/$Product/outputs/$BuildTarget/entry-$BuildTarget-unsigned.hap"
   if (!(Test-Path -LiteralPath $hap)) { throw '编译未生成预期 HAP' }
   $report.artifact = @{ path = $hap; sha256 = (Get-FileHash -LiteralPath $hap -Algorithm SHA256).Hash; bytes = (Get-Item -LiteralPath $hap).Length; signed = $false }
   $report.status = 'passed'

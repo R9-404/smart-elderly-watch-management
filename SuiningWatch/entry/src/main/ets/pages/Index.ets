@@ -336,7 +336,7 @@ struct Index {
     Text(this.person === '尚未绑定' ? '今天，也安心' : this.person).fontSize(19).fontColor('#F3EDE0')
     Text('心率 · 传感器观测').fontSize(12).fontColor('#93B1A7')
     Row({ space: 4 }) {
-      Text(this.nativeHeart > 0 ? this.nativeHeart.toString() : '—').fontSize(52).fontWeight(FontWeight.Medium).fontColor('#E6CE9D')
+      Text(this.nativeHeart > 0 ? this.nativeHeart.toString() : '—').id('watch-heart-rate').fontSize(52).fontWeight(FontWeight.Medium).fontColor('#E6CE9D')
       Text('次/分').fontSize(12).fontColor('#93B1A7').padding({ top: 22 })
     }.justifyContent(FlexAlign.Center)
     Text('计步器累计 ' + (this.nativeCounter >= 0 ? this.nativeCounter.toString() : '尚未读取')).fontSize(15).fontColor('#D8E4DC')
@@ -346,7 +346,7 @@ struct Index {
       .width('100%').height(40).enabled(!this.busy || this.autoEnabled).onClick(() => { this.confirmSOS(); })
     if (this.sosPending) { this.caption('待核查求助：' + this.sosPending + ' 条') }
     if (this.lastSOS) { this.caption(this.lastSOS) }
-    Button(this.autoEnabled ? '停止自动监测' : '开启自动监测').fontSize(15).fontColor('#F3EDE0')
+    Button(this.autoEnabled ? '停止自动监测' : '开启自动监测').id('watch-auto-toggle').fontSize(15).fontColor('#F3EDE0')
       .backgroundColor('#24463C').width('100%').height(40).enabled(!this.busy || this.autoEnabled)
       .onClick(() => { if (this.autoEnabled) { this.stopAutomatic(); } else { this.act(async () => { await this.startAutomatic(); }); } })
     this.caption(this.autoStatus)
@@ -404,17 +404,17 @@ struct Index {
         Text('HarmonyOS · 需授权读取传感器').fontSize(10).fontColor('#D5BD89')
         Row({ space: 7 }) {
           ForEach(['首页', '记录', '设置'], (label: string, index: number) => {
-            Button(label).fontSize(12).height(28).backgroundColor(this.page === index ? '#3D5F50' : '#172D26')
+            Button(label).id('watch-tab-' + index).fontSize(12).height(28).backgroundColor(this.page === index ? '#3D5F50' : '#172D26')
               .onClick(() => { this.page = index; })
           }, (label: string) => label)
         }.justifyContent(FlexAlign.Center)
         if (this.page === 0) { this.home(); }
         else if (this.page === 1) { this.records(); }
         else { this.settings(); }
-        Text(this.busy ? '正在处理，请稍候…' : this.status).fontSize(12)
+        Text(this.busy ? '正在处理，请稍候…' : this.status).id('watch-status').fontSize(12)
           .fontColor(this.connected ? '#B9D6BC' : '#D8C599').textAlign(TextAlign.Center)
           .width('100%').padding({ top: 4 })
       }.width('76%').padding({ top: 28, bottom: 44 }).constraintSize({ minHeight: '100%' })
-    }.width('100%').height('100%').backgroundColor('#0C1917').scrollBar(BarState.Off)
+    }.id('watch-scroll').width('100%').height('100%').backgroundColor('#0C1917').scrollBar(BarState.Off)
   }
 }

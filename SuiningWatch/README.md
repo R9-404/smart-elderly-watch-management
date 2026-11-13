@@ -77,6 +77,8 @@ npm test
 
 ## 原生系统测试
 
+实际界面和系统生命周期使用独立 `quality` 产品（`com.suining.watch.quality`），运行同一份页面代码并隔离原应用的数据；`npm run test:native-ui` 的环境、双包构建及验收边界见 [原生界面验收](../docs/reliability/watch-native-ui.md)。普通协议测试、SDK 编译和该界面用例分别记录，不能相互替代。
+
 独立 `ohosTest` 目标使用官方 Hypium 1.0.25（版本与完整性摘要已锁定）。它调用实际系统 HMAC/HUKS，并在单独名称的 Preferences 中验证 200 条采样和凭据/SOS 重载，不用已有生产数据当测试夹具。测试模块没有启动器入口，不打进默认产品 HAP。
 
 ```powershell

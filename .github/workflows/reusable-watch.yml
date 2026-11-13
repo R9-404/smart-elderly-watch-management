@@ -51,6 +51,9 @@ jobs:
       - name: Reject mismatched SDK, plugin and CLI metadata
         shell: pwsh
         run: ./SuiningWatch/scripts/test-toolchain.ps1
+      - name: Reject production bundles and inconsistent UI artifacts before installation
+        shell: pwsh
+        run: ./SuiningWatch/scripts/test-native-ui-preflight.ps1
       - if: always()
         uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f
         with:

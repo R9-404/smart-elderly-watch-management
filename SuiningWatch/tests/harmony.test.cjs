@@ -3,6 +3,7 @@ const test = require('node:test');
 const load = require('./load-ets.cjs');
 const { storeFixture } = require('./storage-fixture.cjs');
 const { signatureBoundary } = require('./signature-fixture.cjs');
+const { Request } = require('./rcp-fixture.cjs');
 const p = load('model/Protocol');
 const { NativeSampling } = load('model/NativeSampling');
 const config = p.normalizeConfig('https://care.example.com', 'WATCH001');
@@ -38,18 +39,19 @@ test('uncommitted sampling candidate cannot lose the next step delta', () => {
   assert.deepEqual(sampler.accept(binding, 'no-reading', observation(0, 5, 'heart_rate')), []);
 });
 
-test('transport negotiates capabilities, destroys HTTP handles, and never replays rejected writes', async () => {
+test('transport negotiates capabilities, closes sessions, and never replays rejected writes', async () => {
   const calls = []; let destroyed = 0; let status = 200;
   let reply = { returnCode: '1111', protocolVersion: 1, maxBatchSize: 200 };
-  const { WatchApi } = load('services/WatchApi', { ...signatureBoundary().mocks, '@kit.NetworkKit': { http: {
-    RequestMethod: { POST: 'POST' }, HttpDataType: { STRING: 'STRING' },
-    createHttp: () => ({ request: async (url, options) => { calls.push({ url, options }); return { responseCode: status, result: JSON.stringify(reply) }; }, destroy: () => destroyed++ })
+  const { WatchApi } = load('services/WatchApi', { ...signatureBoundary().mocks, '@kit.RemoteCommunicationKit': { rcp: {
+    Request,
+    createSession: configuration => ({ fetch: async request => { calls.push({ ...request, configuration }); return { statusCode: status, toString: () => JSON.stringify(reply) }; }, close: () => destroyed++ })
   } } });
   const api = new WatchApi();
   await api.login(config, 'not-logged');
   assert.equal(calls[0].url, config.server + '/api/v1/device/login');
-  assert.equal(JSON.parse(calls[0].options.extraData).platform, 'harmonyos');
-  assert.equal(calls[0].options.usingCache, false);
+  assert.equal(JSON.parse(calls[0].content).platform, 'harmonyos');
+  assert.equal(calls[0].headers['cache-control'], 'no-store');
+  assert.deepEqual(calls[0].configuration.requestConfiguration.transfer, { autoRedirect: false, timeout: { connectMs: 5000, transferMs: 10000 } });
   reply = { returnCode: '1111' };
   await assert.rejects(api.login(config, 'not-logged'), /协议|兼容/);
   status = 409;
