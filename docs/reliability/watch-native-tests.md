@@ -28,6 +28,10 @@
 
 脚本在写测试数据库前检查目标连接，拒绝已有业务库；生成独立测试账号、设备、两名长者和随机 Preferences 名称，不配置真实通知接收人。主机独立校验原始请求的 HMAC、时间与 nonce，实际转发到 Go，按 14 个阶段查询健康增量和 SOS 响应。503 与提交后断开 ACK 由本机代理注入；后者必须通过真实后端去重。测试占用模拟器回环端口 18797/18798，已有映射时拒绝，结束只清理自己创建的映射。
 
+`aa test -s fixtureToken <值>` 在系统参数表中使用 `-s fixtureToken` 键，测试按该键读取并严格校验一次性令牌，不输出令牌值。映射删除按 HDC 规定拆分两个端点参数；即使联调失败也尝试清理全部自有映射、记录失败摘要，并保留首个测试错误。命令结构依据 [OpenHarmony aa 实现](https://github.com/openharmony/ability_ability_runtime/blob/master/tools/aa/src/ability_command.cpp) 和 [HDC 文档](https://github.com/openharmony/docs/blob/master/zh-cn/application-dev/dfx/hdc.md)。
+
+原生 HTTP 栈在空连接断开后可能透明重发同一个 POST。丢 ACK 故障窗口持续到手表确认本地队列仍保留：窗口内仅允许相同正文、时间和 nonce 的那一次底层重发，并实际转发至 Go 验证 `409 NONCE_REPLAY`，再继续丢弃响应。窗口外重放立即失败；后续应用主动补传必须换 nonce、保留原 recordId，并由真实主库返回业务去重。摘要单列底层重发拒绝数，不将它算成新签名请求或成功写入。
+
 正式运行要求相关源码干净；`WATCH_NATIVE_ALLOW_DIRTY=1` 仅用于调试，报告保留 dirty 标记。单独执行 `run-native-tests.ps1 -Suite backend` 的 Hypium 成功日志不足以证明联调通过，还必须有主机全部阶段、独立签名校验和真实数据断言的成功摘要。未实际执行不得把编译成功记为本套运行成功。
 
 ## 存储隔离

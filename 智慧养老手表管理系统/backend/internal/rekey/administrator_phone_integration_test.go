@@ -41,6 +41,17 @@ func TestAdministratorPhoneRekeyMySQL(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
+	tx, err := pool.BeginTx(ctx, nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err = userphone.BindLookupKey(ctx, tx, old); err != nil {
+		_ = tx.Rollback()
+		t.Fatal(err)
+	}
+	if err = tx.Commit(); err != nil {
+		t.Fatal(err)
+	}
 	phones := map[int64]string{1: "13800000001", 10: "13800000010"}
 	lookup := map[int64]string{}
 	for _, id := range []int64{1, 10} {
@@ -53,17 +64,6 @@ func TestAdministratorPhoneRekeyMySQL(t *testing.T) {
  VALUES(?,'synthetic',?,'1',?,?,true)`, id, hash, protected.Ciphertext, protected.Lookup)
 	}
 	exec("INSERT INTO users(user_id,user_name,user_phone,user_phone_protected) VALUES(20,'legacy','13800000020',false),(30,'removed',NULL,true)")
-	tx, err := pool.BeginTx(ctx, nil)
-	if err != nil {
-		t.Fatal(err)
-	}
-	if err = userphone.BindLookupKey(ctx, tx, old); err != nil {
-		_ = tx.Rollback()
-		t.Fatal(err)
-	}
-	if err = tx.Commit(); err != nil {
-		t.Fatal(err)
-	}
 	binding := get("SELECT lookup_verifier FROM account_phone_key_state WHERE singleton=1")
 	exec("INSERT INTO oldperson(old_id,name) VALUES(1,'synthetic')")
 	exec("INSERT INTO device(device_id,device_no,secret,old_id) VALUES(1,'REKEY-ACCOUNT',?,1)", strings.Repeat("x", 48))
@@ -196,10 +196,6 @@ func testLegacyAdministratorPhoneRekey(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if _, err := pool.ExecContext(ctx, `INSERT INTO users(user_id,user_name,password,role,user_phone_cipher,user_phone_lookup,user_phone_protected)
- VALUES(7,'synthetic',?,'1',?,?,true)`, hash, protected.Ciphertext, protected.Lookup); err != nil {
-		t.Fatal(err)
-	}
 	tx, err := pool.BeginTx(ctx, nil)
 	if err != nil {
 		t.Fatal(err)
@@ -209,6 +205,10 @@ func testLegacyAdministratorPhoneRekey(t *testing.T) {
 		t.Fatal(err)
 	}
 	if err := tx.Commit(); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := pool.ExecContext(ctx, `INSERT INTO users(user_id,user_name,password,role,user_phone_cipher,user_phone_lookup,user_phone_protected)
+ VALUES(7,'synthetic',?,'1',?,?,true)`, hash, protected.Ciphertext, protected.Lookup); err != nil {
 		t.Fatal(err)
 	}
 	before, err := authrepo.Authenticate(ctx, pool, legacy, phone, password)

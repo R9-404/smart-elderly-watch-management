@@ -34,6 +34,9 @@ func (t target) fieldScope(keys []any) string {
 	if t.table == "users" && t.column == "user_phone_cipher" {
 		return "account-phone:admin:" + fmt.Sprint(keys[0])
 	}
+	if t.table == "family" && t.column == "family_phone_cipher" {
+		return "account-phone:family:" + fmt.Sprint(keys[0])
+	}
 	return t.scope
 }
 
@@ -62,5 +65,6 @@ func targets() []target {
 		{"telemetry_inbox", "payload", []string{"id"}, "telemetry-inbox", directEnvelope},
 		{"analytics_outbox", "payload", []string{"id"}, "location", coordinateProjection},
 		{"users", "user_phone_cipher", []string{"user_id"}, "", directEnvelope},
+		{"family", "family_phone_cipher", []string{"family_id"}, "", directEnvelope},
 	}
 }

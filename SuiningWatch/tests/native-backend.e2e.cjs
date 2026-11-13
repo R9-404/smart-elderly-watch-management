@@ -94,6 +94,7 @@ async function main() {
   const phases = ['fixture', 'automatic', 'hidden', 'resumed', 'offline', 'online', 'uploaded', 'lose-ack', 'lost-ack-check', 'dedup-check', 'offline-again', 'rebind', 'rebound', 'sos'];
   const completed = [], nonces = new Set(), routes = new Set(), forwards = [];
   let mode = 'online', lost, rebound, offlineIDs = [], staleIDs = [], sawDuplicate = false, sos = [], firstError;
+  let rejectedTransportReplays = 0;
   const fail = error => { firstError ||= error; };
   const proxy = http.createServer(async (incoming, outgoing) => {
     try {
@@ -104,18 +105,36 @@ async function main() {
       const nonce = incoming.headers['x-device-nonce'], timestamp = incoming.headers['x-device-timestamp'];
       assert.match(timestamp || '', /^\d+$/);
       assert.ok(Math.abs(Math.floor(Date.now() / 1000) - Number(timestamp)) <= 300, 'Native timestamp outside server acceptance window');
-      assert.match(nonce || '', /^[a-f0-9]{32}$/); assert.ok(!nonces.has(nonce), 'native HTTP must not replay a transport nonce'); nonces.add(nonce);
+      assert.match(nonce || '', /^[a-f0-9]{32}$/);
+      const transportReplay = nonces.has(nonce);
+      if (!transportReplay) nonces.add(nonce);
       const digest = crypto.createHash('sha256').update(raw).digest('hex');
       const expected = crypto.createHmac('sha256', device.secret).update(device.deviceNo + ':' + timestamp + ':' + nonce + ':' + digest).digest('hex');
       assert.equal(incoming.headers['x-device-signature'], expected); routes.add(incoming.url.split('/').pop());
+      if (transportReplay) {
+        // The native HTTP stack may retry the same POST after an empty socket
+        // close. Only this exact injected lost-ACK attempt may do so, and the
+        // real backend must reject it. The later app retry needs a fresh nonce.
+        assert.equal(mode, 'lose-ack', 'transport replay outside the injected outage');
+        assert.ok(lost && incoming.url.endsWith('/healthBatch'));
+        assert.equal(nonce, lost.nonce); assert.equal(digest, lost.digest); assert.equal(timestamp, lost.timestamp);
+      }
       if (mode === 'offline') { outgoing.writeHead(503, { 'Content-Type': 'application/json' }); outgoing.end(JSON.stringify({ code: 'TEST_OFFLINE', message: 'Controlled native network outage' })); return; }
       const response = await fetch(base + incoming.url, { method: 'POST', headers: { 'Content-Type': 'application/json',
         'X-Device-Nonce': nonce, 'X-Device-Timestamp': timestamp, 'X-Device-Signature': incoming.headers['x-device-signature'] }, body: raw, signal: AbortSignal.timeout(15000) });
       const text = await response.text(), result = JSON.parse(text);
+      if (transportReplay) {
+        assert.equal(response.status, 409); assert.equal(result.code, 'NONCE_REPLAY');
+        rejectedTransportReplays++; outgoing.destroy(); return;
+      }
       if (incoming.url.endsWith('/healthBatch')) {
         assert.equal(response.status, 200); assert.equal(result.accepted, body.samples.length);
         if (result.duplicates > 0) sawDuplicate = true;
-        if (mode === 'lose-ack') { mode = 'online'; lost = { ids: body.samples.map(item => item.recordId), accepted: result.accepted }; outgoing.destroy(); return; }
+        if (mode === 'lose-ack') {
+          assert.equal(lost, undefined);
+          lost = { ids: body.samples.map(item => item.recordId), accepted: result.accepted, nonce, digest, timestamp };
+          outgoing.destroy(); return;
+        }
       }
       if (incoming.url.endsWith('/sos')) sos.push({ requestId: body.requestId, incidentId: result.incidentId, duplicate: result.duplicate, notification: result.notificationState });
       outgoing.writeHead(response.status, { 'Content-Type': 'application/json' }); outgoing.end(text);
@@ -134,7 +153,7 @@ async function main() {
         case 'online': assert.equal(original.length, 4); assert.equal(body.ids.length, 2); offlineIDs = body.ids; mode = 'online'; break;
         case 'uploaded': assert.equal(original.length, 6); for (const id of offlineIDs) assert.ok(original.some(item => item.sample.recordId === id)); break;
         case 'lose-ack': assert.equal(original.length, 6); mode = 'lose-ack'; break;
-        case 'lost-ack-check': assert.equal(original.length, 7); assert.equal(lost.accepted, 1); assert.deepEqual(body.ids, lost.ids); break;
+        case 'lost-ack-check': assert.equal(original.length, 7); assert.equal(lost.accepted, 1); assert.deepEqual(body.ids, lost.ids); mode = 'online'; break;
         case 'dedup-check': assert.equal(original.length, 7); assert.equal(sawDuplicate, true); break;
         case 'offline-again': assert.equal(original.length, 7); mode = 'offline'; break;
         case 'rebind':
@@ -154,7 +173,8 @@ async function main() {
       completed.push(body.action); outgoing.writeHead(200, { 'Content-Type': 'application/json' }); outgoing.end(JSON.stringify({ ok: true, ...extra }));
     } catch (error) { fail(error); outgoing.writeHead(500, { 'Content-Type': 'application/json' }); outgoing.end(JSON.stringify({ ok: false })); }
   });
-  let status = 'failed';
+  let status = 'failed', operationError;
+  const cleanupErrors = [];
   try {
     await listen(control); await listen(proxy);
     for (const [guest, server] of [[18797, control], [18798, proxy]]) {
@@ -178,16 +198,25 @@ async function main() {
     if (runnerError) throw runnerError;
     assert.deepEqual(completed, phases); for (const route of ['login', 'heartbeat', 'healthBatch', 'sos']) assert.ok(routes.has(route));
     status = 'passed';
+  } catch (error) {
+    operationError = error;
   } finally {
-    await close(control); await close(proxy);
-    for (const mapping of forwards.reverse()) {
-      if (ownsMapping(mapping)) callHdc(['-t', target, 'fport', 'rm', mapping]);
-      assert.ok(!ownsMapping(mapping), 'owned native mapping cleanup failed');
+    for (const server of [control, proxy]) {
+      try { await close(server); } catch { cleanupErrors.push('owned HTTP server cleanup failed'); }
     }
-    const summary = { source, dirty: dirty || build.dirty, status, phases: completed, nativeSignedRequests: nonces.size,
+    for (const mapping of forwards.reverse()) {
+      try {
+        if (ownsMapping(mapping)) callHdc(['-t', target, 'fport', 'rm', ...mapping.split(' ')]);
+        assert.ok(!ownsMapping(mapping), 'owned native mapping cleanup failed');
+      } catch { cleanupErrors.push('owned native mapping cleanup failed'); }
+    }
+    const summary = { source, dirty: dirty || build.dirty, status: cleanupErrors.length ? 'failed' : status,
+      cleanupErrors, phases: completed, nativeSignedRequests: nonces.size, rejectedTransportReplays,
       scope: 'actual HarmonyOS HMAC/HTTP/HUKS/Preferences and production scheduler/synchronizer; controlled sensors; dedicated real Go/MySQL; no real recipients' };
     fs.writeFileSync(path.join(evidence, 'summary.json'), JSON.stringify(summary, null, 2));
     console.log(JSON.stringify(summary, null, 2));
   }
+  if (operationError) throw operationError;
+  if (cleanupErrors.length) throw new Error(cleanupErrors.join('; '));
 }
 main().catch(error => { console.error(error.message); process.exitCode = 1; });

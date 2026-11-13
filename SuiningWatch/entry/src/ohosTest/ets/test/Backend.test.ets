@@ -58,19 +58,23 @@ class ControlledSensors extends HealthSensors {
 
 async function uiContext(): Promise<common.UIAbilityContext> {
   const delegator = abilityDelegatorRegistry.getAbilityDelegator();
-  await delegator.startAbility({ bundleName: 'com.suining.watch', moduleName: 'entry_test', abilityName: 'NativeTestAbility' });
-  for (let i = 0; i < 50; i++) {
-    const ability = await delegator.getCurrentTopAbility();
-    if (ability.context.abilityInfo.name === 'NativeTestAbility') { return ability.context; }
-    await delay(100);
+  const monitor: abilityDelegatorRegistry.AbilityMonitor = { abilityName: 'NativeTestAbility', moduleName: 'entry_test' };
+  await delegator.addAbilityMonitor(monitor);
+  try {
+    await delegator.startAbility({ bundleName: 'com.suining.watch', moduleName: 'entry_test', abilityName: 'NativeTestAbility' });
+    const ability = await delegator.waitAbilityMonitor(monitor, 5000);
+    if (ability.context.abilityInfo.name !== 'NativeTestAbility') { throw new Error('Unexpected native test ability'); }
+    return ability.context;
+  } finally {
+    await delegator.removeAbilityMonitor(monitor);
   }
-  throw new Error('Native test ability context unavailable');
 }
 
 export default function backendTests(): void {
   describe('SuiningNativeBackend', () => {
     it('native_backend_pipeline', TestType.RELIABILITY | Size.LARGETEST | Level.LEVEL0, async () => {
-      const token = abilityDelegatorRegistry.getArguments().parameters['fixtureToken'];
+      // aa preserves custom string arguments with their "-s " prefix.
+      const token = abilityDelegatorRegistry.getArguments().parameters['-s fixtureToken'];
       if (typeof token !== 'string' || !/^[a-f0-9]{64}$/.test(token)) { throw new Error('Dedicated backend fixture token required'); }
       const fixture = await bridge(token, { action: 'fixture' });
       const server = fixture.server, deviceNo = fixture.deviceNo, secret = fixture.secret, name = fixture.storeName;
