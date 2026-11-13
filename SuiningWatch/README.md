@@ -13,6 +13,15 @@
 
 ## 开发环境要求
 
+当前工程要求 Command Line Tools 26.0.0.865（Hvigor 6.26.9、SDK 26.0.0.105 / API 26）。
+`toolchain.json` 固定版本与官方 Windows 归档摘要；构建前会核对 SDK、插件和工程模型版本。
+6.1.1 工具链不再满足当前工程配置。下载完整归档后可用以下方式校验并解压，避免 Windows 长路径导致组件缺失：
+
+```powershell
+python ./scripts/extract-toolchain.py '<下载的 zip>' 'E:\suining-sdk26'
+./scripts/build.ps1 -CommandLineHome 'E:\suining-sdk26\command-line-tools' -DevEcoHome ''
+```
+
 本工程已在 DevEco Studio 6.1.1.280（内置 SDK 6.1.1 API 24、兼容目标 HarmonyOS 5.1 API 18）与 Node.js 18 环境下完成编译，并在 API 24 Wearable 模拟器中完成命令行安装与启动；这些历史记录不代表当前分支完整原生验收通过。请在 DevEco Studio 中选择 `Open`，直接打开仓库根目录下的 `SuiningWatch` 文件夹（切勿仅打开子目录 `entry`）。
 
 ## 构建与模拟器运行

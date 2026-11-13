@@ -9,9 +9,9 @@ $projectRoot = Split-Path $PSScriptRoot -Parent
 if (!$ReportPath) { $ReportPath = Join-Path $projectRoot 'artifacts\native-build.json' }
 $ReportPath = [IO.Path]::GetFullPath($ReportPath)
 New-Item -ItemType Directory -Path (Split-Path $ReportPath -Parent) -Force | Out-Null
-$report = [ordered]@{ status = 'blocked'; source = ''; dirty = $false; toolchain = ''; sdk = ''; artifact = $null; error = ''; startedAt = [DateTime]::UtcNow.ToString('o') }
+$report = [ordered]@{ status = 'blocked'; source = ''; dirty = $false; toolchain = ''; sdk = ''; versions = $null; artifact = $null; error = ''; startedAt = [DateTime]::UtcNow.ToString('o') }
 $savedEnvironment = @{}
-foreach ($name in @('NODE_PATH', 'DEVECO_SDK_HOME', 'JAVA_HOME', 'PATH')) {
+foreach ($name in @('NODE_PATH', 'NODE_HOME', 'DEVECO_NODE_HOME', 'DEVECO_SDK_HOME', 'JAVA_HOME', 'PATH')) {
   $savedEnvironment[$name] = [Environment]::GetEnvironmentVariable($name, 'Process')
 }
 Push-Location $projectRoot
@@ -25,6 +25,12 @@ try {
     # The official CLI distribution owns its Node, Java and plugin resolution.
     $runner = @('bin\hvigorw.bat', 'bin\hvigorw.cmd') | ForEach-Object { Join-Path $toolRoot $_ } | Where-Object { Test-Path -LiteralPath $_ -PathType Leaf } | Select-Object -First 1
     if (!$runner) { throw "未找到 Command Line Tools 的 bin\hvigorw.bat/cmd：$toolRoot" }
+    $nodeHome = Join-Path $toolRoot 'tool/node'
+    if (!(Test-Path -LiteralPath (Join-Path $nodeHome 'node.exe') -PathType Leaf)) { throw "工具包缺少内置 Node：$nodeHome" }
+    $env:DEVECO_NODE_HOME = $nodeHome
+    $env:NODE_HOME = $nodeHome
+    $env:NODE_PATH = Join-Path $toolRoot 'hvigor/node_modules'
+    $env:PATH = $nodeHome + [IO.Path]::PathSeparator + $env:PATH
   } else {
     if (!$DevEcoHome) { $DevEcoHome = 'D:\Huawei\DevEco Studio' }
     $toolRoot = [IO.Path]::GetFullPath($DevEcoHome)
@@ -34,6 +40,9 @@ try {
     foreach ($required in @($runner, $hvigor, (Join-Path $java 'bin\java.exe'))) {
       if (!(Test-Path -LiteralPath $required -PathType Leaf)) { throw "缺少原生构建工具：$required；请指定 DevEcoHome 或 CommandLineHome" }
     }
+    if (!$SdkHome) { $SdkHome = Join-Path $toolRoot 'sdk' }
+    # Reject an incompatible IDE before creating project dependency junctions.
+    $report.versions = & (Join-Path $PSScriptRoot 'check-toolchain.ps1') -ToolRoot $toolRoot -SdkHome $SdkHome
     $moduleRoot = Join-Path $projectRoot 'node_modules\@ohos'
     foreach ($package in @('hvigor', 'hvigor-ohos-plugin')) {
       $target = Join-Path $toolRoot "tools\hvigor\$package"
@@ -58,6 +67,9 @@ try {
   $env:DEVECO_SDK_HOME = [IO.Path]::GetFullPath($SdkHome)
   $report.toolchain = $toolRoot
   $report.sdk = $env:DEVECO_SDK_HOME
+  if ($null -eq $report.versions) {
+    $report.versions = & (Join-Path $PSScriptRoot 'check-toolchain.ps1') -ToolRoot $toolRoot -SdkHome $env:DEVECO_SDK_HOME -CommandLine:([bool]$CommandLineHome)
+  }
   $report.status = 'failed'
   # A clean SDK build prevents an old HAP from satisfying this run's gate.
   foreach ($task in @('clean', 'assembleHap')) {
