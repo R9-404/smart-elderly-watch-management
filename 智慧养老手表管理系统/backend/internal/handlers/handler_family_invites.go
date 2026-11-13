@@ -2,18 +2,21 @@ package handlers
 
 import (
 	"context"
+	"database/sql"
 	"net/http"
 	"strconv"
 	"strings"
-	"suining-care/internal/auth"
-	"suining-care/internal/db"
-	"suining-care/internal/response"
 	"time"
+
+	"suining-care/internal/auth"
+	"suining-care/internal/carepolicy"
+
+	"suining-care/internal/inviterepo"
+	"suining-care/internal/response"
+	"suining-care/internal/securecode"
 )
 
 // ---- InviteCode ----
-
-const inviteCharset = "23456789ABCDEFGHJKLMNPQRSTUVWXYZ" // 去掉 0/1/I/O 易混淆字符
 
 // normalizeCode 输入归一化：去首尾空格、去所有空格与连字符、转大写。
 func normalizeCode(s string) string {
@@ -66,62 +69,40 @@ func (h *Handler) inviteList(w http.ResponseWriter, r *http.Request) {
 	if state == "" {
 		state = "all"
 	}
-	var cond string
 	switch state {
-	case "all":
-	case "unused":
-		cond = "AND ic.used=0 AND (ic.expire_time IS NULL OR ic.expire_time > now())"
-	case "used":
-		cond = "AND ic.used=1"
-	case "expired":
-		cond = "AND ic.used=0 AND ic.expire_time IS NOT NULL AND ic.expire_time <= now()"
+	case "all", "unused", "used", "expired":
 	default:
-		response.JSON(w, http.StatusBadRequest,
-			map[string]any{"message": "邀请状态不正确"})
+		response.JSON(w, http.StatusBadRequest, map[string]any{"message": "邀请状态不正确"})
 		return
 	}
-	p, ps := bodyPage(m)
-	ctx := r.Context()
-	var total int64
-	if err := h.DB.QueryRow(ctx,
-		`SELECT COUNT(*) FROM invite_code ic WHERE 1=1 `+cond).Scan(&total); err != nil {
-		response.Error500(w, ref())
+	page, pageSize := bodyPage(m)
+	tx, ok := h.beginAdminActionTx(w, r, carepolicy.ReadInvites)
+	if !ok {
+		return
+	}
+	defer tx.Rollback()
+	rows, total, err := inviterepo.ListCodes(r.Context(), tx, state, page, pageSize)
+	if internalError(w, err) || internalError(w, tx.Commit()) {
 		return
 	}
 	statusText := map[string]string{"unused": "可使用", "used": "已使用", "expired": "已过期"}
 	now := time.Now()
-	list, ok := queryRows(h, w, ctx, func(rows db.Rows) (map[string]any, error) {
-		var id int64
-		var code string
-		var oldID *int64
-		var createUser *string
-		var createTime, expire, usedTime *time.Time
-		var used int16
-		var oldName *string
-		if err := rows.Scan(&id, &code, &oldID, &createUser, &createTime, &expire, &used, &usedTime, &oldName); err != nil {
-			return nil, err
+	list := make([]map[string]any, 0, len(rows))
+	for _, row := range rows {
+		status := inviteStatus(row.Used, row.ExpireTime, now)
+		name := "（老人已删除）"
+		if row.ResidentName != nil {
+			name = *row.ResidentName
 		}
-		st := inviteStatus(used, expire, now)
-		nm := "（老人已删除）"
-		if oldName != nil {
-			nm = *oldName
-		}
-		return map[string]any{
-			"id": id, "code": code, "oldId": oldID, "oldPersonName": nm,
-			"createUser": createUser, "createTime": fmtTS(createTime),
-			"expireTime": fmtTS(expire), "remainDays": inviteRemainingDays(expire, now),
-			"usedTime": fmtTS(usedTime), "status": st, "statusText": statusText[st],
-		}, nil
-	},
-		`SELECT ic.id,ic.code,ic.old_id,ic.create_user,ic.create_time,
-		        ic.expire_time,ic.used,ic.used_time,o.name
-		 FROM invite_code ic LEFT JOIN oldperson o ON ic.old_id=o.old_id
-		 WHERE 1=1 `+cond+` ORDER BY ic.id DESC LIMIT $1 OFFSET $2`, ps, (p-1)*ps)
-	if !ok {
-		return
+		list = append(list, map[string]any{
+			"id": row.ID, "code": row.Code, "oldId": row.ResidentID, "oldPersonName": name,
+			"createUser": row.CreateUser, "createTime": fmtTS(row.CreateTime),
+			"expireTime": fmtTS(row.ExpireTime), "remainDays": inviteRemainingDays(row.ExpireTime, now),
+			"usedTime": fmtTS(row.UsedTime), "status": status, "statusText": statusText[status],
+		})
 	}
 	response.OK(w, map[string]any{
-		"inviteCodes": list, "total": total, "page": p, "pageSize": ps,
+		"inviteCodes": list, "total": total, "page": page, "pageSize": pageSize,
 	})
 }
 
@@ -137,15 +118,6 @@ func (h *Handler) inviteCreate(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	ctx := r.Context()
-	var oldName *string
-	if err := h.DB.QueryRow(ctx, `SELECT name FROM oldperson WHERE old_id=$1`, oldID).Scan(&oldName); err != nil {
-		if isNotFound(err) {
-			response.Fail(w, "老人不存在，请重新选择")
-			return
-		}
-		response.Error500(w, ref())
-		return
-	}
 	expire, validExpiry := parseInvitationExpiry(m)
 	if !validExpiry {
 		write400(w, "有效天数必须为非负整数，留空或 0 表示长期有效")
@@ -163,7 +135,16 @@ func (h *Handler) inviteCreate(w http.ResponseWriter, r *http.Request) {
 	}
 	createUser := creatorName(r)
 
-	tx, err := h.DB.Begin(ctx)
+	tx, ok := h.beginAdminActionTx(w, r, carepolicy.ManageInvites)
+	if !ok {
+		return
+	}
+	defer tx.Rollback()
+	oldName, err := inviterepo.ResidentName(ctx, tx, oldID)
+	if isNotFound(err) {
+		response.Fail(w, "老人不存在，请重新选择")
+		return
+	}
 	if internalError(w, err) {
 		return
 	}
@@ -176,20 +157,18 @@ func (h *Handler) inviteCreate(w http.ResponseWriter, r *http.Request) {
 			failed = true
 			break
 		}
-		if _, err := tx.Exec(ctx,
-			`INSERT INTO invite_code(code,old_id,create_user,create_time,expire_time,used)
-			 VALUES($1,$2,$3,$4,$5,0)`, code, oldID, createUser, now, expire); err != nil {
+		if err := inviterepo.InsertCode(ctx, tx, code, oldID, createUser, now, expire); err != nil {
 			failed = true
 			break
 		}
 		codes = append(codes, code)
 	}
 	if failed {
-		_ = tx.Rollback(ctx)
+		_ = tx.Rollback()
 		response.Error500(w, ref())
 		return
 	}
-	if internalError(w, tx.Commit(ctx)) {
+	if internalError(w, tx.Commit()) {
 		return
 	}
 	var expAny any
@@ -217,11 +196,16 @@ func (h *Handler) inviteDelete(w http.ResponseWriter, r *http.Request) {
 		response.Fail(w, msg)
 		return
 	}
-	ct, err := h.DB.Exec(r.Context(), `DELETE FROM invite_code WHERE id=$1 AND used=0`, id)
-	if internalError(w, err) {
+	tx, ok := h.beginAdminActionTx(w, r, carepolicy.ManageInvites)
+	if !ok {
 		return
 	}
-	if ct.RowsAffected() == 1 {
+	defer tx.Rollback()
+	deleted, err := inviterepo.DeleteUnusedCode(r.Context(), tx, id)
+	if internalError(w, err) || internalError(w, tx.Commit()) {
+		return
+	}
+	if deleted {
 		response.OK(w, nil)
 	} else {
 		response.Fail(w, msg)
@@ -246,16 +230,15 @@ func parseInvitationExpiry(m map[string]any) (*time.Time, bool) {
 	return expire, true
 }
 
-func unusedInvitationCode(ctx context.Context, tx *db.Transaction) (string, error) {
+func unusedInvitationCode(ctx context.Context, tx *sql.Tx) (string, error) {
 	code := ""
 	for a := 0; a < 20; a++ { // 最多 20 次重试保唯一
-		c, err := randAlpha(8)
+		c, err := securecode.Generate(8)
 		if err != nil {
 			return "", err
 		}
-		var exists bool
-		if err := tx.QueryRow(ctx,
-			`SELECT EXISTS(SELECT 1 FROM invite_code WHERE code=$1)`, c).Scan(&exists); err != nil {
+		exists, err := inviterepo.CodeExists(ctx, tx, c)
+		if err != nil {
 			return "", err
 		}
 		if !exists {

@@ -13,19 +13,30 @@ CodeQL 或依赖审查因 fork 权限、配置缺失而未运行时，应由维�
 
 预发布只面向 `preview`，不自动更新 `main`。附件、源码快照和校验清单必须对应同一版本与提交；旧 Release 不包含后续分支改动。普通 PR/CI 不读取发布私钥，签名与发布只在明确的 release 流程执行。
 
+## 分支通道与 main 晋升
+
+`preview` 是预发布集成通道，允许经过评审的功能、架构、依赖与破坏性变更；`main` 是稳定通道，不接收日常开发 PR。正式晋升必须绑定一个明确的 40 位 `preview` HEAD SHA，并在候选冻结后只接受缺陷、安全、构建或发布阻断修复。
+
+晋升前先在候选 SHA 上运行完整 Preview CI、Security 与候选打包，确认 release gate 证据完整。晋升时不得用 squash 或 rebase 生成未经候选验证的新源码提交；稳定主线应直接采用已经验证的候选 SHA。首次从历史 `main` 切换到新架构前，必须先保存旧 `main` 的不可变标签并记录其 SHA。首次历史分叉已于 2026-11-12 按 [晋升手册](main-promotion.md) 完成一次性世代迁移；之后要求 `main` 始终是 `preview` 的祖先，常规晋升只允许 fast-forward。
+
+候选 SHA 提升到 `main` 后，必须在 `main` 上重新运行同一套分支敏感 CI 与 Security，并通过 Stable release candidate 的 exact-source 检查后才能创建正式版本标签。若 `main` 出现独立提交或两条分支失去祖先关系，应停止常规晋升，先显式解决历史关系，不能用强制合并掩盖分叉。
+
+详细步骤见 [main 晋升手册](main-promotion.md)。
+
 ## 当前发布门槛
 
 `Core CI / required` 是日常合并的基础检查，不表示已经通过正式发布验收。
 UI Quality 由 Preview CI 在每个候选提交上调用，不再按前端路径过滤；复用工作流明确
 检出 PR head SHA，UI 日志与图片归入 `ui-quality-<SHA>`，不自动更新视觉基线。
 
-正式候选需在当前 `preview` SHA 上手动运行 Preview CI，启用 `require_native` 与
-`build_desktop`。原生构建读取显式 SDK URL / SHA-256，或仓库变量 `HARMONY_SDK_URL` /
+`preview` 与 `main` 的分支推送自动启用完整原生 Preview CI，并启动对应通道的候选工作流；
+候选工作流等待同一 SHA 的 CI 与 Security 成功，再执行来源与产物门禁。手动复验时仍需启用
+`require_native` 与 `build_desktop`。原生构建读取显式 SDK URL / SHA-256，或仓库变量 `HARMONY_SDK_URL` /
 `HARMONY_SDK_SHA256`。缺少配置必须失败；普通 PR 的可选原生 job 被跳过时，只能声明
 基础检查通过。SDK 工具链版本为 Command Line Tools 6.1.1.280 / HarmonyOS API 24，
 URL 必须为 HTTPS，并在解压和执行前核对预期归档 SHA-256。
 
-`scripts/reliability/release-gate.py` 对正式候选独立检查 UI、两版 Go、手表协议与真实
+`scripts/reliability/release-gate.py` 对正式候选独立检查 UI、Go 1.27.4、手表协议与真实
 后端联调、原生 HAP、模拟器协议、Windows sidecar、实际 Tauri 构建和安装/卸载测试、
 部署合同及漏洞扫描。另查两项 CodeQL 结果。每项必需 job 必须在最新运行 attempt 中
 明确完成且成功，不能由聚合 job 的绿色状态代替，也不接受 skipped/cancelled。
@@ -40,6 +51,9 @@ Preview CI 与 Security 工作流分别验证当前提交的后端、数据库�
 OpenAPI、前端 test/typecheck/build/audit、Windows sidecar 及漏洞扫描。具体执行范围以当前
 workflow 文件和对应 commit 的 job 结果为准；未配置的数据库测试、跳过的原生 SDK 编译、
 未进行的真实设备或生产环境演练不得报告为通过。
+
+Go 漏洞扫描同时保存 JSON 与文本报告。`govulncheck -json` 即使发现漏洞也返回 0；
+必须再用工具自身的文本转换器检查同一份 JSON，并通过 Bash pipefail 保留漏洞退出码。
 
 发布门禁应校验明确的 40 位 commit SHA 与目标分支 head 一致，防止验证期间分支移动；选择
 该 SHA 对应的最新工作流运行，拒绝用旧的成功运行覆盖新提交的失败/取消结果；同时核对聚合

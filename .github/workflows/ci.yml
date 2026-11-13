@@ -2,9 +2,9 @@ name: Preview CI
 
 on:
   pull_request:
-    branches: [preview]
+    branches: [preview, main]
   push:
-    branches: [preview, 'codex/**']
+    branches: [preview, main]
   workflow_dispatch:
     inputs:
       require_native:
@@ -46,7 +46,7 @@ jobs:
     with:
       sdk_url: ${{ inputs.sdk_url || vars.HARMONY_SDK_URL || '' }}
       sdk_sha256: ${{ inputs.sdk_sha256 || vars.HARMONY_SDK_SHA256 || '' }}
-      require_native: ${{ inputs.require_native || false }}
+      require_native: ${{ inputs.require_native || github.event_name == 'push' }}
 
   simulator-tests:
     name: Watch simulator tests
@@ -64,6 +64,24 @@ jobs:
           SIMULATOR_RESULT: ${{ needs['simulator-tests'].result }}
         run: test "$SIMULATOR_RESULT" = success
 
+  dependency-review:
+    name: Dependency review
+    if: ${{ github.event_name == 'pull_request' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: read
+    steps:
+      - name: Checkout PR
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          persist-credentials: false
+      - name: Reject newly introduced vulnerable dependencies
+        uses: actions/dependency-review-action@a1d282b36b6f3519aa1f3fc636f609c47dddb294
+        with:
+          fail-on-severity: high
+          fail-on-scopes: development, runtime
+
   backend:
     name: Backend
     uses: ./.github/workflows/reusable-backend.yml
@@ -72,7 +90,7 @@ jobs:
     name: Windows sidecar contract
     uses: ./.github/workflows/reusable-windows-package.yml
     with:
-      build_desktop: ${{ inputs.build_desktop || false }}
+      build_desktop: ${{ inputs.build_desktop || github.event_name == 'push' }}
 
   deployment:
     name: Deployment and alerts
@@ -89,15 +107,18 @@ jobs:
           persist-credentials: false
       - uses: actions/setup-go@924ae3a1cded613372ab5595356fb5720e22ba16 # v6.5.0
         with:
-          go-version: '1.27.2'
+          go-version: '1.27.4'
           cache-dependency-path: 智慧养老手表管理系统/backend/go.sum
       - name: Scan reachable Go vulnerabilities
+        shell: bash
         working-directory: 智慧养老手表管理系统/backend
         run: |
           mkdir -p ../../evidence/ci/security
           git rev-parse HEAD > ../../evidence/ci/security/source-sha.txt
           go install golang.org/x/vuln/cmd/govulncheck@v1.9.0
           govulncheck -json ./... > ../../evidence/ci/security/govulncheck.jsonl 2>&1
+          # JSON output exits zero even when vulnerable symbols are reachable.
+          govulncheck -mode=convert < ../../evidence/ci/security/govulncheck.jsonl | tee ../../evidence/ci/security/govulncheck.txt
       - if: always()
         uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f
         with:
@@ -108,7 +129,7 @@ jobs:
   required:
     name: Core CI / required
     if: ${{ always() }}
-    needs: [frontend, ui-quality, watch, simulator, backend, windows, deployment, security-scan]
+    needs: [frontend, ui-quality, watch, simulator, backend, windows, deployment, security-scan, dependency-review]
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
@@ -128,3 +149,4 @@ jobs:
           test "${{ needs.windows.result }}" = "success"
           test "${{ needs.deployment.result }}" = "success"
           test "${{ needs.security-scan.result }}" = "success"
+          test "${{ needs['dependency-review'].result }}" = "success" || test "${{ needs['dependency-review'].result }}" = "skipped"

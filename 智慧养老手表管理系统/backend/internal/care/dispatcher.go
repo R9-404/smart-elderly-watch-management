@@ -3,9 +3,9 @@ package care
 import (
 	"bytes"
 	"context"
+	"database/sql"
 	"encoding/json"
 	"errors"
-	"github.com/jackc/pgx/v5"
 	"net/http"
 	"strconv"
 	"suining-care/internal/notify"
@@ -39,23 +39,19 @@ func (d *dispatcher) dispatchNext(ctx context.Context) (bool, error) {
 func (d *dispatcher) claimCareDelivery(ctx context.Context) (careDeliveryClaim, bool, error) {
 	// Atomic database claim; SKIP LOCKED supports multiple service replicas.
 	var job delivery
-	tx, err := d.db.Begin(ctx)
+	tx, err := d.db.BeginTx(ctx, &sql.TxOptions{Isolation: sql.LevelReadCommitted})
 	if err != nil {
 		return careDeliveryClaim{}, true, err
 	}
-	defer tx.Rollback(ctx)
-	exhaustionFilter := ""
-	if d.db.IsMySQL() {
-		exhaustionFilter = "exhausted=false AND "
-	}
-	err = tx.QueryRow(ctx, `SELECT id,incident_id,recipient,channel,attempts
+	defer tx.Rollback()
+	err = tx.QueryRowContext(ctx, `SELECT id,incident_id,recipient,channel,attempts
         FROM care_notification_outbox
-		WHERE `+exhaustionFilter+`((status IN ('pending','failed') AND retry_at <= now())
-           OR (status='sending' AND last_attempt_at < now() - interval '2 minutes'))
+		WHERE exhausted=false AND ((status IN ('pending','failed') AND retry_at <= CURRENT_TIMESTAMP(6))
+           OR (status='sending' AND last_attempt_at < CURRENT_TIMESTAMP(6) - INTERVAL 2 MINUTE))
         ORDER BY retry_at,id LIMIT 1 FOR UPDATE SKIP LOCKED`).Scan(&job.id, &job.incidentID, &job.recipient, &job.channel, &job.attempts)
 	if err != nil {
 		// No row is normal; connection and SQL errors are not.
-		if errors.Is(err, pgx.ErrNoRows) {
+		if errors.Is(err, sql.ErrNoRows) {
 			return careDeliveryClaim{}, false, nil
 		}
 		return careDeliveryClaim{}, true, err
@@ -66,14 +62,14 @@ func (d *dispatcher) claimCareDelivery(ctx context.Context) (careDeliveryClaim, 
 	job.recipient = recipient
 	job.attempts++
 	observability.Default.Add(`suining_notification_attempts_total{queue="care"}`, 1)
-	if err := tx.QueryRow(ctx, "SELECT kind FROM care_incident WHERE id=$1", job.incidentID).Scan(&job.kind); err != nil {
+	if err := tx.QueryRowContext(ctx, "SELECT kind FROM care_incident WHERE id=?", job.incidentID).Scan(&job.kind); err != nil {
 		return careDeliveryClaim{}, true, err
 	}
-	if _, err := tx.Exec(ctx, `UPDATE care_notification_outbox SET status='sending',
-        attempts=$2,last_attempt_at=now() WHERE id=$1`, job.id, job.attempts); err != nil {
+	if _, err := tx.ExecContext(ctx, `UPDATE care_notification_outbox SET status='sending',
+        attempts=?,last_attempt_at=CURRENT_TIMESTAMP(6) WHERE id=?`, job.attempts, job.id); err != nil {
 		return careDeliveryClaim{}, true, err
 	}
-	if err := tx.Commit(ctx); err != nil {
+	if err := tx.Commit(); err != nil {
 		return careDeliveryClaim{}, true, err
 	}
 	return careDeliveryClaim{job: job, recipientError: openErr}, true, nil
@@ -123,10 +119,10 @@ func (d *dispatcher) sendCareDelivery(ctx context.Context, job *delivery, openEr
 
 func (d *dispatcher) finishCareDelivery(ctx context.Context, job *delivery, err error) error {
 	if err == nil {
-		_, updateErr := d.db.Exec(ctx, `
+		_, updateErr := d.db.ExecContext(ctx, `
 			UPDATE care_notification_outbox
-			SET status='sent', sent_at=now(),last_error=NULL
-			WHERE id=$1 AND status='sending' AND attempts=$2`, job.id, job.attempts)
+			SET status='sent', sent_at=CURRENT_TIMESTAMP(6),last_error=NULL
+			WHERE id=? AND status='sending' AND attempts=?`, job.id, job.attempts)
 		// A newer claim or an authenticated receipt must never be overwritten.
 		// "sent" only means the gateway accepted the request.
 		return updateErr
@@ -137,33 +133,35 @@ func (d *dispatcher) finishCareDelivery(ctx context.Context, job *delivery, err 
 		wait = max(wait, failure.retryAfter)
 		observability.Default.Add(`suining_care_gateway_failures_total{reason="`+failure.reason+`"}`, 1)
 	}
-	finish, beginErr := d.db.Begin(ctx)
+	finish, beginErr := d.db.BeginTx(ctx, &sql.TxOptions{Isolation: sql.LevelReadCommitted})
 	if beginErr != nil {
 		return beginErr
 	}
-	defer finish.Rollback(ctx)
-	exhaustionUpdate := ""
-	if d.db.IsMySQL() {
-		exhaustionUpdate = ",exhausted=($4>=5)"
-	}
-	changed, updateErr := finish.Exec(ctx, `
+	defer finish.Rollback()
+	changed, updateErr := finish.ExecContext(ctx, `
 		UPDATE care_notification_outbox
-		SET status='failed', last_error=$2, retry_at=now()+($3 * interval '1 second')`+exhaustionUpdate+`
-		WHERE id=$1 AND status='sending' AND attempts=$4`, job.id, truncate(err.Error(), 400), int(wait.Seconds()), job.attempts)
+		SET status='failed', last_error=?,
+		    retry_at=TIMESTAMPADD(SECOND,?,CURRENT_TIMESTAMP(6)),
+		    exhausted=(?>=5)
+		WHERE id=? AND status='sending' AND attempts=?`, truncate(err.Error(), 400), int(wait.Seconds()), job.attempts, job.id, job.attempts)
 	if updateErr != nil {
 		return updateErr
 	}
-	if changed.RowsAffected() > 0 && job.attempts >= 5 && job.channel == "sms" {
+	affected, err := changed.RowsAffected()
+	if err != nil {
+		return err
+	}
+	if affected > 0 && job.attempts >= 5 && job.channel == "sms" {
 		voiceRecipient, voiceKey, sealErr := notify.SealNotificationRecipient(d.box, job.recipient)
 		if sealErr != nil {
 			return sealErr
 		}
-		_, err = finish.Exec(ctx, `INSERT INTO care_notification_outbox(incident_id,channel,recipient,recipient_key) VALUES($1,'voice',$2,$3) ON CONFLICT DO NOTHING`, job.incidentID, voiceRecipient, voiceKey)
+		_, err = finish.ExecContext(ctx, `INSERT INTO care_notification_outbox(incident_id,channel,recipient,recipient_key) VALUES(?,'voice',?,?) ON DUPLICATE KEY UPDATE id=id`, job.incidentID, voiceRecipient, voiceKey)
 		if err != nil {
 			return err
 		}
 	}
-	return finish.Commit(ctx)
+	return finish.Commit()
 }
 
 // retryDelay is based on the atomic claim's persisted attempt counter.

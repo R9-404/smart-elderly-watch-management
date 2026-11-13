@@ -3,57 +3,33 @@ package db
 import (
 	"context"
 	"database/sql"
-
-	"github.com/jackc/pgx/v5"
-	"github.com/jackc/pgx/v5/pgconn"
-	"github.com/jackc/pgx/v5/pgxpool"
+	"errors"
 )
 
-type Row interface{ Scan(...any) error }
-type Rows interface {
-	Next() bool
-	Scan(...any) error
-	Err() error
-	Close()
-}
-
-type pgExecutor interface {
-	Exec(context.Context, string, ...any) (pgconn.CommandTag, error)
-	Query(context.Context, string, ...any) (pgx.Rows, error)
-	QueryRow(context.Context, string, ...any) pgx.Row
-}
-
-type sqlExecutor interface {
-	ExecContext(context.Context, string, ...any) (sql.Result, error)
-	QueryContext(context.Context, string, ...any) (*sql.Rows, error)
-	QueryRowContext(context.Context, string, ...any) *sql.Row
-}
-
-type executor struct {
-	pg     pgExecutor
-	my     sqlExecutor
-	packed bool
-}
-
+// Database owns the business pool and its independent liveness connection.
+// Repositories execute native MySQL through database/sql directly.
 type Database struct {
-	executor
-	pgPool *pgxpool.Pool
-	myPool *sql.DB
-	// healthPool keeps one reserved connection for liveness probes.
-	// A saturated application pool must not make a healthy DB appear offline.
+	*sql.DB
 	healthPool *sql.DB
 }
 
-type Transaction struct {
-	executor
-	pgTx pgx.Tx
-	myTx *sql.Tx
+func (d *Database) Close() error {
+	return errors.Join(d.healthPool.Close(), d.DB.Close())
 }
 
-// Postgres is used by legacy migration and regression tools; the application
-// server opens MySQL explicitly and never switches primary engines on failure.
-func Postgres(pool *pgxpool.Pool) *Database {
-	return &Database{executor: executor{pg: pool}, pgPool: pool}
+func (d *Database) PingContext(ctx context.Context) error {
+	return d.healthPool.PingContext(ctx)
 }
 
-func (d *Database) LegacyPostgres() *pgxpool.Pool { return d.pgPool }
+type statementExecutor interface {
+	ExecContext(context.Context, string, ...any) (sql.Result, error)
+}
+
+// InsertID obtains the key from the INSERT result on the executing connection.
+func InsertID(ctx context.Context, store statementExecutor, query string, args ...any) (int64, error) {
+	result, err := store.ExecContext(ctx, query, args...)
+	if err != nil {
+		return 0, err
+	}
+	return result.LastInsertId()
+}

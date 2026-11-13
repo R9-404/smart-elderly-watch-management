@@ -1,5 +1,5 @@
-# CI-only service container: these ephemeral runner credentials are never shared with production.
-name: Dual database migration verification
+# CI-only credentials; do not share these ephemeral services with production.
+name: MySQL migration verification
 on:
   workflow_dispatch:
 permissions:
@@ -18,31 +18,29 @@ jobs:
         options: >-
           --health-cmd "mysqladmin ping -h 127.0.0.1 -u root -pci_root_only --silent"
           --health-interval 5s --health-timeout 5s --health-retries 20
-      postgres:
-        image: postgres:16
-        env:
-          POSTGRES_USER: careold
-          POSTGRES_PASSWORD: careold
-          POSTGRES_DB: careold_test
-        ports: ['5432:5432']
-        options: --health-cmd "pg_isready -U careold -d careold_test" --health-interval 5s --health-timeout 5s --health-retries 10
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
         with:
           persist-credentials: false
       - uses: actions/setup-go@v6
         with:
-          go-version: '1.27.2'
+          go-version: '1.27.4'
           cache-dependency-path: 智慧养老手表管理系统/backend/go.sum
-      - run: |
-          go run ./cmd/migrate
-          go run ./cmd/migrate
-          go run ./cmd/migrate --legacy-postgres
-          go run ./cmd/migrate --legacy-postgres
-          go test -race -count=1 -timeout 240s ./...
+      - name: Apply migrations and prove the second execution is a no-op
         working-directory: 智慧养老手表管理系统/backend
         env:
           MYSQL_DSN: root:ci_root_only@tcp(localhost:3306)/suining_test
-          DATABASE_URL: postgres://careold:careold@localhost:5432/careold_test?sslmode=disable
           TEST_MYSQL_DSN: root:ci_root_only@tcp(localhost:3306)/suining_test
-          TEST_DATABASE_URL: postgres://careold:careold@localhost:5432/careold_test?sslmode=disable
+        run: |
+          set -euo pipefail
+          go run ./cmd/migrate
+          dump() {
+            docker exec "${{ job.services.mysql.id }}" mysqldump \
+              -u root -pci_root_only --single-transaction --skip-comments \
+              --skip-dump-date --no-tablespaces --set-gtid-purged=OFF \
+              --routines --triggers suining_test
+          }
+          dump > "$RUNNER_TEMP/migration-first.sql"
+          go run ./cmd/migrate
+          dump > "$RUNNER_TEMP/migration-second.sql"
+          diff -u "$RUNNER_TEMP/migration-first.sql" "$RUNNER_TEMP/migration-second.sql"

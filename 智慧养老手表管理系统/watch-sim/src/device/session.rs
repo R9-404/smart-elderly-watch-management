@@ -7,11 +7,7 @@ use crate::transport::TransportError;
 
 impl DeviceSession {
     pub(super) fn post_raw(&self, path: &str, raw: &[u8]) -> Result<Reply, TransportError> {
-        if let Some(signer) = self.signer.as_deref() {
-            self.client.post_raw_prepared(path, raw, signer)
-        } else {
-            self.client.post_raw(path, raw, None)
-        }
+        self.client.post_raw_prepared(path, raw, &self.signer)
     }
 
     fn post_json(&self, path: &str, body: &serde_json::Value) -> Result<Reply, TransportError> {
@@ -20,15 +16,15 @@ impl DeviceSession {
     }
 
     /// 更新绑定身份；旧绑定队列保留，flush 会拒绝跨版本补传。
-    fn sync_binding(&mut self, version: i64, old_id: i64, old_name: String) -> bool {
+    fn sync_binding(&mut self, version: i64, resident_id: i64, resident_name: String) -> bool {
         let changed = self
             .binding
             .as_ref()
             .map(|b| b.version != version)
             .unwrap_or(false);
         self.binding = Some(Binding {
-            old_id,
-            old_name,
+            resident_id,
+            resident_name,
             version,
         });
         changed
@@ -68,15 +64,15 @@ impl DeviceSession {
             }
             let version = reply.binding_version().unwrap_or(0);
             if reply.bound() && version > 0 {
-                let old_id = reply.get_i64("oldId").unwrap_or(0);
-                let old_name = reply.get_str("oldPersonName").unwrap_or_default();
-                if old_id <= 0 {
+                let resident_id = reply.get_i64("residentId").unwrap_or(0);
+                let resident_name = reply.get_str("residentName").unwrap_or_default();
+                if resident_id <= 0 {
                     return Err(Failure::Rejected {
                         code: "INVALID_RESPONSE".into(),
                         message: "登录缺少有效长者身份".into(),
                     });
                 }
-                self.sync_binding(version, old_id, old_name);
+                self.sync_binding(version, resident_id, resident_name);
             } else {
                 self.binding = None;
             }
@@ -120,12 +116,12 @@ impl DeviceSession {
             self.binding = None;
         } else if let (Some(v), Some(id)) = (
             reply.binding_version().filter(|v| *v > 0),
-            reply.get_i64("oldId").filter(|v| *v > 0),
+            reply.get_i64("residentId").filter(|v| *v > 0),
         ) {
             let name = previous
                 .as_ref()
-                .filter(|b| b.old_id == id)
-                .map(|b| b.old_name.clone())
+                .filter(|b| b.resident_id == id)
+                .map(|b| b.resident_name.clone())
                 .unwrap_or_default();
             self.sync_binding(v, id, name);
         } else {
@@ -136,7 +132,7 @@ impl DeviceSession {
         }
         let epoch_changed = previous != self.binding;
         Ok(HeartbeatOutcome {
-            // 后端下发上报节奏，旧版直接丢掉了。
+            // 后端协商的上报间隔。
             report_interval: reply.get_i64("reportInterval").unwrap_or(5).max(1) as u64,
             pending_alarm: reply.get_i64("pendingAlarm").unwrap_or(0),
             bound: reply.bound() || reply.get_i64("bound") == Some(1),

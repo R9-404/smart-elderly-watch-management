@@ -1,11 +1,14 @@
 package handlers
 
 import (
+	"database/sql"
 	"net/http"
 	"strconv"
-	dbstore "suining-care/internal/db"
-	"suining-care/internal/response"
 	"time"
+
+	"suining-care/internal/carepolicy"
+	"suining-care/internal/db"
+	"suining-care/internal/response"
 )
 
 // ---------------------------------------------------------------------------
@@ -65,16 +68,21 @@ func (h *Handler) listMonitoringProfiles(w http.ResponseWriter, r *http.Request)
 	if !ok {
 		return
 	}
+	tx, ok := h.beginAdminActionTx(w, r, carepolicy.ReadThresholds)
+	if !ok {
+		return
+	}
+	defer tx.Rollback()
 	ctx := r.Context()
 	base := `SELECT w.device_id, w.op_time, w.hrf, w.bpf, w.hrl, w.bpl, o.name
 		FROM watch_info w LEFT JOIN device d ON d.device_id=w.device_id
 		LEFT JOIN oldperson o ON o.old_id=d.old_id
-		WHERE ($1='' OR o.name LIKE '%'||$1||'%') ORDER BY w.device_id`
+		WHERE (?='' OR o.name LIKE CONCAT('%',?,'%')) ORDER BY w.device_id`
 	var total int64
-	if internalError(w, h.DB.QueryRow(ctx, `SELECT COUNT(*) FROM (`+base+`) AS t`, oldName).Scan(&total)) {
+	if internalError(w, tx.QueryRowContext(ctx, `SELECT COUNT(*) FROM (`+base+`) AS t`, oldName, oldName).Scan(&total)) {
 		return
 	}
-	list, ok := queryRows(h, w, ctx, func(rows dbstore.Rows) (map[string]any, error) {
+	list, err := db.QueryList(ctx, tx, func(rows *sql.Rows) (map[string]any, error) {
 		var deviceID int64
 		var opTime *time.Time
 		var hrf, bpf, hrl, bpl *int
@@ -87,8 +95,8 @@ func (h *Handler) listMonitoringProfiles(w http.ResponseWriter, r *http.Request)
 			"device_id": deviceID, "op_time": dateOrNil(opTime),
 			"hrf": hrf, "bpf": bpf, "hrl": hrl, "bpl": bpl, "name": name,
 		}, nil
-	}, base+` LIMIT $2 OFFSET $3`, oldName, ps, (p-1)*ps)
-	if !ok {
+	}, base+` LIMIT ? OFFSET ?`, oldName, oldName, ps, (p-1)*ps)
+	if internalError(w, err) || internalError(w, tx.Commit()) {
 		return
 	}
 	response.OK(w, map[string]any{
@@ -106,9 +114,14 @@ func (h *Handler) createMonitoringProfile(w http.ResponseWriter, r *http.Request
 	if !ok {
 		return
 	}
+	tx, ok := h.beginAdminActionTx(w, r, carepolicy.ManageThresholds)
+	if !ok {
+		return
+	}
+	defer tx.Rollback()
 	ctx := r.Context()
 	var exists bool
-	if internalError(w, h.DB.QueryRow(ctx, `SELECT EXISTS(SELECT 1 FROM watch_info WHERE device_id=$1)`, deviceID).Scan(&exists)) {
+	if internalError(w, tx.QueryRowContext(ctx, `SELECT EXISTS(SELECT 1 FROM watch_info WHERE device_id=?)`, deviceID).Scan(&exists)) {
 		return
 	}
 	if exists {
@@ -116,15 +129,21 @@ func (h *Handler) createMonitoringProfile(w http.ResponseWriter, r *http.Request
 		return
 	}
 	now := time.Now()
-	ct, err := h.DB.Exec(ctx,
+	ct, err := tx.ExecContext(ctx,
 		`INSERT INTO watch_info(device_id,op_time,bpf,bpl,hrl,hrf)
-		 SELECT $1,$2,$3,$4,$5,$6 FROM device WHERE device_id=$1`,
-		deviceID, siteDay(now),
-		bpf, bpl, hrl, hrf)
+		 SELECT ?,?,?,?,?,? FROM device WHERE device_id=?`,
+		deviceID, siteDay(now), bpf, bpl, hrl, hrf, deviceID)
 	if internalError(w, err) {
 		return
 	}
-	if ct.RowsAffected() == 1 {
+	affected, err := ct.RowsAffected()
+	if internalError(w, err) {
+		return
+	}
+	if affected == 1 {
+		if internalError(w, tx.Commit()) {
+			return
+		}
 		response.OK(w, nil)
 		return
 	}
@@ -141,13 +160,25 @@ func (h *Handler) updateMonitoringProfile(w http.ResponseWriter, r *http.Request
 	if !ok {
 		return
 	}
-	ct, err := h.DB.Exec(r.Context(),
-		`UPDATE watch_info SET bpf=$1,bpl=$2,hrl=$3,hrf=$4 WHERE device_id=$5`,
+	tx, ok := h.beginAdminActionTx(w, r, carepolicy.ManageThresholds)
+	if !ok {
+		return
+	}
+	defer tx.Rollback()
+	ct, err := tx.ExecContext(r.Context(),
+		`UPDATE watch_info SET bpf=?,bpl=?,hrl=?,hrf=? WHERE device_id=?`,
 		bpf, bpl, hrl, hrf, deviceID)
 	if internalError(w, err) {
 		return
 	}
-	writeSingleMutation(w, ct.RowsAffected())
+	affected, err := ct.RowsAffected()
+	if internalError(w, err) {
+		return
+	}
+	if internalError(w, tx.Commit()) {
+		return
+	}
+	writeSingleMutation(w, affected)
 }
 
 // POST /api/v1/monitoring-profiles/delete —— 删除手表阈值档案（ADMIN）。
@@ -166,9 +197,21 @@ func (h *Handler) deleteMonitoringProfile(w http.ResponseWriter, r *http.Request
 		write400(w, "请求参数不完整")
 		return
 	}
-	ct, err := h.DB.Exec(r.Context(), `DELETE FROM watch_info WHERE device_id=$1`, deviceID)
+	tx, ok := h.beginAdminActionTx(w, r, carepolicy.ManageThresholds)
+	if !ok {
+		return
+	}
+	defer tx.Rollback()
+	ct, err := tx.ExecContext(r.Context(), `DELETE FROM watch_info WHERE device_id=?`, deviceID)
 	if internalError(w, err) {
 		return
 	}
-	writeSingleMutation(w, ct.RowsAffected())
+	affected, err := ct.RowsAffected()
+	if internalError(w, err) {
+		return
+	}
+	if internalError(w, tx.Commit()) {
+		return
+	}
+	writeSingleMutation(w, affected)
 }

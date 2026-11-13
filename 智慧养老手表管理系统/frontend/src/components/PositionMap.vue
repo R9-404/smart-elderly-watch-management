@@ -1,72 +1,124 @@
 <template>
   <section class="position-map" aria-label="位置地图">
     <div class="position-map-heading">
-      <div><h2>位置地图</h2><p>{{ valid ? `${selection.name || '长者'} · ${selection.lng}，${selection.lat}` : '选择一条位置记录，在此查看。' }}</p></div>
-      <el-button v-if="valid && !online" @click="enableTiles">加载在线地图</el-button>
-      <el-button v-if="online" link @click="disableTiles">关闭在线地图</el-button>
+      <div><h2>位置地图</h2><p>{{ valid ? `${selection?.name || '长者'} · ${selection?.lng}，${selection?.lat}` : '选择一条位置记录，在此查看。' }}</p></div>
+      <el-button v-if="valid && mapPreferences.provider === 'amap' && !online" @click="enableOnlineMap">加载高德地图</el-button>
+      <el-button v-if="online" link @click="disableOnlineMap">关闭在线地图</el-button>
+      <a v-if="valid && (mapPreferences.provider === 'tencent' || mapPreferences.provider === 'google') && providerUrl"
+        class="online-map-link" :href="providerUrl" target="_blank" rel="noopener noreferrer"
+        referrerpolicy="no-referrer">在{{ mapPreferences.provider === 'google' ? 'Google' : '腾讯' }}地图查看位置</a>
+      <a v-if="online && embeddedUrl" class="online-map-link" :href="embeddedUrl"
+        target="_blank" rel="noopener noreferrer" referrerpolicy="no-referrer">在高德地图中打开</a>
     </div>
-    <div ref="canvas" class="position-map-canvas" :class="{ 'has-location': valid }" role="region" aria-label="可缩放的位置地图"></div>
-    <p v-if="valid" class="position-map-note">{{ describePositionContext(selection) }}</p>
+    <p v-if="online && mapLoading" class="position-map-note" role="status">正在加载高德地图，位置坐标仍可查看…</p>
+    <iframe v-if="online && embeddedUrl" :src="embeddedUrl" class="position-map-canvas online-map"
+      @load="mapLoading = false"
+      title="高德地图 · 设备最近上报位置" loading="lazy" referrerpolicy="no-referrer" sandbox="allow-scripts allow-same-origin"
+      allowfullscreen></iframe>
+    <div v-show="!online" ref="canvas" class="position-map-canvas" :class="{ 'has-location': valid }" role="region" aria-label="离线位置标记"></div>
+    <p v-if="valid" class="position-map-note">{{ describePositionContext(selection ?? {}) }}</p>
     <p class="position-map-note" role="status">{{ message }}</p>
   </section>
 </template>
 
-<script setup>
-import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue'
+<script setup lang="ts">
+import { computed, onBeforeUnmount, onMounted, ref, watch, type PropType } from 'vue'
 import L from 'leaflet'
 import 'leaflet/dist/leaflet.css'
-import { describePositionContext } from '../utils/positionContext'
+import { describePositionContext, type PositionContext } from '../utils/positionContext'
+import { mapPreferences } from '../utils/mapProviders'
+import { mapLocationUrl } from '../utils/mapLinks'
 
-const props = defineProps({ selection: { type: Object, default: null } })
-const canvas = ref(null)
+interface PositionSelection extends PositionContext {
+  lng?: number | string | null
+  lat?: number | string | null
+  name?: string
+}
+const props = defineProps({ selection: { type: Object as PropType<PositionSelection | null>, default: null } })
+const canvas = ref<HTMLElement | null>(null)
 const online = ref(false)
-const failed = ref(false)
+const mapLoading = ref(false)
 const valid = computed(() => {
   const value = props.selection
   return value && value.lng != null && value.lat != null && String(value.lng).trim() !== '' && String(value.lat).trim() !== '' &&
     Number.isFinite(Number(value.lng)) && Number.isFinite(Number(value.lat)) && Math.abs(Number(value.lng)) <= 180 && Math.abs(Number(value.lat)) <= 90
 })
-const message = computed(() => !valid.value ? '暂无可用坐标。' : failed.value ? '在线地图加载失败；位置标记与原始坐标仍可查看。' :
-  online.value ? '坐标以设备上报为准，地图仅作参考。' : '所选上报坐标已标记。在线底图按需加载，需要网络连接。')
-let map, marker, tiles, observer
+const providerUrl = computed(() => {
+  if (!valid.value || !props.selection || mapPreferences.provider === 'offline') return ''
+  return mapLocationUrl(mapPreferences.provider, Number(props.selection.lng), Number(props.selection.lat), mapPreferences.style, mapPreferences.coordinateSystem)
+})
+const embeddedUrl = computed(() => mapPreferences.provider === 'amap' ? providerUrl.value : '')
+const message = computed(() => {
+  if (!valid.value) return '暂无可用坐标。'
+  if (mapPreferences.provider === 'offline') return '当前只显示本地位置标记；未向地图服务发送坐标。'
+  if (mapPreferences.provider === 'tencent' || mapPreferences.provider === 'google')
+    return `使用${mapPreferences.provider === 'google' ? 'Google' : '腾讯'}官方地图链接查看位置；仅在确认打开链接后发送坐标。`
+  return online.value
+    ? '高德底图使用转换后的 GCJ-02 显示坐标，仅供参考；原始上报数据未修改。'
+    : '原始坐标已在本地标记。高德地图可按需加载，加载后将向服务商发送坐标。'
+})
+let map: L.Map | null = null
+let marker: L.CircleMarker | null = null
+let observer: ResizeObserver | null = null
+let resizeFrame: number | null = null
+function scheduleResize () {
+  if (resizeFrame !== null) return
+  resizeFrame = requestAnimationFrame(() => {
+    resizeFrame = null
+    map?.invalidateSize({ animate: false })
+  })
+}
 function updateLocation () {
   if (!map) return
   if (marker) { marker.remove(); marker = null }
-  if (!valid.value) { disableTiles(); return }
-  const point = [Number(props.selection.lat), Number(props.selection.lng)]
+  if (!valid.value || !props.selection) { disableOnlineMap(); return }
+  const point: L.LatLngTuple = [Number(props.selection.lat), Number(props.selection.lng)]
   map.setView(point, 15, { animate: false })
   marker = L.circleMarker(point, { radius: 9, color: '#fff', weight: 3, fillColor: '#215c4a', fillOpacity: 1 }).addTo(map)
   const label = document.createElement('span')
   label.textContent = props.selection.name || '最近上报位置'
   marker.bindTooltip(label, { direction: 'top', permanent: true, offset: [0, -12] })
 }
-function enableTiles () {
-  if (!map || !valid.value || tiles) return
+function enableOnlineMap () {
+  if (!map || !valid.value || mapPreferences.provider !== 'amap') return
   online.value = true
-  failed.value = false
-  tiles = L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
-    maxZoom: 19, minZoom: 2, updateWhenIdle: true, keepBuffer: 1,
-    attribution: '© OpenStreetMap contributors'
-  })
-  tiles.on('tileerror', () => { failed.value = true })
-  tiles.addTo(map)
+  mapLoading.value = true
 }
-function disableTiles () {
-  if (tiles) { tiles.off(); tiles.remove(); tiles = null }
+function disableOnlineMap () {
   online.value = false
-  failed.value = false
+  mapLoading.value = false
+  scheduleResize()
 }
 onMounted(() => {
+  if (!canvas.value) return
   map = L.map(canvas.value, { scrollWheelZoom: false, attributionControl: true, zoomControl: false }).setView([30, 110], 5)
   L.control.zoom({ zoomInTitle: '放大地图', zoomOutTitle: '缩小地图' }).addTo(map)
-  // Links are disabled in the desktop shell; retain readable attribution locally.
+  // The offline marker has no provider tiles, so keep Leaflet branding out of its controls.
   map.attributionControl.setPrefix(false)
-  observer = new ResizeObserver(() => map?.invalidateSize({ animate: false }))
+  observer = new ResizeObserver(scheduleResize)
   observer.observe(canvas.value)
   updateLocation()
+  if (valid.value && mapPreferences.provider === 'amap' && mapPreferences.loadOnlineAutomatically) enableOnlineMap()
 })
-watch(() => props.selection, updateLocation)
-onBeforeUnmount(() => { observer?.disconnect(); disableTiles(); map?.remove(); map = null })
+watch(() => [props.selection?.lng, props.selection?.lat, props.selection?.name] as const, updateLocation)
+watch(() => [mapPreferences.provider, mapPreferences.loadOnlineAutomatically, valid.value] as const, () => {
+  if (mapPreferences.provider !== 'amap' || !valid.value) disableOnlineMap()
+  else if (mapPreferences.loadOnlineAutomatically && !online.value) enableOnlineMap()
+})
+watch(embeddedUrl, (url, previous) => {
+  if (online.value && url && url !== previous) mapLoading.value = true
+})
+onBeforeUnmount(() => {
+  observer?.disconnect()
+  observer = null
+  online.value = false
+  mapLoading.value = false
+  if (resizeFrame !== null) cancelAnimationFrame(resizeFrame)
+  resizeFrame = null
+  marker = null
+  map?.remove()
+  map = null
+})
 </script>
 
 <style scoped>
@@ -76,7 +128,9 @@ onBeforeUnmount(() => { observer?.disconnect(); disableTiles(); map?.remove(); m
 .position-map-heading p, .position-map-note { color: var(--care-text-muted); line-height: 1.7; overflow-wrap: anywhere; }
 .position-map-heading p { margin: 6px 0 0; }
 .position-map-canvas { height: clamp(240px, 46vh, 440px); z-index: 0; border-radius: 16px; background-color: #eef1e9; background-image: linear-gradient(#dce3d833 1px, transparent 1px), linear-gradient(90deg, #dce3d833 1px, transparent 1px); background-size: 32px 32px; }
-.position-map-canvas:not(.has-location) { opacity: .55; pointer-events: none; }
+.online-map { display: block; width: 100%; border: 0; }
+.online-map-link { color: var(--care-primary); font-size: 14px; text-underline-offset: 3px; }
+.position-map-canvas:not(.has-location):not(.online-map) { opacity: .55; pointer-events: none; }
 .position-map-note { margin: 12px 0 0; font-size: 15px; }
 .position-map :deep(.leaflet-container) { font-family: inherit; }
 .position-map :deep(.leaflet-control-zoom a) { width: 44px; height: 44px; line-height: 44px; }

@@ -1,12 +1,14 @@
 package handlers
 
 import (
-	"encoding/json"
+	"database/sql"
 	"errors"
 	"net/http"
 	"os"
 	"time"
 
+	"suining-care/internal/devicecredential"
+	"suining-care/internal/deviceworkflow"
 	"suining-care/internal/health"
 	"suining-care/internal/response"
 )
@@ -16,6 +18,19 @@ func (h *Handler) routeHealth(mux *http.ServeMux) {
 	mux.HandleFunc("POST /api/v1/health/changes", h.healthChanges)
 	mux.HandleFunc("POST /api/v1/health/statistics", h.healthStatistics)
 	mux.HandleFunc("POST /api/v1/health/latest", h.healthLatest)
+	mux.HandleFunc("POST /api/v1/health/baseline", h.healthBaseline)
+}
+
+func checkHealthDeviceCredential(w http.ResponseWriter, supplied, stored string, status *int) bool {
+	switch devicecredential.Check(supplied, stored, status) {
+	case devicecredential.InvalidSecret:
+		hwFail(w, "DEVICE_AUTH_FAILED", "设备号或密钥不正确")
+		return false
+	case devicecredential.Disabled:
+		hwFail(w, "DEVICE_DISABLED", "设备已停用")
+		return false
+	}
+	return true
 }
 
 func (h *Handler) healthBatch(w http.ResponseWriter, r *http.Request) {
@@ -38,11 +53,11 @@ func (h *Handler) healthBatchWithLockOrder(w http.ResponseWriter, r *http.Reques
 		return
 	}
 	ctx := r.Context()
-	tx, err := h.DB.Begin(ctx)
+	tx, err := h.DB.BeginTx(ctx, &sql.TxOptions{Isolation: sql.LevelReadCommitted})
 	if internalError(w, err) {
 		return
 	}
-	defer tx.Rollback(ctx)
+	defer tx.Rollback()
 	d, code, msg, err := h.healthDeviceAuth(ctx, tx, req.DeviceNo, req.Secret, "设备已停用")
 	if internalError(w, err) {
 		return
@@ -55,7 +70,7 @@ func (h *Handler) healthBatchWithLockOrder(w http.ResponseWriter, r *http.Reques
 	// under the owner-clock lock before locking the device row. Revalidate the
 	// full device binding under FOR UPDATE before committing anything.
 	if !lateDeviceLock {
-		d, err = scanHealthDevice(tx.QueryRow(ctx, `SELECT `+healthDeviceCols+` FROM device WHERE device_id=$1 FOR UPDATE`, d.ID))
+		d, err = scanHealthDevice(tx.QueryRowContext(ctx, `SELECT `+healthDeviceCols+` FROM device WHERE device_id=? FOR UPDATE`, d.ID))
 		if internalError(w, err) {
 			return
 		}
@@ -64,12 +79,15 @@ func (h *Handler) healthBatchWithLockOrder(w http.ResponseWriter, r *http.Reques
 		hwFail(w, "DEVICE_AUTH_FAILED", "设备号或密钥不正确，或设备已停用")
 		return
 	}
-	if code, msg = deviceCredentialFailure(req.Secret, d.Secret, d.Status, "设备已停用"); code != "" {
-		hwFail(w, code, msg)
+	if !checkHealthDeviceCredential(w, req.Secret, d.Secret, d.Status) {
+		return
+	}
+	if req.BindingVersion < d.HealthEpoch {
+		response.Error(w, http.StatusConflict, string(deviceworkflow.EpochExpired), "绑定纪元已过期，请重新登录并清理旧纪元采样")
 		return
 	}
 	if d.OldID == nil || d.HealthEpoch != req.BindingVersion {
-		conflict409(w, "绑定已变化，请重新登录；旧绑定数据不能归入新老人")
+		response.Error(w, http.StatusConflict, string(deviceworkflow.BindingChanged), "绑定已变化，请重新登录；旧绑定数据不能归入新老人")
 		return
 	}
 	expectedOwner := *d.OldID
@@ -84,7 +102,7 @@ func (h *Handler) healthBatchWithLockOrder(w http.ResponseWriter, r *http.Reques
 		return
 	}
 	if lateDeviceLock {
-		locked, lockErr := scanHealthDevice(tx.QueryRow(ctx, `SELECT `+healthDeviceCols+` FROM device WHERE device_id=$1 FOR UPDATE`, d.ID))
+		locked, lockErr := scanHealthDevice(tx.QueryRowContext(ctx, `SELECT `+healthDeviceCols+` FROM device WHERE device_id=? FOR UPDATE`, d.ID))
 		if internalError(w, lockErr) {
 			return
 		}
@@ -93,19 +111,22 @@ func (h *Handler) healthBatchWithLockOrder(w http.ResponseWriter, r *http.Reques
 			hwFail(w, "DEVICE_AUTH_FAILED", "设备号或密钥不正确")
 			return
 		}
-		if code, msg = deviceCredentialFailure(req.Secret, d.Secret, d.Status, "设备已停用"); code != "" {
-			hwFail(w, code, msg)
+		if !checkHealthDeviceCredential(w, req.Secret, d.Secret, d.Status) {
+			return
+		}
+		if req.BindingVersion < d.HealthEpoch {
+			response.Error(w, http.StatusConflict, string(deviceworkflow.EpochExpired), "绑定纪元已过期，请重新登录并清理旧纪元采样")
 			return
 		}
 		if d.OldID == nil || *d.OldID != expectedOwner || d.HealthEpoch != req.BindingVersion {
-			conflict409(w, "绑定已变化，请重新登录；旧绑定数据不能归入新老人")
+			response.Error(w, http.StatusConflict, string(deviceworkflow.BindingChanged), "绑定已变化，请重新登录；旧绑定数据不能归入新老人")
 			return
 		}
 	}
 	if err = touchHealthDevice(ctx, tx, d.ID, time.Now()); internalError(w, err) {
 		return
 	}
-	if err = tx.Commit(ctx); internalError(w, err) {
+	if err = tx.Commit(); internalError(w, err) {
 		return
 	}
 	// This is a write acknowledgement, not the client's read cursor.
@@ -132,35 +153,19 @@ func (h *Handler) healthChanges(w http.ResponseWriter, r *http.Request) {
 	if !ok {
 		return
 	}
-	rows, err := h.DB.Query(r.Context(), `SELECT revision,payload FROM health_change WHERE old_id=$1 AND revision>$2 ORDER BY revision LIMIT $3`, oldID, req.After, req.Limit+1)
-	if internalError(w, err) {
+	tx, ok := h.beginScopedHealthRead(w, r, oldID)
+	if !ok {
 		return
 	}
-	defer rows.Close()
-	items := []json.RawMessage{}
-	cursor := req.After
-	hasMore := false
-	for rows.Next() {
-		var rev int64
-		var b []byte
-		if err = rows.Scan(&rev, &b); internalError(w, err) {
-			return
-		}
-		if rev < 0 || rev > health.MaxRevision {
-			response.Error500(w, ref())
-			return
-		}
-		if len(items) == req.Limit {
-			hasMore = true
-			break
-		}
-		items = append(items, json.RawMessage(b))
-		cursor = rev
-	}
-	if !rowsOK(w, rows) {
+	defer tx.Rollback()
+	changes, err := health.ListChanges(r.Context(), tx, oldID, req.After, req.Limit)
+	if internalError(w, err) || internalError(w, tx.Commit()) {
 		return
 	}
-	response.OK(w, map[string]any{"changes": items, "nextCursor": cursor, "hasMore": hasMore, "oldId": oldID})
+	response.OK(w, map[string]any{
+		"changes": changes.Items, "nextCursor": changes.NextCursor,
+		"hasMore": changes.HasMore, "oldId": oldID,
+	})
 }
 
 type healthBatchRequest struct {

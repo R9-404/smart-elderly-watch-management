@@ -1,17 +1,17 @@
 package handlers
 
 import (
-	"github.com/jackc/pgx/v5"
+	"errors"
 	"net/http"
 	"strings"
-	"suining-care/internal/commands"
-	dbstore "suining-care/internal/db"
+
+	"suining-care/internal/careworkflow"
+	"suining-care/internal/commandworkflow"
 	"suining-care/internal/response"
-	"time"
 )
 
 func (h *Handler) commandCreate(w http.ResponseWriter, r *http.Request) {
-	actor, ok := h.careSupervisor(w, r)
+	actor, ok := careAdmin(w, r)
 	if !ok {
 		return
 	}
@@ -28,72 +28,42 @@ func (h *Handler) commandCreate(w http.ResponseWriter, r *http.Request) {
 		write400(w, "设备、幂等键或有效期无效（30–3600 秒）")
 		return
 	}
-	ctx := r.Context()
-	tx, err := h.DB.Begin(ctx)
-	if internalError(w, err) {
+	result, err := commandworkflow.Create(r.Context(), h.DB, actor, commandworkflow.CreateRequest{
+		DeviceID: req.DeviceID, Action: req.Action, RequestKey: req.RequestKey, TTL: req.TTL,
+	})
+	var invalid *commandworkflow.InvalidAction
+	switch {
+	case errors.Is(err, careworkflow.ErrCapabilityDenied):
+		response.JSON(w, http.StatusForbidden, map[string]any{"code": "ACCESS_DENIED", "message": "岗位无此操作权限"})
 		return
-	}
-	defer tx.Rollback(ctx)
-	d, err := scanDeviceRecord(tx.QueryRow(ctx, `SELECT `+deviceRecordColumns+` FROM device WHERE device_id=$1 FOR UPDATE`, req.DeviceID))
-	if err == pgx.ErrNoRows {
-		response.JSON(w, 404, map[string]any{"message": "设备不存在"})
+	case errors.Is(err, commandworkflow.ErrDeviceMissing):
+		response.JSON(w, http.StatusNotFound, map[string]any{"message": "设备不存在"})
 		return
-	}
-	if internalError(w, err) {
-		return
-	}
-	if d.OldID == nil || (d.Status != nil && *d.Status == 0) {
+	case errors.Is(err, commandworkflow.ErrDeviceUnavailable):
 		conflict409(w, "设备须处于启用且已绑定状态")
 		return
-	}
-	var id int64
-	var oldAction, status string
-	var oldTTL int
-	err = tx.QueryRow(ctx, "SELECT id,action,status,ttl_seconds FROM device_command WHERE device_id=$1 AND epoch=$2 AND request_key=$3", d.ID, d.HealthEpoch, req.RequestKey).Scan(&id, &oldAction, &status, &oldTTL)
-	if err == nil {
-		if oldAction != req.Action || oldTTL != req.TTL {
-			conflict409(w, "幂等键已用于另一动作")
-			return
-		}
-		response.OK(w, map[string]any{"commandId": id, "status": status, "duplicate": true})
+	case errors.Is(err, commandworkflow.ErrKeyConflict):
+		conflict409(w, "幂等键已用于另一动作")
 		return
-	}
-	if err != pgx.ErrNoRows {
-		response.Error500(w, ref())
-		return
-	}
-	var typ string
-	err = tx.QueryRow(ctx, "SELECT wire_type FROM device_command_profile WHERE device_id=$1 AND enabled=true AND protocol='suining-pull-v1'", d.ID).Scan(&typ)
-	if err == pgx.ErrNoRows {
+	case errors.Is(err, commandworkflow.ErrProfileMissing):
 		conflict409(w, "设备尚未启用岁宁指令协议")
 		return
-	}
-	if internalError(w, err) {
+	case errors.As(err, &invalid):
+		write400(w, invalid.Error())
+		return
+	case internalError(w, err):
 		return
 	}
-	channel, wire, err := commands.Resolve(typ, req.Action)
-	if err != nil {
-		write400(w, err.Error())
+	if result.Duplicate {
+		response.OK(w, map[string]any{"commandId": result.CommandID, "status": result.Status, "duplicate": true})
 		return
 	}
-	maxAttempts := 1
-	if commands.RetrySafe(req.Action) {
-		maxAttempts = 3
-	}
-	now := time.Now().UTC()
-	err = tx.QueryRow(ctx, `INSERT INTO device_command(device_id,old_id,epoch,request_key,action,wire_type,channel,wire_action,max_attempts,retry_at,expires_at,created_by,ttl_seconds)
- VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13) RETURNING id`, d.ID, *d.OldID, d.HealthEpoch, req.RequestKey, req.Action, typ, channel, wire, maxAttempts, now, now.Add(time.Duration(req.TTL)*time.Second), actor, req.TTL).Scan(&id)
-	if err == nil {
-		err = tx.Commit(ctx)
-	}
-	if internalError(w, err) {
-		return
-	}
-	response.OK(w, map[string]any{"commandId": id, "status": "pending"})
+	response.OK(w, map[string]any{"commandId": result.CommandID, "status": result.Status})
 }
 
 func (h *Handler) commandList(w http.ResponseWriter, r *http.Request) {
-	if _, ok := h.careSupervisor(w, r); !ok {
+	actor, ok := careAdmin(w, r)
+	if !ok {
 		return
 	}
 	var req struct {
@@ -107,18 +77,12 @@ func (h *Handler) commandList(w http.ResponseWriter, r *http.Request) {
 		write400(w, "设备或游标无效")
 		return
 	}
-	items, ok := queryRows(h, w, r.Context(), func(rows dbstore.Rows) (map[string]any, error) {
-		var id int64
-		var action, status string
-		var attempts int
-		var created, expires time.Time
-		var ack *time.Time
-		if err := rows.Scan(&id, &action, &status, &attempts, &created, &expires, &ack); err != nil {
-			return nil, err
-		}
-		return map[string]any{"commandId": id, "action": action, "status": status, "attempts": attempts, "createdAt": created, "expiresAt": expires, "ackedAt": ack}, nil
-	}, `SELECT id,action,status,attempts,created_at,expires_at,acked_at FROM device_command WHERE device_id=$1 AND id>$2 ORDER BY id LIMIT 100`, req.DeviceID, req.After)
-	if !ok {
+	items, err := commandworkflow.List(r.Context(), h.DB, actor, req.DeviceID, req.After)
+	if errors.Is(err, careworkflow.ErrCapabilityDenied) {
+		response.JSON(w, http.StatusForbidden, map[string]any{"code": "ACCESS_DENIED", "message": "岗位无此操作权限"})
+		return
+	}
+	if internalError(w, err) {
 		return
 	}
 	response.OK(w, map[string]any{"items": items})

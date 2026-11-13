@@ -9,6 +9,7 @@
     </router-link>
     <div class="header-right">
       <el-button class="text-size-button" link :aria-label="largeText ? '切换为标准字号' : '切换为更大字号'" :aria-pressed="String(largeText)" @click="toggleTextSize">{{ largeText ? '标准字' : '大字' }}</el-button>
+      <el-button class="settings-button" link @click="settings?.open()">设置</el-button>
       <span class="header-divider"></span>
       <span class="user-avatar" aria-hidden="true">{{ userInitial }}</span>
       <span class="username">{{ login_username || '用户' }}</span>
@@ -17,15 +18,20 @@
   </header>
 </template>
 
-<script setup>
+<script setup lang="ts">
 import { computed, onMounted, ref } from 'vue'
+import GeneralSettings from './GeneralSettings.vue'
 import { useRouter } from 'vue-router'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { authState, endSession } from '../auth'
+import { apiErrorMessage } from '../api/httpContract'
 
 const router = useRouter()
+const settings = ref<InstanceType<typeof GeneralSettings> | null>(null)
 const login_username = computed(() => authState.account?.displayName || '')
-const largeText = ref(localStorage.getItem('large_text') === 'true')
+const largeText = ref((() => {
+  try { return localStorage.getItem('large_text') === 'true' } catch { return false }
+})())
 const isFamily = computed(() => authState.account?.role === 'FAMILY')
 const userInitial = computed(() => (login_username.value || '用').slice(0, 1))
 function applyTextSize() {
@@ -33,7 +39,7 @@ function applyTextSize() {
 }
 function toggleTextSize() {
   largeText.value = !largeText.value
-  localStorage.setItem('large_text', String(largeText.value))
+  try { localStorage.setItem('large_text', String(largeText.value)) } catch { /* In-memory preference when storage is blocked. */ }
   applyTextSize()
 }
 async function logout() {
@@ -44,10 +50,11 @@ async function logout() {
   } catch { return }
   try {
     await endSession()
-    await router.push('/sign-in')
-  } catch {
-    ElMessage.error('退出未能完成，请检查网络后重试')
+  } catch (error) {
+    ElMessage.error(apiErrorMessage(error, '退出未能完成'))
   }
+  // endSession invalidates local state even when the response was lost.
+  await router.push('/sign-in')
 }
 onMounted(applyTextSize)
 </script>
@@ -72,6 +79,7 @@ onMounted(applyTextSize)
 .header-divider { width: 1px; height: 24px; background: #e5ebe7; margin: 0 8px; }
 .user-avatar { display: grid; place-items: center; width: 32px; height: 32px; border-radius: 50%; background: #eaf3ef; color: #28776a; font-weight: 600; }
 .username { max-width: 160px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 14px; }
+.settings-button { min-width: 48px; min-height: 48px; }
 .logout-button { min-width: 48px; min-height: 48px; color: var(--care-text-muted); padding: 8px 4px; }
 .logout-button:hover { color: #28776a; }
 .text-size-button { min-width: 64px; min-height: 48px; padding: 10px; border: 1px solid #d3dfce; border-radius: 8px; color: var(--care-primary); font-weight: 500; }
@@ -83,6 +91,13 @@ onMounted(applyTextSize)
   .username { max-width: 74px; font-size: 14px; }
   .header-right { gap: 7px; }
   .text-size-button { min-width: 64px; padding: 10px 8px; }
+}
+@media (max-width: 360px) {
+  .brand-copy { display: none; }
+  .brand-mark { width: 44px; height: 44px; }
+  .text-size-button { min-width: 56px; }
+  .care-header { padding-inline: 10px; }
+  .header-right { gap: 4px; }
 }
 @media (max-width: 420px) {
   .brand-copy small { display: none; }

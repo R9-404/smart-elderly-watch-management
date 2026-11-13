@@ -1,5 +1,5 @@
 <template>
-  <section class="care-inbox" aria-labelledby="care-inbox-title" :aria-busy="String(loading)">
+  <section class="care-inbox" aria-labelledby="care-inbox-title" :aria-busy="loading">
     <div class="care-inbox-heading">
       <div><h2 id="care-inbox-title">{{ scope === 'verified' ? '已复核的照护任务' : '需要接手的照护任务' }}</h2><p>求助已接收不等于通知送达；只有人工接单及复核才会结束任务。</p></div>
       <div class="care-inbox-tools"><label for="care-task-scope">任务范围</label><el-select id="care-task-scope" v-model="scope" :disabled="saving" @change="changeScope"><el-option label="待复核任务" value="active"/><el-option label="已复核任务" value="verified"/></el-select><el-button plain :disabled="saving" @click="load">刷新任务</el-button></div>
@@ -21,8 +21,9 @@
         <div class="care-task-actions">
           <el-button plain @click="viewHistory(task)">处置记录</el-button>
           <el-button v-if="canAct('acknowledge') && ['received','notifying','notified','escalated'].includes(task.state)" type="primary" @click="begin(task,'acknowledge')">接单</el-button>
-          <el-button v-if="canAct('start') && task.state==='acknowledged'" type="primary" @click="begin(task,'start')">开始处置</el-button>
-          <el-button v-if="canAct('resolve') && task.state==='in_progress'" type="primary" @click="begin(task,'resolve')">登记处置</el-button>
+          <el-button v-if="canAct('start') && canContinue(task) && task.state==='acknowledged'" type="primary" @click="begin(task,'start')">开始处置</el-button>
+          <el-button v-if="canAct('resolve') && canContinue(task) && task.state==='in_progress'" type="primary" @click="begin(task,'resolve')">登记处置</el-button>
+          <el-button v-if="canAct('escalate') && ['received','notifying','notified','acknowledged','in_progress'].includes(task.state)" plain @click="begin(task,'escalate')">升级跟进</el-button>
           <el-button v-if="canAct('verify') && String(task.resolvedBy) !== String(actorId) && ['resolved','review_overdue'].includes(task.state)" type="primary" @click="begin(task,'verify')">复核关闭</el-button>
           <el-button v-if="canAct('reopen') && ['resolved','review_overdue'].includes(task.state)" plain @click="begin(task,'reopen')">重新开启</el-button>
         </div>
@@ -52,46 +53,39 @@
     </el-dialog>
   </section>
 </template>
-<script setup>
-import { api as requestClient } from '../api/client'
-import { apiErrorMessage } from '../api/httpContract'
-import { ref, onMounted, onBeforeUnmount } from 'vue'
-import axios from 'axios'
+<script setup lang="ts">
+import { api as requestClient, type Envelope } from '../api/client'
+import { apiErrorMessage, readErrorMessage } from '../api/httpContract'
+import { ref, shallowRef, watch, onMounted, onBeforeUnmount } from 'vue'
 import { createLatestRead } from '../composables/latestRead'
 import CareOperationsPanel from './CareOperationsPanel.vue'
 import store from '../store'
+import {
+  actionLabels, deliveryLabel, stateLabel, priorityLabel, priorityClass,
+  localTime, isOverdue, nextStep
+} from '../domain/care'
+import type { CareTask, CareEvent, CareListResponse, HistoryState } from '../domain/care'
 
 const emit = defineEmits(['verified'])
-const tasks = ref([])
+const tasks = shallowRef<CareTask[]>([])
 const error = ref('')
 const loading = ref(false)
 const saving = ref(false)
 const duty = ref('')
-const actorId = ref(null)
+const actorId = ref<number | null>(null)
 const scope = ref('active')
 const page = ref(1)
 const total = ref(0)
 const pageSize = 20
-const dialog = ref({visible:false,id:null,action:'',note:'',error:''})
-const history = ref({visible:false,loading:false,error:'',events:[],id:null,page:1,total:0})
-const canAct = action => !error.value && (duty.value === 'supervisor' || (duty.value === 'caregiver' && ['acknowledge','start','resolve'].includes(action)))
-const actionLabels = {acknowledge:'确认接单',start:'开始处置',resolve:'登记处置措施',verify:'复核关闭',reopen:'重新开启'}
-const deliveryLabel = state => ({pending:"待发送",sending:"发送中",failed:"发送失败待重试",sent:"渠道已接收",delivered:"已确认送达",no_recipient:"未找到通知对象"})[state] || "未确认"
-const stateLabel = state => ({received:'等待通知与接单',notifying:'通知中',notified:'通知已送达',acknowledged:'已接单',in_progress:'处理中',resolved:'待复核',escalated:'超时升级',review_overdue:'复核超时',verified:'已复核关闭'})[state] || state
-const priorityLabel = task => {
-  if (task.kind === 'sos' || task.kind === 'fall' || task.severity === 'critical') return 'P0 紧急'
-  if (task.severity === 'high' || task.severity === 'warning') return 'P1 重点'
-  if (task.severity === 'low' || task.severity === 'normal') return 'P2 常规'
-  return '待分级'
-}
-const priorityClass = task => priorityLabel(task).startsWith('P0') ? 'priority-p0' : priorityLabel(task).startsWith('P1') ? 'priority-p1' : 'priority-normal'
-const localTime = value => value ? new Date(value).toLocaleString('zh-CN') : '未知'
-const isOverdue = task => Boolean(task.dueAt && Date.now() > new Date(task.dueAt).getTime())
-const nextStep = task => ({received:'值班人员立即接单并核实长者状况',notifying:'值班人员立即接单，不等待渠道回执',notified:'照护人员接单并到场核实',acknowledged:'开始现场处置并记录措施',in_progress:'完成现场处置并登记结果',resolved:'由另一名主管独立复核',escalated:'升级联系值班主管，优先接单',review_overdue:'主管立即复核或重新开启',verified:'可查看完整处置履历'})[task.state] || '核对任务状态'
+const dialog = ref<{ visible: boolean; id: string | number | null; action: string; note: string; error: string }>({visible:false,id:null,action:'',note:'',error:''})
+const history = ref<HistoryState>({visible:false,loading:false,error:'',events:[],id:null,page:1,total:0})
+const canAct = (action: string) => !error.value && (duty.value === 'supervisor' || (duty.value === 'caregiver' && ['acknowledge','start','resolve'].includes(action)))
+const canContinue = (task: CareTask) =>
+  duty.value === 'supervisor' || String(task.acknowledgedBy ?? '') === String(actorId.value)
 
-let timer
+let timer: ReturnType<typeof setInterval> | undefined
 const reads = createLatestRead(
-  (query, signal) => axios.post('api/v1/care/incidents', query, {withCredentials:true, signal}),
+  (query: { page: number; pageSize: number; state: string }, signal: AbortSignal) => requestClient.post<CareListResponse>('api/v1/care/incidents', query, { signal }),
   ({data}, query) => {
     if (!Array.isArray(data.items) || !Number.isInteger(data.total) || data.total < 0 || !['supervisor','caregiver','auditor'].includes(data.duty) || !Number.isInteger(data.actorId)) throw new Error('invalid care response')
     const lastPage = Math.max(1, Math.ceil(data.total / pageSize))
@@ -106,36 +100,34 @@ const reads = createLatestRead(
     tasks.value = []; total.value = 0; duty.value = ''; actorId.value = null
     error.value = apiErrorMessage(cause, '照护任务暂时无法加载')
   },
-  value => { loading.value = value }
+  value => { loading.value = value },
+  { key: query => `${query.state}:${query.page}:${query.pageSize}` }
 )
 function load () {
   return reads.run({page:page.value,pageSize,state:scope.value})
 }
-function changePage (value) { page.value = value; load() }
+function changePage (value: number) { page.value = value; load() }
 function changeScope () { page.value = 1; load() }
 const historyReads = createLatestRead(
-  (query, signal) => axios.post('api/v1/care/events', query, {withCredentials:true, signal}),
+  (query: { id: string; page: number; pageSize: number }, signal: AbortSignal) => requestClient.post<{ events: CareEvent[]; total: number }>('api/v1/care/events', query, { signal }),
   ({data}) => {
     if (!Array.isArray(data.events) || !Number.isInteger(data.total)) throw new Error('invalid history')
     history.value.events = data.events
     history.value.total = data.total
   },
-  error => {
-    history.value.error = error instanceof Error && error.message.includes('超时')
-      ? '审计记录读取超时，请重试' : apiErrorMessage(error, '审计记录暂时无法加载')
-  },
+  error => { history.value.error = readErrorMessage(error, '审计记录暂时无法加载') },
   value => { history.value.loading = value }
 )
-async function viewHistory (task) {
+async function viewHistory (task: CareTask) {
   history.value = {visible:true,loading:false,error:'',events:[],id:task.id,page:1,total:0}
   await loadHistory(1)
 }
-function loadHistory (value) {
+function loadHistory (value: number) {
   history.value.error = ''
   history.value.page = value
   return historyReads.run({id:String(history.value.id),page:value,pageSize})
 }
-function begin (task, action) {
+function begin (task: CareTask, action: string) {
   dialog.value = {visible:true,id:task.id,action,note:'',error:''}
 }
 async function submit () {
@@ -146,7 +138,7 @@ async function submit () {
   }
   saving.value = true
   try {
-    const {data} = await requestClient.post('api/v1/care/transition', {
+    const {data} = await requestClient.post<Envelope>('api/v1/care/transition', {
       id:String(dialog.value.id),action:dialog.value.action,note:dialog.value.note.trim()
     })
     if (data.returnCode !== '1111') throw new Error('transition rejected')
@@ -159,8 +151,23 @@ async function submit () {
     dialog.value.error = apiErrorMessage(cause, '任务操作未完成')
   } finally {saving.value = false}
 }
-onMounted(() => {load();timer=setInterval(() => {if (!document.hidden && !loading.value && !saving.value && !dialog.value.visible && !history.value.visible) load()},15000)})
-onBeforeUnmount(() => { clearInterval(timer); reads.dispose(); historyReads.dispose() })
+function refreshWhenVisible() {
+  if (!document.hidden && !saving.value && !dialog.value.visible && !history.value.visible) void load()
+}
+watch(() => store.state.alertRevision, refreshWhenVisible)
+onMounted(() => {
+  void load()
+  timer = setInterval(() => {
+    if (!loading.value) refreshWhenVisible()
+  }, 15000)
+  document.addEventListener('visibilitychange', refreshWhenVisible)
+})
+onBeforeUnmount(() => {
+  if (timer !== undefined) clearInterval(timer)
+  document.removeEventListener('visibilitychange', refreshWhenVisible)
+  reads.dispose()
+  historyReads.dispose()
+})
 </script>
 <style scoped>
 .care-inbox{margin-bottom:24px;padding:22px;border:1px solid #d8e2da;border-radius:14px;background:#fff}

@@ -9,12 +9,7 @@ import (
 	"suining-care/internal/response"
 )
 
-func metricDailyEnsureSQL(mysql bool) string {
-	if mysql {
-		return `INSERT INTO metric_daily(cache_key,old_id,source,source_device,metric,semantics,record_day,offset_minutes) VALUES($1,$2,$3,$4,$5,$6,$7,$8) ON DUPLICATE KEY UPDATE cache_key=cache_key`
-	}
-	return `INSERT INTO metric_daily(cache_key,old_id,source,source_device,metric,semantics,record_day,offset_minutes) VALUES($1,$2,$3,$4,$5,$6,$7,$8) ON CONFLICT(cache_key) DO NOTHING`
-}
+const metricDailyEnsureSQL = `INSERT INTO metric_daily(cache_key,old_id,source,source_device,metric,semantics,record_day,offset_minutes) VALUES(?,?,?,?,?,?,?,?) ON DUPLICATE KEY UPDATE cache_key=cache_key`
 
 func (h *Handler) healthDaily(w http.ResponseWriter, r *http.Request) {
 	var req struct {
@@ -39,13 +34,13 @@ func (h *Handler) healthDaily(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	ctx := r.Context()
-	tx, err := h.DB.Begin(ctx)
-	if internalError(w, err) {
+	tx, ok := h.beginScopedHealthRead(w, r, oldID)
+	if !ok {
 		return
 	}
-	defer tx.Rollback(ctx)
+	defer tx.Rollback()
 	// Use the same lock order as sample invalidation and the refresh worker.
-	if _, err = health.LockOwner(ctx, tx, oldID); internalError(w, err) {
+	if _, err := health.LockOwner(ctx, tx, oldID); internalError(w, err) {
 		return
 	}
 	items := []map[string]any{}
@@ -53,7 +48,7 @@ func (h *Handler) healthDaily(w http.ResponseWriter, r *http.Request) {
 		k := req.DailyKey
 		k.Day = from.AddDate(0, 0, n).Format("2006-01-02")
 		id := k.ID()
-		_, err = tx.Exec(ctx, metricDailyEnsureSQL(tx.IsMySQL()), id, k.OldID, k.Source, k.SourceDevice, k.Metric, k.Semantics, k.Day, k.OffsetMinutes)
+		_, err = tx.ExecContext(ctx, metricDailyEnsureSQL, id, k.OldID, k.Source, k.SourceDevice, k.Metric, k.Semantics, k.Day, k.OffsetMinutes)
 		if internalError(w, err) {
 			return
 		}
@@ -62,7 +57,7 @@ func (h *Handler) healthDaily(w http.ResponseWriter, r *http.Request) {
 		var b []byte
 		var message string
 		var updated time.Time
-		err = tx.QueryRow(ctx, "SELECT dirty,computed_revision,result,error_text,updated_at FROM metric_daily WHERE cache_key=$1", id).Scan(&dirty, &rev, &b, &message, &updated)
+		err = tx.QueryRowContext(ctx, "SELECT dirty,computed_revision,result,error_text,updated_at FROM metric_daily WHERE cache_key=?", id).Scan(&dirty, &rev, &b, &message, &updated)
 		if internalError(w, err) {
 			return
 		}
@@ -77,7 +72,7 @@ func (h *Handler) healthDaily(w http.ResponseWriter, r *http.Request) {
 		}
 		items = append(items, map[string]any{"day": k.Day, "status": status, "statistics": result, "message": message, "computedRevision": rev, "updatedAt": updated})
 	}
-	if err = tx.Commit(ctx); internalError(w, err) {
+	if err = tx.Commit(); internalError(w, err) {
 		return
 	}
 	response.OK(w, map[string]any{"items": items, "source": req.Source, "sourceDevice": req.SourceDevice, "metric": req.Metric, "semantics": req.Semantics, "offsetMinutes": req.OffsetMinutes, "algorithmVersion": health.DailyAlgorithmVersion})

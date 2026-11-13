@@ -4,11 +4,15 @@ import (
 	"net/http"
 	"reflect"
 	"testing"
+
+	"suining-care/internal/auth"
+	"suining-care/internal/session"
 )
 
 func TestIntegrationListPageTotals(t *testing.T) {
 	pool := testDatabase(t)
 	h := testHandler(t, pool)
+	seedCareAdminDuty(t, pool, 91, "supervisor")
 	mustExec(t, pool, `INSERT INTO customer(customer_id,customer_name) VALUES
 		(4,'match A'),(7,'match B'),(9,'other'),(12,'match C')`)
 	mustExec(t, pool, `INSERT INTO family(family_id,family_name,family_tou_pic) VALUES (2,'match fam',NULL),(3,'other',NULL)`)
@@ -17,10 +21,7 @@ func TestIntegrationListPageTotals(t *testing.T) {
 	mustExec(t, pool, `INSERT INTO text(text_id,title,time) VALUES
 		(4,'match A','2026-10-19 08:01:02.123'),(7,'match B','2026-10-19 08:01:02.123'),
 		(9,'other','2026-10-20 08:01:02.123'),(12,'match C','2026-10-18 08:01:02.123'),(15,NULL,NULL)`)
-	textOrder := []int{15, 9, 7, 4, 12}
-	if pool.IsMySQL() {
-		textOrder = []int{9, 7, 4, 12, 15}
-	}
+	textOrder := []int{9, 7, 4, 12, 15}
 	for _, endpoint := range []struct {
 		name, key, idKey, filterKey string
 		handler                     http.HandlerFunc
@@ -28,9 +29,9 @@ func TestIntegrationListPageTotals(t *testing.T) {
 		nullKeys                    []string
 		emptySQL                    string
 	}{
-		{"customers", "customers", "customerId", "customerName", h.listGuardians,
+		{"customers", "customers", "customerId", "customerName", withHealthPrincipal(h, session.Principal{Role: auth.RoleAdmin, ID: 91}, h.listGuardians),
 			[]int{4, 7, 9, 12}, []int{4, 7, 12}, []string{"customerAge", "customerAddress"}, "DELETE FROM customer"},
-		{"family", "familyDtos", "oldId", "familyName", h.familySelect,
+		{"family", "familyDtos", "oldId", "familyName", withHealthPrincipal(h, session.Principal{Role: auth.RoleAdmin, ID: 91}, h.familySelect),
 			[]int{4, 7, 9, 12}, []int{4, 7, 12}, []string{"familyAddress", "familyTouPic"}, "DELETE FROM oldperson"},
 		{"texts", "texts", "textId", "title", h.listNotices,
 			textOrder, []int{7, 4, 12}, []string{"textMain", "picId"}, "DELETE FROM text"},

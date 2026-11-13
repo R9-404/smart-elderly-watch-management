@@ -8,7 +8,9 @@ if($env:CARGO_TARGET_DIR){
 }
 & (Join-Path $PSScriptRoot 'validate-version.ps1')
 $meta=Get-Content (Join-Path $PSScriptRoot 'version.json') -Raw|ConvertFrom-Json
-$out=Join-Path $project ("outputs/v{0}-{1}" -f $meta.version,$meta.channel)
+$channel = if ($env:SUINING_RELEASE_CHANNEL) { $env:SUINING_RELEASE_CHANNEL } else { [string]$meta.channel }
+if ($channel -notin @('preview', 'stable')) { throw 'Invalid release channel' }
+$out=Join-Path $project ("outputs/v{0}-{1}" -f $meta.version,$channel)
 New-Item -ItemType Directory -Force -Path $out | Out-Null
 Push-Location (Join-Path $project 'frontend')
 try {
@@ -27,7 +29,11 @@ try {
  if($LASTEXITCODE -ne 0){throw 'Backend tests failed'}
  go vet ./...
  if($LASTEXITCODE -ne 0){throw 'Backend static checks failed'}
- go build -trimpath -ldflags '-s -w' -o $bin ./cmd/server
+ $env:CGO_ENABLED='0'
+ $profile=Join-Path $env:TEMP 'suining-build-default.pgo'
+ go test -run '^$' -bench '^BenchmarkSafe$' -benchtime=100ms -cpuprofile $profile ./internal/jsonscan
+ if($LASTEXITCODE -ne 0){throw 'PGO profile generation failed'}
+ go build -trimpath "-pgo=$profile" -ldflags '-s -w' -o $bin ./cmd/server
  if($LASTEXITCODE -ne 0){throw 'Go sidecar build failed'}
 } finally { Pop-Location }
 if($SelfSign){& (Join-Path $PSScriptRoot 'sign.ps1') -FilePath $bin | Set-Content (Join-Path $out 'backend-signature.json')}

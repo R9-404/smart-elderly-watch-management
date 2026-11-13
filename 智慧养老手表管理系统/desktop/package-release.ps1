@@ -4,7 +4,9 @@ $project = Split-Path $PSScriptRoot -Parent
 $repo = Split-Path $project -Parent
 $meta = Get-Content (Join-Path $PSScriptRoot 'version.json') -Raw | ConvertFrom-Json
 $version = $meta.version
-$out = Join-Path $project "outputs/v$version-$($meta.channel)"
+$channel = if ($env:SUINING_RELEASE_CHANNEL) { $env:SUINING_RELEASE_CHANNEL } else { [string]$meta.channel }
+if ($channel -notin @('preview', 'stable')) { throw 'Invalid release channel' }
+$out = Join-Path $project "outputs/v$version-$channel"
 $release = Join-Path $out 'release'
 $portable = Join-Path $out 'portable'
 $target = Join-Path $PSScriptRoot 'target'
@@ -26,7 +28,12 @@ $commit = (git -C $repo rev-parse HEAD).Trim()
 $sourceZip = Join-Path $release "Suining-Source-$version.zip"
 git -C $repo archive --format=zip --prefix="Suining-$version/" --output=$sourceZip $commit
 if ($LASTEXITCODE -ne 0) { throw 'Source archive failed' }
-Copy-Item -LiteralPath (Join-Path $repo "docs/releases/$version.md") -Destination (Join-Path $release 'Release-Notes-zh-CN.md')
+$notes = Get-Content -LiteralPath (Join-Path $repo "docs/releases/$version.md") -Raw
+if ($channel -eq 'stable') {
+    if (!$notes.Contains('这是预览渠道发布。')) { throw 'Stable release notes marker missing' }
+    $notes = $notes.Replace('这是预览渠道发布。', '这是稳定渠道发布。')
+}
+[IO.File]::WriteAllText((Join-Path $release 'Release-Notes-zh-CN.md'), $notes, [Text.UTF8Encoding]::new($false))
 
 # Run against disposable directories only; no operator database or user profile.
 $qaRoot = Join-Path ([IO.Path]::GetTempPath()) "suining-release-$([guid]::NewGuid().ToString('N'))"
@@ -87,12 +94,50 @@ try {
 }
 if (Test-Path -LiteralPath $installedApp) { throw 'Uninstall left application executable' }
 if (!(Test-Path -LiteralPath $sentinel)) { throw 'Uninstall removed user data' }
+$releaseBranch = if ($channel -eq 'stable') { 'main' } else { 'preview' }
+$signatures = [ordered]@{}
+foreach ($entry in @(
+    @{ Name = 'setup'; Path = $setup },
+    @{ Name = 'desktop'; Path = (Join-Path $portable 'suining.exe') },
+    @{ Name = 'backend'; Path = (Join-Path $portable 'suining-server.exe') }
+)) {
+    $signature = Get-AuthenticodeSignature -LiteralPath $entry.Path
+    if ($signature.Status -notin @('NotSigned', 'NotTrusted', 'Valid')) {
+        throw "Unexpected signature status for $($entry.Name): $($signature.Status)"
+    }
+    $signatures[$entry.Name] = [ordered]@{
+        status = $signature.Status.ToString()
+        thumbprint = if ($signature.SignerCertificate) { $signature.SignerCertificate.Thumbprint } else { $null }
+        trustedOnBuildMachine = ($signature.Status -eq 'Valid')
+    }
+}
+$signed = @($signatures.Values | Where-Object { $_.thumbprint })
+if ($signed.Count -ne 0 -and $signed.Count -ne $signatures.Count) {
+    throw 'Mixed signed and unsigned Windows executables in the same release'
+}
+if (@($signed | Select-Object -ExpandProperty thumbprint -Unique).Count -gt 1) {
+    throw 'Windows release executables were signed using different certificates'
+}
 $manifest = [ordered]@{
-    version = $version; sourceCommit = $commit; branch = 'preview'; signing = 'unsigned'
+    version = $version; sourceCommit = $commit; branch = $releaseBranch; channel = $channel; signing = $signatures
     workflowRun = $env:GITHUB_RUN_ID; backendSHA256 = $backendHash
     checks = $checks; silentInstall = $true; uninstallPreservesData = $true
     limitations = @('Headless startup, not visual UI acceptance', 'No real devices or SMS gateway', 'WebView2 missing-runtime bootstrap not tested', 'No production migration or sustained HTTP load test')
 }
+$manifest['distributionBytes'] = [ordered]@{
+    setup = (Get-Item -LiteralPath (Join-Path $release (Split-Path $setup -Leaf))).Length
+    portable = (Get-Item -LiteralPath $portableZip).Length
+    source = (Get-Item -LiteralPath $sourceZip).Length
+    desktopExecutable = (Get-Item -LiteralPath (Join-Path $portable 'suining.exe')).Length
+    backendExecutable = (Get-Item -LiteralPath (Join-Path $portable 'suining-server.exe')).Length
+}
+$native = Get-ChildItem -LiteralPath $release -File -Filter 'Suining-Native-NoFonts-*'
+if (@($native).Count -ne 3) { throw 'Expected exactly three font-free native distributions' }
+$manifest['fontFreeNativeBytes'] = [ordered]@{}
+foreach ($binary in $native) {
+    $manifest['fontFreeNativeBytes'][$binary.Name] = $binary.Length
+}
+$manifest['distributionBytes'] | Format-Table -AutoSize | Out-Host
 $manifest | ConvertTo-Json -Depth 6 | Set-Content -Encoding utf8NoBOM (Join-Path $release 'release-manifest.json')
 Get-ChildItem -LiteralPath $release -File | Where-Object Name -ne 'SHA256SUMS.txt' | Sort-Object Name | ForEach-Object {
     '{0}  {1}' -f (Get-FileHash -LiteralPath $_.FullName -Algorithm SHA256).Hash.ToLowerInvariant(), $_.Name

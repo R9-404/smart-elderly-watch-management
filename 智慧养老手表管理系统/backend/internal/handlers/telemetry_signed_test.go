@@ -32,7 +32,7 @@ func signedTestRequest(t *testing.T, path string, body map[string]any, nonce str
 }
 
 func TestSignedTelemetryValidationWithoutDatabase(t *testing.T) {
-	t.Setenv("CAREOLD_REQUIRE_SIGNED_DEVICE", "1")
+	t.Setenv("SUINING_REQUIRE_SIGNED_DEVICE", "1")
 	body := map[string]any{"deviceNo": "WATCH001", "secret": "existing-device-secret", "hr": "70"}
 	h := &Handler{}
 	unsigned, err := json.Marshal(body)
@@ -61,7 +61,7 @@ func TestSignedTelemetryValidationWithoutDatabase(t *testing.T) {
 }
 
 func TestSignedTelemetryReplayAcrossTransactions(t *testing.T) {
-	t.Setenv("CAREOLD_REQUIRE_SIGNED_DEVICE", "1")
+	t.Setenv("SUINING_REQUIRE_SIGNED_DEVICE", "1")
 	pool := testDatabase(t)
 	seedDevice(t, pool)
 	h := testHandler(t, pool)
@@ -79,7 +79,7 @@ func TestSignedTelemetryReplayAcrossTransactions(t *testing.T) {
 		t.Fatalf("duplicate report: %d %s", again.Code, again.Body.String())
 	}
 	var samples int
-	if err := pool.QueryRow(context.Background(), "SELECT count(*) FROM ratepre WHERE device_id=$1", 1).Scan(&samples); err != nil || samples != 1 {
+	if err := pool.QueryRowContext(context.Background(), "SELECT count(*) FROM ratepre WHERE device_id=?", 1).Scan(&samples); err != nil || samples != 1 {
 		t.Fatalf("duplicate report wrote %d samples: %v", samples, err)
 	}
 	if fresh := send("test-nonce-fresh-0123456789"); fresh.Code != http.StatusOK {
@@ -88,7 +88,7 @@ func TestSignedTelemetryReplayAcrossTransactions(t *testing.T) {
 }
 
 func TestSignedSOSIdempotentRetry(t *testing.T) {
-	t.Setenv("CAREOLD_REQUIRE_SIGNED_DEVICE", "1")
+	t.Setenv("SUINING_REQUIRE_SIGNED_DEVICE", "1")
 	pool := testDatabase(t)
 	seedDevice(t, pool)
 	h := testHandler(t, pool)
@@ -103,7 +103,7 @@ func TestSignedSOSIdempotentRetry(t *testing.T) {
 		t.Fatalf("SOS retry: initial=%d %s repeat=%d %s", first.Code, first.Body.String(), again.Code, again.Body.String())
 	}
 	var incidents int
-	if err := pool.QueryRow(context.Background(), "SELECT count(*) FROM care_incident").Scan(&incidents); err != nil || incidents != 1 {
+	if err := pool.QueryRowContext(context.Background(), "SELECT count(*) FROM care_incident").Scan(&incidents); err != nil || incidents != 1 {
 		t.Fatalf("SOS retry wrote %d incidents: %v", incidents, err)
 	}
 }

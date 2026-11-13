@@ -12,24 +12,25 @@
             <h1>{{ route.meta.title }}</h1>
             <p class="view-description">{{ pageDescription }}</p>
           </header>
-          <router-view v-slot="{ Component }"><transition name="care-view" mode="out-in"><component :is="Component" :key="route.path" /></transition></router-view>
+          <router-view v-slot="{ Component }"><transition name="care-view" mode="out-in"><ErrorBoundary :key="route.path"><component :is="Component" /></ErrorBoundary></transition></router-view>
         </section>
       </main>
     </div>
   </div>
 </template>
 
-<script setup>
+<script setup lang="ts">
 import { ArrowRight } from '@element-plus/icons-vue'
+import ErrorBoundary from '@/components/ErrorBoundary.vue'
 import { computed, nextTick, ref, watch } from 'vue'
 import { useRoute } from 'vue-router'
 import FamilySlider from '@/components/FamilySlider.vue'
 import NavTop from '@/components/Header.vue'
 
 const route = useRoute()
-const workspaceMain = ref(null)
+const workspaceMain = ref<HTMLElement | null>(null)
 const pagesWithoutIntro = ['/family-portal/overview', '/family-portal/notice']
-const descriptions = {
+const descriptions: Record<string, string> = {
   '/family-portal/vitals': '查看家人最近上报的心率与单项血压记录。',
   '/family-portal/activity': '查看设备上报的睡眠与每日步数记录。',
   '/family-portal/location': '查看设备最近一次上报的位置与安全告警。',
@@ -38,9 +39,12 @@ const descriptions = {
 const showPageIntro = computed(() => !pagesWithoutIntro.includes(route.path))
 const pageDescription = computed(() => descriptions[route.path] || '查看家人的照护信息与服务内容。')
 function focusMain() { workspaceMain.value?.focus() }
-watch(() => route.fullPath, async () => {
+watch(() => route.path, async () => {
   await nextTick()
-  if (workspaceMain.value) workspaceMain.value.scrollTop = 0
+  if (workspaceMain.value) {
+    workspaceMain.value.scrollTop = 0
+    workspaceMain.value.focus({ preventScroll: true })
+  }
 })
 </script>
 

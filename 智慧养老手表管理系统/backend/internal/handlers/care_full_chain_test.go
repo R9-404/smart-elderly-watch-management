@@ -31,7 +31,7 @@ func TestCareFullHTTPChainAfterRealGatewayTimeout(t *testing.T) {
 	seedDevice(t, pool)
 	mustExec(t, pool, "INSERT INTO family(family_id,family_name,family_phone) VALUES(1,'synthetic','13800000001')")
 	mustExec(t, pool, "UPDATE oldperson SET family_id=1 WHERE old_id=1")
-	mustExec(t, pool, "INSERT INTO users(user_id,user_name) VALUES(1,'resolver'),(2,'supervisor')")
+	mustExec(t, pool, "INSERT INTO users(user_id,user_name,role) VALUES(1,'resolver','1'),(2,'supervisor','1')")
 	mustExec(t, pool, "INSERT INTO care_staff_permission(admin_id,duty,assigned_by) VALUES(1,'caregiver',2),(2,'supervisor',2)")
 	store := session.NewStore(time.Hour)
 	t.Cleanup(store.Close)
@@ -108,7 +108,7 @@ func TestCareFullHTTPChainAfterRealGatewayTimeout(t *testing.T) {
 	deadline := time.Now().Add(20 * time.Second)
 	var status string
 	for {
-		if err := pool.QueryRow(ctx, "SELECT status FROM care_notification_outbox WHERE id=$1", notificationID).Scan(&status); err != nil {
+		if err := pool.QueryRowContext(ctx, "SELECT status FROM care_notification_outbox WHERE id=?", notificationID).Scan(&status); err != nil {
 			t.Fatal(err)
 		}
 		if status == "failed" {
@@ -130,7 +130,7 @@ func TestCareFullHTTPChainAfterRealGatewayTimeout(t *testing.T) {
 	}
 	var state string
 	var acknowledged *string
-	if err := pool.QueryRow(ctx, "SELECT i.state,i.acknowledged_by,o.status FROM care_incident i JOIN care_notification_outbox o ON o.incident_id=i.id WHERE i.id=$1", id).Scan(&state, &acknowledged, &status); err != nil {
+	if err := pool.QueryRowContext(ctx, "SELECT i.state,i.acknowledged_by,o.status FROM care_incident i JOIN care_notification_outbox o ON o.incident_id=i.id WHERE i.id=?", id).Scan(&state, &acknowledged, &status); err != nil {
 		t.Fatal(err)
 	}
 	if state != "notified" || acknowledged != nil || status != "delivered" {
@@ -158,7 +158,7 @@ func TestCareFullHTTPChainAfterRealGatewayTimeout(t *testing.T) {
 	if code := act(2, "verify"); code != 200 {
 		t.Fatalf("second person verification HTTP %d", code)
 	}
-	rows, err := pool.Query(ctx, "SELECT action FROM care_incident_event WHERE incident_id=$1 ORDER BY id", id)
+	rows, err := pool.QueryContext(ctx, "SELECT action FROM care_incident_event WHERE incident_id=? ORDER BY id", id)
 	if err != nil {
 		t.Fatal(err)
 	}

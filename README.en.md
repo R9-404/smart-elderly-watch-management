@@ -22,9 +22,13 @@ This branch also includes [SuiningWatch](SuiningWatch/README.md), a native Harmo
 
 *Interface preview populated with test data.*
 
+## Branches and releases
+
+`preview` is the development and prerelease-validation branch; `main` is the stable-candidate branch. Feature and documentation pull requests target `preview`. On 2026-11-12 the validated commit `e1e268f` was promoted to `main`, while the previous main head was preserved under `history/main-before-preview-20261112-ac5f2d5`. **Promotion to `main` is not a published release.** Check the [Stable release candidate workflow](https://github.com/WatchTestCs/smart-elderly-watch-management/actions/workflows/stable-candidate.yml), an official tag for the same commit, and [GitHub Releases](https://github.com/WatchTestCs/smart-elderly-watch-management/releases) for release status. See the [promotion runbook](docs/reliability/main-promotion.md).
+
 ## Download
 
-2.1.0 · Windows x64 (Preview channel)
+The following files belong to the previously published 2.1.0 · Windows x64 preview release, not necessarily the current `main` head.
 
 | Package | Download | Best for |
 | --- | --- | --- |
@@ -93,8 +97,6 @@ python3 scripts/bootstrap-admin.py
 The web UI listens at `http://127.0.0.1:8080` and Prometheus metrics are exposed at `http://127.0.0.1:9090`. On first run, the script generates `deploy/secrets/` and `deploy/platform.env`, preserving existing keys and passwords. It does not generate TLS certificates. MySQL business services start first; optional PostgreSQL startup follows and its failure does not block business services.
 
 ### Database migration and 24/7 monitoring
-
-To upgrade from an earlier version that stored business data in PostgreSQL, stop all writes, back up your database and uploaded images, and run `transfer-postgres` to validate and import records into an empty MySQL schema. Copy the image folder separately. Installing a new desktop version does not migrate legacy databases automatically, and the import is one-way.
 
 The desktop client binds its local Go server to a dynamic loopback port and stops the server when you close the window. For continuous watch reporting and round-the-clock SOS handling, deploy the Go backend as a persistent service behind a controlled network endpoint, connect an external notification gateway, and staff an on-call response workflow.
 
@@ -189,7 +191,6 @@ Historical performance experiments and release-stage notes are not current-versi
 | --- | --- |
 | The window opens, but login or saving fails | Verify MySQL connectivity, database name, migration status, `SESSION_BACKEND`, and `DATA_ENCRYPTION_KEY` |
 | PostgreSQL is offline, but writes still succeed | This is normal; MySQL handles live transactions and queues analytics events until PG reconnects |
-| Historical records are missing after upgrading | Run `transfer-postgres` to import legacy PG data into MySQL and copy the old image directory over |
 | A watch cannot reach the desktop app | The desktop client only listens on localhost; deploy the Go server on a reachable host for external devices |
 | The portable build fails to launch | Extract the entire ZIP, keep both `.exe` files in the same directory, ensure WebView2 is installed, and verify the SHA-256 hash |
 
@@ -213,6 +214,6 @@ Licensed under the [MIT License](LICENSE). Bundled fonts, map tiles, and third-p
 
 [API contracts and resolved differences](docs/API_CONTRACTS.md) list request and success fields for 109 paths. JSON success uses HTTP 200 and `returnCode="1111"`. Failures use HTTP 4xx/5xx with `returnCode="0000"`, `code`, `message` and an optional `reference`. Image downloads return bytes; uploads use multipart field `file`.
 
-Device requests use `X-Device-Signature`, `X-Device-Timestamp` and `X-Device-Nonce`. With `CAREOLD_REQUIRE_SIGNED_DEVICE=1`, every device route requires a valid signature and rejects nonce replay, except `/device/report` and `/device/sos` (which reserve nonces inside their business transaction) and `/care/receipt` (which uses the gateway HMAC). Without the variable, legacy unsigned firmware still works, but any signature that is present must verify.
+Device requests use `X-Device-Signature`, `X-Device-Timestamp` and `X-Device-Nonce`. With `SUINING_REQUIRE_SIGNED_DEVICE=1`, every device route requires a valid signature and rejects nonce replay, except `/device/report` and `/device/sos` (which reserve nonces inside their business transaction) and `/care/receipt` (which uses the gateway HMAC). Without the variable, legacy unsigned firmware still works, but any signature that is present must verify.
 
-A `/device/report` carrying a valid `requestId` is idempotent at the transaction level: resending the same number with identical content returns the original success response (`duplicate=true`) without a second write, while reusing the number with different content returns 409. Legacy reports without a request ID keep their previous behaviour. With the durable telemetry queue enabled (`CAREOLD_DURABLE_TELEMETRY=1`), that path keeps its existing unique-key 409 semantics.
+A `/device/report` carrying a valid `requestId` is idempotent at the transaction level: resending the same number with identical content returns the original success response (`duplicate=true`) without a second write, while reusing the number with different content returns 409. Legacy reports without a request ID keep their previous behaviour. With the durable telemetry queue enabled (`SUINING_DURABLE_TELEMETRY=1`), that path keeps its existing unique-key 409 semantics.

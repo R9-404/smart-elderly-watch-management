@@ -22,9 +22,13 @@
 
 *上图为使用测试数据的界面示例，仅供预览布局。*
 
+## 分支与发布
+
+`preview` 用于日常开发和预发布验证，`main` 用于稳定候选验收；普通功能和文档 PR 均以 `preview` 为目标。2026-11-12 已将通过预览候选门禁的提交 `e1e268f` 晋升到 `main`，旧主线保存在 `history/main-before-preview-20261112-ac5f2d5`。**进入 `main` 不等于已经发布新版本**。正式交付须以 [Stable release candidate](https://github.com/WatchTestCs/smart-elderly-watch-management/actions/workflows/stable-candidate.yml) 的成功运行、同 SHA 的正式标签及 [GitHub Releases](https://github.com/WatchTestCs/smart-elderly-watch-management/releases) 为准。完整流程见 [晋升手册](docs/reliability/main-promotion.md)。
+
 ## 下载
 
-2.1.0 · Windows x64（预览版）
+以下是已发布的 2.1.0 · Windows x64（预览版）附件，不代表当前 `main` 的最新构建。
 
 | 版本类型 | 下载链接 | 适用场景 |
 | --- | --- | --- |
@@ -92,8 +96,6 @@ python3 scripts/bootstrap-admin.py
 
 ### 旧库迁移与长期值守
 
-如果从早期使用 PostgreSQL 作为业务主库的版本升级，请先停止旧服务写入并备份数据库与图片，然后使用 `transfer-postgres` 工具完成预检查，将数据导入全新的空 MySQL 库，最后手动复制图片目录。安装程序不会自动迁移旧库，且全量导入过程不可逆。
-
 桌面客户端默认监听本机回环动态端口，关闭窗口即终止本地 Go 服务。如果需要全天候接收真实手表上报并处理紧急求助，请独立部署常驻 Go 服务、配置受控公网或局域网入口、接入外部通知网关，并安排值班人员跟进。
 
 ## 系统架构
@@ -143,7 +145,7 @@ docs/            架构设计、部署手册、版本说明与验证记录
 evidence/        自动化测试与故障演练留档数据
 ```
 
-在 Windows 上执行完整桌面构建，需要安装 PowerShell 7、Node.js（`^20.19.0 || >=22.12.0`）、Go（`go.mod` 要求 `1.26.0+`）、Rust 1.85+、MSVC 生成工具与 Windows SDK。具体环境准备见[构建环境说明](docs/BUILD.md)。
+在 Windows 上执行完整桌面构建，需要安装 PowerShell 7、Node.js（`^20.19.0 || >=22.12.0`）、Go（`go.mod` 要求 `1.27.4`）、Rust 1.85+、MSVC 生成工具与 Windows SDK。具体环境准备见[构建环境说明](docs/BUILD.md)。
 
 ```powershell
 cd 智慧养老手表管理系统
@@ -187,7 +189,6 @@ UI Quality 随每次 Preview CI 执行。`Core CI / required` 仅表示基础检
 | --- | --- |
 | 界面能打开，但无法登录或保存 | 检查 MySQL 是否启动、库名是否正确、迁移是否完成，以及 `SESSION_BACKEND` 和 `DATA_ENCRYPTION_KEY` 是否有效 |
 | PostgreSQL 离线，但日常操作仍能保存 | 属于预期设计；业务直接写入 MySQL，留意磁盘空间与分析事件积压即可 |
-| 升级版本后找不到历史记录 | 确认是否已执行离线迁移工具导入旧库数据，并手动复制了旧版图片目录 |
 | 外部手表无法连接桌面端服务 | 桌面端默认仅监听本机回环地址，外部设备接入需独立部署服务端并开放受控网络端口 |
 | 免安装版双击无法启动 | 确认已完整解压 ZIP、主程序与 Go sidecar 位于同一目录、系统已安装 WebView2，并核对 SHA-256 |
 
@@ -195,6 +196,7 @@ UI Quality 随每次 Preview CI 执行。`Core CI / required` 仅表示基础检
 
 | 主题 | 相关文档 |
 | --- | --- |
+| 首次使用、功能入口与问题解决清单 | [用户使用指南](docs/USER_GUIDE.md) |
 | 下载、版本与升级 | [2.1.0 发布说明](docs/releases/2.1.0.md) · [更新日志](CHANGELOG.md) |
 | 数据库、迁移与备份 | [双库配置指南](docs/DUAL_DATABASES.md) · [备份与恢复手册](docs/runbooks/backup-restore.md) |
 | 设备接入与照护运维 | [照护服务部署](docs/CARE_SERVICE_DEPLOYMENT.md) · [支持与故障排查](docs/SUPPORT.md) |
@@ -211,6 +213,6 @@ UI Quality 随每次 Preview CI 执行。`Core CI / required` 仅表示基础检
 
 [接口合同与逐项差异处理](docs/API_CONTRACTS.md)列出 109 个路径的请求字段、成功响应字段和错误状态。JSON 成功响应使用 HTTP 200 与 `returnCode="1111"`；失败使用 HTTP 4xx/5xx 与 `returnCode="0000"`、`code`、`message`，内部错误保留 `reference`。图片下载返回图片字节，上传使用 multipart `file` 字段。
 
-设备请求签名使用 `X-Device-Signature`、`X-Device-Timestamp`、`X-Device-Nonce`。设置 `CAREOLD_REQUIRE_SIGNED_DEVICE=1` 后，除 `/device/report`、`/device/sos`（已在业务事务内预留 nonce）与 `/care/receipt`（使用网关 HMAC）外，其余设备路由强制签名并拒绝 nonce 重放；未设置该变量时旧固件仍可无签名上报，但携带的签名必须校验通过。
+设备请求签名使用 `X-Device-Signature`、`X-Device-Timestamp`、`X-Device-Nonce`。设置 `SUINING_REQUIRE_SIGNED_DEVICE=1` 后，除 `/device/report`、`/device/sos`（已在业务事务内预留 nonce）与 `/care/receipt`（使用网关 HMAC）外，其余设备路由强制签名并拒绝 nonce 重放；未设置该变量时旧固件仍可无签名上报，但携带的签名必须校验通过。
 
-携带合法 `requestId` 的 `/device/report` 具备事务级幂等：相同编号且相同内容重发时返回首次提交的成功响应（`duplicate=true`）而不重复写入；同一编号换成不同内容返回 409。未携带编号的旧固件上报保持原有行为。启用持久遥测队列（`CAREOLD_DURABLE_TELEMETRY=1`）时沿用该路径原有的唯一键 409 语义。
+携带合法 `requestId` 的 `/device/report` 具备事务级幂等：相同编号且相同内容重发时返回首次提交的成功响应（`duplicate=true`）而不重复写入；同一编号换成不同内容返回 409。未携带编号的旧固件上报保持原有行为。启用持久遥测队列（`SUINING_DURABLE_TELEMETRY=1`）时沿用该路径原有的唯一键 409 语义。

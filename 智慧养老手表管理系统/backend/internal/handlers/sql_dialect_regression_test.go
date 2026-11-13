@@ -6,23 +6,9 @@ import (
 	"testing"
 )
 
-func TestNativeEngineSpecificUpserts(t *testing.T) {
-	mysqlDaily := metricDailyEnsureSQL(true)
-	postgresDaily := metricDailyEnsureSQL(false)
-	if !strings.Contains(mysqlDaily, "ON DUPLICATE KEY UPDATE") || strings.Contains(mysqlDaily, "ON CONFLICT") {
-		t.Fatalf("MySQL daily SQL leaked PostgreSQL syntax: %s", mysqlDaily)
-	}
-	if !strings.Contains(postgresDaily, "ON CONFLICT(cache_key) DO NOTHING") || strings.Contains(postgresDaily, "ON DUPLICATE KEY") {
-		t.Fatalf("PostgreSQL daily SQL leaked MySQL syntax: %s", postgresDaily)
-	}
-
-	mysqlWatch := watchDayUpsertSQL(true)
-	postgresWatch := watchDayUpsertSQL(false)
-	if !strings.Contains(mysqlWatch, "ON DUPLICATE KEY UPDATE") || !strings.Contains(mysqlWatch, "VALUES(sleep)") || strings.Contains(mysqlWatch, "EXCLUDED.") {
-		t.Fatalf("MySQL watch-day upsert is not native: %s", mysqlWatch)
-	}
-	if !strings.Contains(postgresWatch, "ON CONFLICT (device_id, create_time)") || !strings.Contains(postgresWatch, "EXCLUDED.sleep") || strings.Contains(postgresWatch, "ON DUPLICATE KEY") {
-		t.Fatalf("PostgreSQL watch-day upsert is not native: %s", postgresWatch)
+func TestDailyUpsertUsesNativeMySQL(t *testing.T) {
+	if !strings.Contains(metricDailyEnsureSQL, "ON DUPLICATE KEY UPDATE") || strings.Contains(metricDailyEnsureSQL, "ON CONFLICT") {
+		t.Fatalf("daily SQL is not native MySQL: %s", metricDailyEnsureSQL)
 	}
 }
 
@@ -44,7 +30,7 @@ func TestDeviceReportDailyUpsertPreservesMissingFields(t *testing.T) {
 
 	var rows, step, sleep int
 	var state string
-	err := pool.QueryRow(context.Background(),
+	err := pool.QueryRowContext(context.Background(),
 		"SELECT count(*),max(step),max(sleep),max(sleep_sate) FROM watch_day_info WHERE device_id=1").
 		Scan(&rows, &step, &sleep, &state)
 	if err != nil {
@@ -52,49 +38,5 @@ func TestDeviceReportDailyUpsertPreservesMissingFields(t *testing.T) {
 	}
 	if rows != 1 || step != 250 || sleep != 8 || state != "1" {
 		t.Fatalf("daily upsert lost prior fields: rows=%d step=%d sleep=%d state=%q", rows, step, sleep, state)
-	}
-}
-
-func TestCareNotificationAggregateIsEngineNative(t *testing.T) {
-	mysql := careNotificationStatusExpr(true)
-	postgres := careNotificationStatusExpr(false)
-	if strings.Contains(mysql, "bool_or(") || !strings.Contains(mysql, "MAX(n.status='delivered')") {
-		t.Fatalf("MySQL care notification aggregate is not native: %s", mysql)
-	}
-	if strings.Contains(postgres, "MAX(") || !strings.Contains(postgres, "bool_or(n.status='delivered')") {
-		t.Fatalf("PostgreSQL care notification aggregate is not native: %s", postgres)
-	}
-}
-
-func TestSocialTextTableIsRepositoryOwned(t *testing.T) {
-	if got := socialTextTable(true); got != "`text`" {
-		t.Fatalf("unexpected MySQL social text table: %s", got)
-	}
-	if got := socialTextTable(false); got != "text" {
-		t.Fatalf("unexpected PostgreSQL social text table: %s", got)
-	}
-}
-
-func TestBusinessRepositoriesOwnEngineSpecificSQL(t *testing.T) {
-	if got := positionLatestSQL(); !strings.Contains(got, "l.lng, l.lat, l.be_time AS be_time") {
-		t.Fatalf("position time must belong to the coordinates: %s", got)
-	}
-
-	mysqlWatch := watchProfileInsertSQL(true)
-	postgresWatch := watchProfileInsertSQL(false)
-	if !strings.Contains(mysqlWatch, "ON DUPLICATE KEY UPDATE device_id=device_id") || strings.Contains(mysqlWatch, "ON CONFLICT") {
-		t.Fatalf("watch_info MySQL SQL is not native: %s", mysqlWatch)
-	}
-	if !strings.Contains(postgresWatch, "ON CONFLICT(device_id) DO NOTHING") || strings.Contains(postgresWatch, "ON DUPLICATE KEY") {
-		t.Fatalf("watch_info PostgreSQL SQL is not native: %s", postgresWatch)
-	}
-
-	mysqlInsert, mysqlID := pictureGroupAllocatorSQL(true)
-	postgresInsert, postgresID := pictureGroupAllocatorSQL(false)
-	if mysqlInsert != "INSERT INTO picture_group () VALUES ()" || mysqlID != "SELECT LAST_INSERT_ID()" {
-		t.Fatalf("unexpected MySQL picture-group allocation SQL: %q / %q", mysqlInsert, mysqlID)
-	}
-	if postgresInsert != "" || postgresID != "SELECT nextval('picture_group')" {
-		t.Fatalf("unexpected PostgreSQL picture-group allocation SQL: %q / %q", postgresInsert, postgresID)
 	}
 }

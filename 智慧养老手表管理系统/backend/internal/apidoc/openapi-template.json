@@ -474,6 +474,37 @@
         "description": "Implementation: 智慧养老手表管理系统/backend/internal/handlers/handler_care_incident.go. Go API DTOs without explicit schemas remain open objects; consult implementation."
       }
     },
+    "/api/v1/care/accounts/status": {
+      "post": {
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "adminId": {},
+                    "status": {}
+                  }
+                }
+              }
+            }
+          }
+        },
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "properties": {
+                  "adminId": {},
+                  "status": {}
+                }
+              }
+            }
+          }
+        },
+        "description": "Implementation: 智慧养老手表管理系统/backend/internal/handlers/handler_care_incident.go. Go API DTOs without explicit schemas remain open objects; consult implementation."
+      }
+    },
     "/api/v1/care/assignDuty": {
       "post": {
         "responses": {
@@ -566,6 +597,109 @@
                   "id": {},
                   "page": {},
                   "pageSize": {}
+                }
+              }
+            }
+          }
+        },
+        "description": "Implementation: 智慧养老手表管理系统/backend/internal/handlers/handler_care_incident.go. Go API DTOs without explicit schemas remain open objects; consult implementation."
+      }
+    },
+    "/api/v1/care/handover/accept": {
+      "post": {
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "handoverId": {},
+                    "status": {},
+                    "transferred": {}
+                  }
+                }
+              }
+            }
+          }
+        },
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "additionalProperties": false,
+                "properties": {
+                  "handoverId": {
+                    "type": "integer"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "description": "Implementation: 智慧养老手表管理系统/backend/internal/handlers/handler_care_incident.go. Go API DTOs without explicit schemas remain open objects; consult implementation."
+      }
+    },
+    "/api/v1/care/handover/cancel": {
+      "post": {
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "handoverId": {},
+                    "status": {}
+                  }
+                }
+              }
+            }
+          }
+        },
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "additionalProperties": false,
+                "properties": {
+                  "handoverId": {
+                    "type": "integer"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "description": "Implementation: 智慧养老手表管理系统/backend/internal/handlers/handler_care_incident.go. Go API DTOs without explicit schemas remain open objects; consult implementation."
+      }
+    },
+    "/api/v1/care/handover/create": {
+      "post": {
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "handoverId": {},
+                    "incidentIds": {}
+                  }
+                }
+              }
+            }
+          }
+        },
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "additionalProperties": false,
+                "properties": {
+                  "toAdminId": {
+                    "type": "integer"
+                  },
+                  "note": {
+                    "type": "string"
+                  }
                 }
               }
             }
@@ -920,8 +1054,8 @@
               "application/json": {
                 "schema": {
                   "properties": {
-                    "oldId": {},
-                    "oldPersonName": {}
+                    "residentId": {},
+                    "residentName": {}
                   }
                 }
               }
@@ -1229,7 +1363,7 @@
                   "properties": {
                     "bindingVersion": {},
                     "bound": {},
-                    "oldId": {},
+                    "residentId": {},
                     "pendingAlarm": {},
                     "reportInterval": {},
                     "serverTime": {}
@@ -1307,8 +1441,8 @@
                     "bound": {},
                     "deviceId": {},
                     "deviceNo": {},
-                    "oldId": {},
-                    "oldPersonName": {},
+                    "residentId": {},
+                    "residentName": {},
                     "protocolVersion": {},
                     "maxBatchSize": {}
                   }
@@ -1346,7 +1480,7 @@
             }
           }
         },
-        "description": "Implementation: 智慧养老手表管理系统/backend/internal/handlers/handler_resident_devices.go. Device body authentication or signed gateway receipt; not anonymous access. HarmonyOS clients send optional platform=harmonyos with protocolVersion=1; both are required together when platform is supplied. Authenticated success returns protocolVersion=1 and maxBatchSize=200 plus the existing bindingVersion/owner. Unsupported platform/version returns 400. Omit platform for the legacy login contract. Invalid credentials return 401 with code=DEVICE_AUTH_FAILED; disabled devices return 403."
+        "description": "Implementation: 智慧养老手表管理系统/backend/internal/handlers/handler_resident_devices.go. Device body authentication or signed gateway receipt; not anonymous access. HarmonyOS clients send optional platform=harmonyos with protocolVersion=1; both are required together when platform is supplied. Authenticated success returns protocolVersion=1 and maxBatchSize=200 plus the existing bindingVersion/owner. Unsupported platform/version returns 400. Omit platform when platform-specific capability negotiation is not needed. Invalid credentials return 401 with code=DEVICE_AUTH_FAILED; disabled devices return 403."
       }
     },
     "/api/v1/device/report": {
@@ -2060,6 +2194,43 @@
           "$ref": "#/components/requestBodies/JsonObject"
         },
         "description": "Implementation: 智慧养老手表管理系统/backend/internal/handlers/handler_vitals.go. Go API DTOs without explicit schemas remain open objects; consult implementation."
+      }
+    },
+    "/api/v1/health/baseline": {
+      "post": {
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "oldId": {},
+                    "metric": {},
+                    "ready": {},
+                    "sampleDays": {},
+                    "trustedDays": {},
+                    "rejectedDays": {},
+                    "confidence": {},
+                    "reason": {},
+                    "observedAt": {},
+                    "value": {},
+                    "baseline": {},
+                    "scale": {},
+                    "score": {},
+                    "direction": {},
+                    "anomalous": {}
+                  }
+                }
+              }
+            }
+          }
+        },
+        "requestBody": {
+          "required": null,
+          "content": null,
+          "$ref": "#/components/requestBodies/ResidentId"
+        },
+        "description": "Implementation: 智慧养老手表管理系统/backend/internal/handlers/handler_health.go. Go API DTOs without explicit schemas remain open objects; consult implementation."
       }
     },
     "/api/v1/health/changes": {
@@ -3032,6 +3203,29 @@
         "description": "Implementation: 智慧养老手表管理系统/backend/internal/handlers/handlers.go. Go API DTOs without explicit schemas remain open objects; consult implementation."
       }
     },
+    "/api/v1/operations/snapshot": {
+      "post": {
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "snapshot": {}
+                  }
+                }
+              }
+            }
+          }
+        },
+        "requestBody": {
+          "required": null,
+          "content": null,
+          "$ref": "#/components/requestBodies/JsonObject"
+        },
+        "description": "Implementation: 智慧养老手表管理系统/backend/internal/handlers/handler_operations.go. Go API DTOs without explicit schemas remain open objects; consult implementation."
+      }
+    },
     "/api/v1/position/select": {
       "post": {
         "responses": {
@@ -3218,6 +3412,80 @@
           }
         },
         "description": "Implementation: 智慧养老手表管理系统/backend/internal/handlers/handler_resident_devices.go. Go API DTOs without explicit schemas remain open objects; consult implementation."
+      }
+    },
+    "/api/v1/risk/events": {
+      "get": {
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "events": {},
+                    "rules": {}
+                  }
+                }
+              }
+            }
+          }
+        },
+        "description": "Implementation: 智慧养老手表管理系统/backend/internal/handlers/handler_risk.go. Go API DTOs without explicit schemas remain open objects; consult implementation."
+      }
+    },
+    "/api/v1/risk/rules": {
+      "post": {
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "rule": {}
+                  }
+                }
+              }
+            }
+          }
+        },
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "properties": {
+                  "action": {},
+                  "durationHours": {},
+                  "ip": {},
+                  "reason": {}
+                }
+              }
+            }
+          }
+        },
+        "description": "Implementation: 智慧养老手表管理系统/backend/internal/handlers/handler_risk.go. Go API DTOs without explicit schemas remain open objects; consult implementation."
+      }
+    },
+    "/api/v1/risk/rules/{id}": {
+      "delete": {
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "deleted": {}
+                  }
+                }
+              }
+            }
+          }
+        },
+        "requestBody": {
+          "required": null,
+          "content": null,
+          "$ref": "#/components/requestBodies/JsonObject"
+        },
+        "description": "Implementation: 智慧养老手表管理系统/backend/internal/handlers/handler_risk.go. Go API DTOs without explicit schemas remain open objects; consult implementation."
       }
     },
     "/api/v1/rule-policies": {

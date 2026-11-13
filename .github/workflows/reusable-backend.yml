@@ -14,7 +14,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        go-version: ["1.26.10", "1.27.2"]
+        go-version: ["1.27.4"]
     services:
       mysql:
         image: mysql:8.4
@@ -29,12 +29,12 @@ jobs:
       postgres:
         image: postgres:16
         env:
-          POSTGRES_USER: careold
-          POSTGRES_PASSWORD: careold
-          POSTGRES_DB: careold_test
+          POSTGRES_USER: suining
+          POSTGRES_PASSWORD: suining
+          POSTGRES_DB: suining_test
         ports: ["5432:5432"]
         options: >-
-          --health-cmd "pg_isready -U careold -d careold_test"
+          --health-cmd "pg_isready -U suining -d suining_test"
           --health-interval 5s --health-timeout 5s --health-retries 10
     steps:
       - name: Checkout
@@ -76,7 +76,7 @@ jobs:
         working-directory: 智慧养老手表管理系统/backend
         env:
           TEST_MYSQL_DSN: root:ci_root_only@tcp(localhost:3306)/suining_test
-          TEST_DATABASE_URL: postgres://careold:careold@localhost:5432/careold_test?sslmode=disable
+          TEST_DATABASE_URL: postgres://suining:suining@localhost:5432/suining_test?sslmode=disable
           TEST_S3_ENDPOINT: http://127.0.0.1:8333
           TEST_S3_BUCKET: care-ci
           TEST_S3_ACCESS_KEY: ci-only-access
@@ -90,15 +90,23 @@ jobs:
           go version > "$evidence/go-version.txt"
           go env GOOS GOARCH CGO_ENABLED >> "$evidence/go-version.txt"
           MYSQL_PWD=ci_root_only mysql --protocol=TCP -h 127.0.0.1 -u root -N -e 'SELECT VERSION(),@@innodb_flush_log_at_trx_commit,@@version_comment' > "$evidence/mysql-environment.txt"
-          PGPASSWORD=careold psql -h 127.0.0.1 -U careold -d careold_test -Atc 'SELECT version(); SHOW fsync;' > "$evidence/postgres-environment.txt"
+          PGPASSWORD=suining psql -h 127.0.0.1 -U suining -d suining_test -Atc 'SELECT version(); SHOW fsync;' > "$evidence/postgres-environment.txt"
           docker inspect --format '{{.Config.Image}} {{.Image}}' '${{ job.services.mysql.id }}' '${{ job.services.postgres.id }}' > "$evidence/database-images.txt"
           go list -m -json all > "$evidence/modules.jsonl"
-          go test -json -race -count=1 -timeout 900s ./... > "$evidence/mysql.jsonl" 2>&1
+          go test -json -race -count=1 -timeout 45m ./... > "$evidence/mysql.jsonl" 2>&1
           python3 ../../scripts/reliability/audit-go-results.py "$evidence/mysql.jsonl" --mode mysql --output "$evidence/mysql-summary.json"
-          TEST_MYSQL_DSN= go test -json -race -count=1 -timeout 900s ./internal/db ./internal/handlers ./internal/care ./internal/analytics ./internal/rekey > "$evidence/postgres.jsonl" 2>&1
-          python3 ../../scripts/reliability/audit-go-results.py "$evidence/postgres.jsonl" --mode postgres --output "$evidence/postgres-summary.json"
           go build ./... > "$evidence/build.txt" 2>&1
           go vet ./... > "$evidence/vet.txt" 2>&1
+          # Benchmark-derived bootstrap profile, not a production traffic profile.
+          go test -run '^$' -bench '^BenchmarkSafe$' -benchtime=100ms -cpuprofile="$evidence/default.pgo" ./internal/jsonscan > "$evidence/pgo-training.txt" 2>&1
+          test -s "$evidence/default.pgo"
+          CGO_ENABLED=0 go build -trimpath -pgo="$evidence/default.pgo" -ldflags='-s -w' -o "$evidence/suining-server" ./cmd/server
+          if readelf -l "$evidence/suining-server" | grep -q INTERP; then
+            echo 'Server binary contains a dynamic interpreter' >&2
+            exit 1
+          fi
+          go version -m "$evidence/suining-server" > "$evidence/server-build-info.txt"
+          grep -F -- '-pgo=' "$evidence/server-build-info.txt"
           unformatted="$(gofmt -l ./cmd ./internal ./migrations)"
           if [ -n "$unformatted" ]; then
             printf 'Go files requiring gofmt:\n%s\n' "$unformatted"

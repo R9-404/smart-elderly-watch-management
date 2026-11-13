@@ -34,7 +34,7 @@ func TestAnalyticsPollDelay(t *testing.T) {
 }
 
 func TestAnalyticsSecondaryConnectionLimits(t *testing.T) {
-	cfg, err := analyticsPoolConfig("postgres://careold:testing@127.0.0.1:5432/analytics?sslmode=disable")
+	cfg, err := analyticsPoolConfig("postgres://suining:testing@127.0.0.1:5432/analytics?sslmode=disable")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -69,15 +69,15 @@ func TestUnavailablePostgresDoesNotBlockMySQLTransactions(t *testing.T) {
 	go func() {
 		defer close(done)
 		// Closed loopback port: a secondary outage without any live PG.
-		Run(ctx, primary, "postgres://careold:testing@127.0.0.1:1/analytics?sslmode=disable", state)
+		Run(ctx, primary, "postgres://suining:testing@127.0.0.1:1/analytics?sslmode=disable", state)
 	}()
 	// Even while the secondary is unavailable, the MySQL write and its
 	// trigger-generated outbox event must commit independently.
 	writeCtx, stop := context.WithTimeout(context.Background(), 5*time.Second)
-	_, err := primary.Exec(writeCtx, "INSERT INTO ratepre(id,hr,create_time) VALUES(1,75,now())")
+	_, err := primary.ExecContext(writeCtx, "INSERT INTO ratepre(id,hr,create_time) VALUES(1,75,CURRENT_TIMESTAMP(6))")
 	if err == nil {
 		var count int
-		err = primary.QueryRow(writeCtx, "SELECT count(*) FROM analytics_outbox").Scan(&count)
+		err = primary.QueryRowContext(writeCtx, "SELECT count(*) FROM analytics_outbox").Scan(&count)
 		if err == nil && count != 1 {
 			t.Errorf("expected one durable primary event during PG outage, got %d", count)
 		}

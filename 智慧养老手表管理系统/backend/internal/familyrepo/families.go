@@ -1,0 +1,169 @@
+// Package familyrepo owns administrative family persistence and resident bindings.
+package familyrepo
+
+import (
+	"context"
+	"database/sql"
+	"errors"
+
+	"suining-care/internal/db"
+	"suining-care/internal/securestore"
+	"suining-care/internal/userphone"
+)
+
+var (
+	ErrPhoneInUse        = errors.New("family phone already registered")
+	ErrResidentMissing   = errors.New("resident phone not found")
+	ErrResidentAmbiguous = errors.New("resident phone has multiple matches")
+	ErrResidentBound     = errors.New("resident already bound")
+	ErrFamilyNotFound    = errors.New("family not found")
+)
+
+type Family struct {
+	Name     string
+	Relation string
+	Sex      string
+	Phone    string
+	Address  string
+}
+
+type bindingTarget struct {
+	id       int64
+	familyID *int64
+	matches  int
+}
+
+func loadBindingTarget(ctx context.Context, tx *sql.Tx, phone string) (bindingTarget, error) {
+	target := bindingTarget{}
+	err := db.QueryEach(ctx, tx, func(rows *sql.Rows) error {
+		target.matches++
+		return rows.Scan(&target.id, &target.familyID)
+	}, "SELECT old_id,family_id FROM oldperson WHERE phone=? ORDER BY old_id LIMIT 2 FOR UPDATE", phone)
+	return target, err
+}
+
+func phoneInUse(ctx context.Context, tx *sql.Tx, box *securestore.Box, phone string, exceptFamilyID *int64) (bool, error) {
+	lookup, err := userphone.SearchIndex(ctx, tx, box, phone)
+	if err != nil {
+		return false, err
+	}
+	var used bool
+	query := `SELECT EXISTS(SELECT 1 FROM users WHERE
+	    (user_phone_protected=false AND user_phone=?) OR
+	    (user_phone_protected=true AND user_phone_lookup=?))
+	    OR EXISTS(SELECT 1 FROM family WHERE family_phone=?)`
+	args := []any{phone, lookup, phone}
+	if exceptFamilyID != nil {
+		query = `SELECT EXISTS(SELECT 1 FROM users WHERE
+		    (user_phone_protected=false AND user_phone=?) OR
+		    (user_phone_protected=true AND user_phone_lookup=?))
+		    OR EXISTS(SELECT 1 FROM family WHERE family_phone=? AND family_id<>?)`
+		args = append(args, *exceptFamilyID)
+	}
+	err = tx.QueryRowContext(ctx, query, args...).Scan(&used)
+	return used, err
+}
+
+// Create binds one unambiguous unassigned resident in a single transaction.
+func Create(ctx context.Context, tx *sql.Tx, box *securestore.Box, input Family, residentPhone string) error {
+	lookup, err := userphone.SearchIndex(ctx, tx, box, input.Phone)
+	if err != nil {
+		return err
+	}
+	var duplicate bool
+	err = tx.QueryRowContext(ctx,
+		`SELECT EXISTS(SELECT 1 FROM users WHERE
+		    (user_phone_protected=false AND user_phone=?) OR
+		    (user_phone_protected=true AND user_phone_lookup=?))
+		    OR EXISTS(SELECT 1 FROM family WHERE family_phone=?)`,
+		input.Phone, lookup, input.Phone).Scan(&duplicate)
+	if err != nil {
+		return err
+	}
+	if duplicate {
+		return ErrPhoneInUse
+	}
+	familyID, err := db.InsertID(ctx, tx,
+		`INSERT INTO family(family_name,family_relation,family_sex,family_phone,family_address)
+		 VALUES(?,?,?,?,?)`,
+		input.Name, input.Relation, input.Sex, input.Phone, input.Address)
+	if err != nil {
+		return err
+	}
+	target, err := loadBindingTarget(ctx, tx, residentPhone)
+	if err != nil {
+		return err
+	}
+	switch {
+	case target.matches == 0:
+		return ErrResidentMissing
+	case target.matches > 1:
+		return ErrResidentAmbiguous
+	case target.familyID != nil:
+		return ErrResidentBound
+	}
+	result, err := tx.ExecContext(ctx,
+		"UPDATE oldperson SET family_id=? WHERE old_id=? AND family_id IS NULL",
+		familyID, target.id)
+	if err != nil {
+		return err
+	}
+	affected, err := result.RowsAffected()
+	if err != nil {
+		return err
+	}
+	if affected != 1 {
+		return ErrResidentBound
+	}
+	return nil
+}
+
+func Update(ctx context.Context, tx *sql.Tx, box *securestore.Box, familyID int64, input Family) error {
+	used, err := phoneInUse(ctx, tx, box, input.Phone, &familyID)
+	if err != nil {
+		return err
+	}
+	if used {
+		return ErrPhoneInUse
+	}
+	result, err := tx.ExecContext(ctx,
+		`UPDATE family SET family_name=?,family_relation=?,family_sex=?,
+		 family_phone=?,family_address=? WHERE family_id=?`,
+		input.Name, input.Relation, input.Sex, input.Phone, input.Address, familyID)
+	if err != nil {
+		return err
+	}
+	affected, err := result.RowsAffected()
+	if err != nil {
+		return err
+	}
+	if affected != 1 {
+		return ErrFamilyNotFound
+	}
+	return nil
+}
+
+// Delete clears the resident binding and database sessions atomically.
+// Caller revokes non-database sessions only after the transaction commits.
+func Delete(ctx context.Context, tx *sql.Tx, familyID int64) error {
+	if _, err := tx.ExecContext(ctx,
+		"UPDATE oldperson SET family_id=NULL WHERE family_id=?", familyID); err != nil {
+		return err
+	}
+	result, err := tx.ExecContext(ctx, "DELETE FROM family WHERE family_id=?", familyID)
+	if err != nil {
+		return err
+	}
+	affected, err := result.RowsAffected()
+	if err != nil {
+		return err
+	}
+	if affected != 1 {
+		return ErrFamilyNotFound
+	}
+	if _, err := tx.ExecContext(ctx,
+		"DELETE FROM web_session WHERE role='FAMILY' AND actor_id=?", familyID); err != nil {
+		return err
+	}
+	return nil
+}

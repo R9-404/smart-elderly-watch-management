@@ -1,7 +1,6 @@
 package health
 
 import (
-	"strconv"
 	"strings"
 	"sync/atomic"
 )
@@ -18,7 +17,7 @@ const batchLookupPrefix = `SELECT sample_id,version,revision,CASE WHEN version >
 const batchLookupSuffix = ` THEN payload ELSE NULL END FROM health_sample WHERE sample_id IN `
 const batchUpsertPrefix = `INSERT INTO health_sample(sample_id,old_id,device_id,epoch,version,revision,payload,source,source_device,metric,semantics,sample_start,sample_end,deleted) VALUES `
 const batchUpsertSuffix = `
-	 ON CONFLICT(sample_id) DO UPDATE SET version=EXCLUDED.version,revision=EXCLUDED.revision,payload=EXCLUDED.payload,source=EXCLUDED.source,source_device=EXCLUDED.source_device,metric=EXCLUDED.metric,semantics=EXCLUDED.semantics,sample_start=EXCLUDED.sample_start,sample_end=EXCLUDED.sample_end,deleted=EXCLUDED.deleted`
+	 AS new ON DUPLICATE KEY UPDATE version=new.version,revision=new.revision,payload=new.payload,source=new.source,source_device=new.source_device,metric=new.metric,semantics=new.semantics,sample_start=new.sample_start,sample_end=new.sample_end,deleted=new.deleted`
 const batchChangesPrefix = `INSERT INTO health_change(revision,old_id,sample_id,payload) VALUES `
 
 // Cache complete immutable statements, not just VALUES fragments. This avoids
@@ -31,14 +30,13 @@ func buildBatchSQL(kind batchSQLKind, rows int) string {
 	case batchLookup:
 		var out strings.Builder
 		out.Grow(len(batchLookupPrefix) + len(batchLookupSuffix) + rows*6 + 4)
-		out.WriteString(batchLookupPrefix + "$1" + batchLookupSuffix)
+		out.WriteString(batchLookupPrefix + "?" + batchLookupSuffix)
 		out.WriteByte('(')
 		for i := 0; i < rows; i++ {
 			if i > 0 {
 				out.WriteByte(',')
 			}
-			out.WriteByte('$')
-			out.WriteString(strconv.Itoa(i + 2))
+			out.WriteByte('?')
 		}
 		out.WriteByte(')')
 		return out.String()
@@ -69,7 +67,6 @@ func batchSQL(kind batchSQLKind, rows int) string {
 func buildValueRows(rows, columns int) string {
 	var out strings.Builder
 	out.Grow(rows * (columns*6 + 3))
-	var digits [20]byte
 	for i := 0; i < rows; i++ {
 		if i > 0 {
 			out.WriteByte(',')
@@ -79,8 +76,7 @@ func buildValueRows(rows, columns int) string {
 			if j > 0 {
 				out.WriteByte(',')
 			}
-			out.WriteByte('$')
-			out.Write(strconv.AppendInt(digits[:0], int64(i*columns+j+1), 10))
+			out.WriteByte('?')
 		}
 		out.WriteByte(')')
 	}

@@ -17,7 +17,7 @@ jobs:
           ref: ${{ github.event.pull_request.head.sha || github.sha }}
       - uses: actions/setup-go@924ae3a1cded613372ab5595356fb5720e22ba16 # v6.5.0
         with:
-          go-version: '1.26.10'
+          go-version: '1.27.4'
           cache-dependency-path: 智慧养老手表管理系统/backend/go.sum
       - name: Validate all product versions
         shell: pwsh
@@ -36,7 +36,10 @@ jobs:
           New-Item -ItemType Directory -Force evidence/ci/windows | Out-Null
           git rev-parse HEAD | Set-Content evidence/ci/windows/source-sha.txt
           Push-Location '智慧养老手表管理系统/backend'
-          go build -trimpath -o '../../evidence/ci/windows/suining-server.exe' ./cmd/server
+          $env:CGO_ENABLED = '0'
+          go test -run '^$' -bench '^BenchmarkSafe$' -benchtime=100ms -cpuprofile '../../evidence/ci/windows/default.pgo' ./internal/jsonscan
+          if ($LASTEXITCODE) { throw 'PGO profile generation failed' }
+          go build -trimpath -pgo='../../evidence/ci/windows/default.pgo' -ldflags='-s -w' -o '../../evidence/ci/windows/suining-server.exe' ./cmd/server
           if ($LASTEXITCODE) { throw 'Windows sidecar build failed' }
           Pop-Location
           Get-FileHash evidence/ci/windows/suining-server.exe -Algorithm SHA256 | ConvertTo-Json | Set-Content evidence/ci/windows/sha256.json
@@ -62,7 +65,7 @@ jobs:
           node-version: '24'
       - uses: actions/setup-go@924ae3a1cded613372ab5595356fb5720e22ba16
         with:
-          go-version: '1.27.2'
+          go-version: '1.27.4'
           cache-dependency-path: 智慧养老手表管理系统/backend/go.sum
       - name: Build and exercise the actual desktop distributions
         shell: pwsh
@@ -74,7 +77,62 @@ jobs:
           if ($LASTEXITCODE) { throw 'Rust toolchain setup failed' }
           rustc --version | Set-Content evidence/ci/windows-desktop/rust-version.txt
           ./智慧养老手表管理系统/desktop/build.ps1 *>&1 | Tee-Object evidence/ci/windows-desktop/build.log
+          python ./智慧养老手表管理系统/desktop/build-fontless.py *>&1 | Tee-Object evidence/ci/windows-desktop/fontless.log
           ./智慧养老手表管理系统/desktop/package-release.ps1 *>&1 | Tee-Object evidence/ci/windows-desktop/package.log
+      - uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f
+        with:
+          name: suining-setup-${{ github.event.pull_request.head.sha || github.sha }}
+          path: |
+            智慧养老手表管理系统/outputs/*/release/Suining-Setup-*.exe
+            智慧养老手表管理系统/outputs/*/release/SHA256SUMS.txt
+            智慧养老手表管理系统/outputs/*/release/release-manifest.json
+            evidence/ci/windows-desktop/source-sha.txt
+          if-no-files-found: error
+      - uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f
+        with:
+          name: suining-portable-${{ github.event.pull_request.head.sha || github.sha }}
+          path: |
+            智慧养老手表管理系统/outputs/*/release/Suining-Portable-*.zip
+            智慧养老手表管理系统/outputs/*/release/SHA256SUMS.txt
+            智慧养老手表管理系统/outputs/*/release/release-manifest.json
+            evidence/ci/windows-desktop/source-sha.txt
+          if-no-files-found: error
+      - uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f
+        with:
+          name: suining-source-${{ github.event.pull_request.head.sha || github.sha }}
+          path: |
+            智慧养老手表管理系统/outputs/*/release/Suining-Source-*.zip
+            智慧养老手表管理系统/outputs/*/release/SHA256SUMS.txt
+            智慧养老手表管理系统/outputs/*/release/release-manifest.json
+            evidence/ci/windows-desktop/source-sha.txt
+          if-no-files-found: error
+      - uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f
+        with:
+          name: suining-native-nofonts-win-x64-${{ github.event.pull_request.head.sha || github.sha }}
+          path: |
+            智慧养老手表管理系统/outputs/*/release/Suining-Native-NoFonts-*-win-x64.exe
+            智慧养老手表管理系统/outputs/*/release/SHA256SUMS.txt
+            智慧养老手表管理系统/outputs/*/release/release-manifest.json
+            evidence/ci/windows-desktop/source-sha.txt
+          if-no-files-found: error
+      - uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f
+        with:
+          name: suining-native-nofonts-linux-x64-${{ github.event.pull_request.head.sha || github.sha }}
+          path: |
+            智慧养老手表管理系统/outputs/*/release/Suining-Native-NoFonts-*-linux-x64.tar.gz
+            智慧养老手表管理系统/outputs/*/release/SHA256SUMS.txt
+            智慧养老手表管理系统/outputs/*/release/release-manifest.json
+            evidence/ci/windows-desktop/source-sha.txt
+          if-no-files-found: error
+      - uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f
+        with:
+          name: suining-native-nofonts-linux-arm64-${{ github.event.pull_request.head.sha || github.sha }}
+          path: |
+            智慧养老手表管理系统/outputs/*/release/Suining-Native-NoFonts-*-linux-arm64.tar.gz
+            智慧养老手表管理系统/outputs/*/release/SHA256SUMS.txt
+            智慧养老手表管理系统/outputs/*/release/release-manifest.json
+            evidence/ci/windows-desktop/source-sha.txt
+          if-no-files-found: error
       - if: always()
         uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f
         with:

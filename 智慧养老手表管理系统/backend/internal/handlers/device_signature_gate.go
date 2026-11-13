@@ -2,6 +2,7 @@ package handlers
 
 import (
 	"bytes"
+	"database/sql"
 	"encoding/json"
 	"io"
 	"net/http"
@@ -17,7 +18,7 @@ import (
 // twice. /api/v1/care/receipt is tagged Device in the access registry but uses
 // a separate gateway HMAC, so it is excluded as well.
 //
-// The gate is opt-in via CAREOLD_REQUIRE_SIGNED_DEVICE=1 so existing unsigned
+// The gate is opt-in via SUINING_REQUIRE_SIGNED_DEVICE=1 so existing unsigned
 // firmware keeps working. Any signature that is present must still verify.
 func (h *Handler) EnforceDeviceSignatures(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -49,12 +50,12 @@ func (h *Handler) EnforceDeviceSignatures(next http.Handler) http.Handler {
 			return
 		}
 		ctx := signed.Context()
-		tx, err := h.DB.Begin(ctx)
+		tx, err := h.DB.BeginTx(ctx, &sql.TxOptions{Isolation: sql.LevelReadCommitted})
 		if err != nil {
 			response.Error500(w, ref())
 			return
 		}
-		defer tx.Rollback(ctx)
+		defer tx.Rollback()
 		d, code, msg, err := h.hwAuth(ctx, tx, strings.ToUpper(strings.TrimSpace(credentials.DeviceNo)), credentials.Secret, "设备已停用")
 		if err != nil {
 			response.Error500(w, ref())
@@ -67,7 +68,7 @@ func (h *Handler) EnforceDeviceSignatures(next http.Handler) http.Handler {
 		if !acceptSignedDeviceNonce(w, ctx, tx, d.ID) {
 			return
 		}
-		if err := tx.Commit(ctx); err != nil {
+		if err := tx.Commit(); err != nil {
 			response.Error500(w, ref())
 			return
 		}

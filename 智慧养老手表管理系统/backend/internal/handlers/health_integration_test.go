@@ -2,6 +2,7 @@ package handlers
 
 import (
 	"context"
+	"database/sql"
 	"encoding/json"
 	"net/http"
 	"net/http/httptest"
@@ -23,6 +24,7 @@ func TestHealthVersionsCursorAndIsolation(t *testing.T) {
 	pool := testDatabase(t)
 	h := testHandler(t, pool)
 	seedDevice(t, pool)
+	seedCareAdminDuty(t, pool, 11, "supervisor")
 	tm := time.Date(2026, 10, 18, 9, 0, 0, 0, time.FixedZone("", 8*3600))
 	s := health.Sample{RecordID: "point-1", Source: "watch", SourceDevice: "WATCH001", Metric: "heart_rate", Unit: "count/min", Value: health.Number(72), Start: tm, End: tm, Version: 1}
 	req := map[string]any{"deviceNo": "WATCH001", "secret": testSecret, "bindingVersion": 1, "samples": []health.Sample{s}}
@@ -43,7 +45,7 @@ func TestHealthVersionsCursorAndIsolation(t *testing.T) {
 	s.Deleted = true
 	req["samples"] = []health.Sample{s}
 	api(t, h.healthBatch, req)
-	admin := withHealthPrincipal(h, session.Principal{Role: "ADMIN"}, h.healthChanges)
+	admin := withHealthPrincipal(h, session.Principal{Role: "ADMIN", ID: 11}, h.healthChanges)
 	var cursor float64
 	for i := 1; i <= 3; i++ {
 		out = api(t, admin, map[string]any{"oldId": 1, "after": cursor, "limit": 1})
@@ -86,7 +88,7 @@ func TestHealthVersionsCursorAndIsolation(t *testing.T) {
 		t.Fatal(w.Code)
 	}
 	var count int
-	if err := pool.QueryRow(context.Background(), "SELECT count(*) FROM health_sample").Scan(&count); err != nil || count != 1 {
+	if err := pool.QueryRowContext(context.Background(), "SELECT count(*) FROM health_sample").Scan(&count); err != nil || count != 1 {
 		t.Fatalf("partial batch committed: %d %v", count, err)
 	}
 }
@@ -97,17 +99,17 @@ func TestHealthWriteCursorFollowsCommitOrder(t *testing.T) {
 	ctx := context.Background()
 	tm := time.Now().UTC()
 	s := health.Sample{RecordID: "first", Source: "test", SourceDevice: "A", Metric: "heart_rate", Unit: "count/min", Value: health.Number(72), Start: tm, End: tm, Version: 1}
-	tx1, err := pool.Begin(ctx)
+	tx1, err := pool.BeginTx(ctx, &sql.TxOptions{Isolation: sql.LevelReadCommitted})
 	if err != nil {
 		t.Fatal(err)
 	}
-	defer tx1.Rollback(ctx)
+	defer tx1.Rollback()
 	first, _, err := health.Save(ctx, tx1, health.Owner{OldID: 1}, s)
 	if err != nil {
 		t.Fatal(err)
 	}
 	// An uncommitted earlier writer must prevent a later revision from becoming visible.
-	tx2, err := pool.Begin(ctx)
+	tx2, err := pool.BeginTx(ctx, &sql.TxOptions{Isolation: sql.LevelReadCommitted})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -117,24 +119,24 @@ func TestHealthWriteCursorFollowsCommitOrder(t *testing.T) {
 	if _, _, err = health.Save(blocked, tx2, health.Owner{OldID: 1}, s); err == nil {
 		t.Fatal("later revision published before first transaction committed")
 	}
-	tx2.Rollback(ctx)
+	tx2.Rollback()
 	var count int
-	if err = pool.QueryRow(ctx, "SELECT count(*) FROM health_change").Scan(&count); err != nil || count != 0 {
+	if err = pool.QueryRowContext(ctx, "SELECT count(*) FROM health_change").Scan(&count); err != nil || count != 0 {
 		t.Fatalf("uncommitted change visible: %d %v", count, err)
 	}
-	if err = tx1.Commit(ctx); err != nil {
+	if err = tx1.Commit(); err != nil {
 		t.Fatal(err)
 	}
-	tx3, err := pool.Begin(ctx)
+	tx3, err := pool.BeginTx(ctx, &sql.TxOptions{Isolation: sql.LevelReadCommitted})
 	if err != nil {
 		t.Fatal(err)
 	}
-	defer tx3.Rollback(ctx)
+	defer tx3.Rollback()
 	second, _, err := health.Save(ctx, tx3, health.Owner{OldID: 1}, s)
 	if err != nil {
 		t.Fatal(err)
 	}
-	if err = tx3.Commit(ctx); err != nil {
+	if err = tx3.Commit(); err != nil {
 		t.Fatal(err)
 	}
 	if second <= first {
@@ -172,11 +174,12 @@ func TestHealthBindingEpochAndStatistics(t *testing.T) {
 	pool := testDatabase(t)
 	h := testHandler(t, pool)
 	seedDevice(t, pool)
+	seedCareAdminDuty(t, pool, 11, "supervisor")
 	at := time.Date(2026, 10, 19, 9, 0, 0, 0, time.UTC)
 	s := health.Sample{RecordID: "point", Source: "watch", SourceDevice: "WATCH001", Metric: "heart_rate", Unit: "count/min", Value: health.Number(72), Start: at, End: at, Version: 1}
 	req := map[string]any{"deviceNo": "WATCH001", "secret": testSecret, "bindingVersion": 1, "samples": []health.Sample{s}}
 	api(t, h.healthBatch, req)
-	admin := withHealthPrincipal(h, session.Principal{Role: "ADMIN"}, h.healthStatistics)
+	admin := withHealthPrincipal(h, session.Principal{Role: "ADMIN", ID: 11}, h.healthStatistics)
 	query := map[string]any{"oldId": 1, "source": "watch", "sourceDevice": "WATCH001", "metric": "heart_rate", "semantics": "instant", "from": at.Add(-time.Hour), "to": at.Add(time.Hour)}
 	out := api(t, admin, query)
 	if out["statistics"].(map[string]any)["mean"] != float64(72) {
@@ -198,7 +201,7 @@ func TestHealthBindingEpochAndStatistics(t *testing.T) {
 		t.Fatal(out)
 	}
 	var count int
-	if err := pool.QueryRow(context.Background(), "SELECT count(*) FROM health_sample WHERE old_id=1").Scan(&count); err != nil || count != 2 {
+	if err := pool.QueryRowContext(context.Background(), "SELECT count(*) FROM health_sample WHERE old_id=1").Scan(&count); err != nil || count != 2 {
 		t.Fatalf("binding generations merged: %d %v", count, err)
 	}
 }
@@ -209,12 +212,12 @@ func TestHealthBadSecretDoesNotWaitForClock(t *testing.T) {
 	seedDevice(t, pool)
 	ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
 	defer cancel()
-	tx, err := pool.Begin(ctx)
+	tx, err := pool.BeginTx(ctx, &sql.TxOptions{Isolation: sql.LevelReadCommitted})
 	if err != nil {
 		t.Fatal(err)
 	}
-	defer tx.Rollback(context.Background())
-	if _, err := tx.Exec(ctx, "SELECT revision FROM health_clock WHERE id=1 FOR UPDATE"); err != nil {
+	defer tx.Rollback()
+	if _, err := tx.ExecContext(ctx, "SELECT revision FROM health_clock WHERE id=1 FOR UPDATE"); err != nil {
 		t.Fatal(err)
 	}
 	at := time.Now().UTC()

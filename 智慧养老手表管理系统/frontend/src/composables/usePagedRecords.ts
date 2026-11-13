@@ -1,6 +1,6 @@
 import { onBeforeUnmount, onMounted, ref, shallowRef } from 'vue'
 import { api } from '../api/client'
-import { apiErrorMessage } from '../api/httpContract'
+import { readErrorMessage } from '../api/httpContract'
 import { createLatestRead } from './latestRead'
 
 export interface PagedOptions<TQuery extends Record<string, unknown>> {
@@ -21,6 +21,11 @@ export function usePagedRecords<TRecord, TQuery extends Record<string, unknown> 
   const total = ref(0)
   const pageSize = ref(options.initialPageSize ?? 10)
   const currentPage = ref(1)
+  let lastRequestedQuery = ''
+
+  function pageQuery(): PageQuery {
+    return { ...(options.buildQuery?.() ?? {}), page: currentPage.value, pageSize: pageSize.value } as PageQuery
+  }
 
   const reader = createLatestRead(
     (query: PageQuery, signal: AbortSignal) =>
@@ -31,11 +36,11 @@ export function usePagedRecords<TRecord, TQuery extends Record<string, unknown> 
       if (!Array.isArray(list) || typeof count !== 'number' || !Number.isSafeInteger(count) || count < 0) {
         throw new Error('invalid paged response')
       }
-      // Deleting the last row on a page requires a fresh read of the new last page.
+      // A deletion can invalidate the current page, including when the collection becomes empty.
       const lastPage = Math.max(1, Math.ceil(count / pageSize.value))
-      if (!list.length && count > 0 && lastPage < currentPage.value) {
+      if (currentPage.value > lastPage) {
         currentPage.value = lastPage
-        void reader.run({ ...(options.buildQuery?.() ?? {}), page: lastPage, pageSize: pageSize.value } as PageQuery)
+        void reader.run(pageQuery())
         return
       }
       records.value = list as TRecord[]
@@ -43,21 +48,22 @@ export function usePagedRecords<TRecord, TQuery extends Record<string, unknown> 
       loadError.value = ''
     },
     error => {
-      records.value = []
-      total.value = 0
-      loadError.value = apiErrorMessage(error, options.failure ?? '请求未完成，请重试')
+      // Keep the last confirmed page on a failed refresh. Query changes clear it in load().
+      loadError.value = readErrorMessage(error, options.failure ?? '请求未完成，请重试')
     },
-    loading => { isLoading.value = loading }
+    loading => { isLoading.value = loading },
+    { key: query => JSON.stringify(query) }
   )
 
   function load(keepPage = false): Promise<void> {
     if (keepPage !== true) currentPage.value = 1
-    loadError.value = ''
-    const query = {
-      ...(options.buildQuery?.() ?? {}),
-      page: currentPage.value,
-      pageSize: pageSize.value
-    } as PageQuery
+    const query = pageQuery()
+    const key = JSON.stringify(query)
+    if (lastRequestedQuery && lastRequestedQuery !== key) {
+      records.value = []
+      loadError.value = ''
+    }
+    lastRequestedQuery = key
     return reader.run(query)
   }
 

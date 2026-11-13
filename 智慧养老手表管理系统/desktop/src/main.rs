@@ -93,6 +93,87 @@ async fn setup_admin(
     Ok(serde_json::json!({"status": status, "data": data}))
 }
 
+// Only HTTPS destinations with a normal DNS name may leave the local desktop shell.
+// Actual navigation happens in the system browser, never inside the care WebView.
+fn permitted_external_link(raw: &str) -> Result<reqwest::Url, String> {
+    let url = reqwest::Url::parse(raw).map_err(|_| "无效的网页地址")?;
+    if url.scheme() != "https"
+        || !url.username().is_empty()
+        || url.password().is_some()
+        || url.port().is_some()
+    {
+        return Err("只允许安全的 HTTPS 网页链接".into());
+    }
+    let host = url.host_str().ok_or("缺少网页域名")?;
+    if host.parse::<std::net::IpAddr>().is_ok()
+        || host == "localhost"
+        || !host.contains('.')
+        || host.ends_with(".local")
+        || host.ends_with(".internal")
+    {
+        return Err("不允许打开本地或 IP 地址链接".into());
+    }
+    // Reject known advertising and redirect gateways; other external sites
+    // still require the user's explicit confirmation in the UI.
+    const BLOCKED: &[&str] = &[
+        "doubleclick.net",
+        "googlesyndication.com",
+        "googleadservices.com",
+        "adservice.google.com",
+        "taboola.com",
+        "outbrain.com",
+    ];
+    if BLOCKED.iter().any(|domain| host == *domain || host.ends_with(&format!(".{domain}"))) {
+        return Err("已拦截广告跳转域名".into());
+    }
+    Ok(url)
+}
+
+#[tauri::command]
+fn open_external_link(
+    window: tauri::WebviewWindow,
+    state: tauri::State<'_, Backend>,
+    url: String,
+) -> Result<(), String> {
+    let page = window.url().map_err(|_| "无法验证应用页面")?;
+    if window.label() != "main" || page.origin().ascii_serialization() != state.origin {
+        return Err("请求未获授权".into());
+    }
+    let destination = permitted_external_link(&url)?;
+    Command::new("explorer.exe")
+        .arg(destination.as_str())
+        .spawn()
+        .map_err(|_| "无法启动系统浏览器".to_string())?;
+    Ok(())
+}
+
+
+#[cfg(test)]
+mod external_link_tests {
+    use super::permitted_external_link;
+
+    #[test]
+    fn accepts_confirmed_public_https_destinations() {
+        assert!(permitted_external_link("https://www.amap.com/ssr/embed/place?lat=30").is_ok());
+        assert!(permitted_external_link("https://example.org/help").is_ok());
+    }
+
+    #[test]
+    fn rejects_insecure_local_and_advertising_redirects() {
+        for url in [
+            "http://example.org",
+            "javascript:alert(1)",
+            "https://user:pass@example.org/",
+            "https://127.0.0.1/private",
+            "https://localhost/private",
+            "https://ad.doubleclick.net/redirect",
+            "https://googleadservices.com/pagead/aclk",
+        ] {
+            assert!(permitted_external_link(url).is_err(), "{url}");
+        }
+    }
+}
+
 fn start_backend(app: &tauri::App) -> Result<Backend, Box<dyn std::error::Error>> {
     let data = if let Some(path) = std::env::var_os("SUINING_USER_DATA") {
         PathBuf::from(path)
@@ -153,7 +234,6 @@ fn start_backend(app: &tauri::App) -> Result<Backend, Box<dyn std::error::Error>
         .env("SUINING_READY_FILE", &ready)
         .env("SUINING_PARENT_PID", std::process::id().to_string())
         .env("SUINING_DESKTOP_TOKEN", &token)
-        .env_remove("DESKTOP_TOKEN")
         .env("SUINING_PORT", "0");
     for (desktop_key, server_key) in [
         ("SUINING_MYSQL_DSN", "MYSQL_DSN"),
@@ -229,7 +309,7 @@ fn main() {
                 let _ = window.set_focus();
             }
         }))
-        .invoke_handler(tauri::generate_handler![setup_admin])
+        .invoke_handler(tauri::generate_handler![setup_admin, open_external_link])
         .setup(|app| {
             let backend = start_backend(app)?;
             let origin = backend.origin.clone();

@@ -26,9 +26,9 @@
 }
 
 @media (prefers-reduced-motion: reduce) {
-  #app *,
-  #app *::before,
-  #app *::after {
+  body *,
+  body *::before,
+  body *::after {
     scroll-behavior: auto !important;
     animation-duration: 0.01ms !important;
     animation-iteration-count: 1 !important;
@@ -41,4 +41,13 @@
    focus visibility on the group. Standalone fields remain unaffected. */
 #app .care-app .el-input-group .el-input__inner:focus-visible {
   outline: none;
+}
+
+html.reduce-motion body *,
+html.reduce-motion body *::before,
+html.reduce-motion body *::after {
+  scroll-behavior: auto !important;
+  animation-duration: 0.01ms !important;
+  animation-iteration-count: 1 !important;
+  transition-duration: 0.01ms !important;
 }

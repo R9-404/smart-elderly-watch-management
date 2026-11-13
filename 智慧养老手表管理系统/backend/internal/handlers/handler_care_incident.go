@@ -1,27 +1,32 @@
 package handlers
 
 import (
-	"context"
-	"github.com/jackc/pgx/v5"
+	"database/sql"
 	"net/http"
 	"strconv"
 	"strings"
-	"suining-care/internal/auth"
-	"suining-care/internal/db"
-	"suining-care/internal/response"
-	"time"
 	"unicode/utf8"
+
+	"suining-care/internal/auth"
+	"suining-care/internal/carepolicy"
+	"suining-care/internal/carerepo"
+	"suining-care/internal/careworkflow"
+	"suining-care/internal/response"
 )
 
 // Care incident endpoints are ADMIN-only: a family session cannot accept or close a care task.
 func (h *Handler) routeCare(mux *http.ServeMux) {
 	mux.HandleFunc("POST /api/v1/care/incidents", h.careIncidents)
 	mux.HandleFunc("POST /api/v1/care/transition", h.careTransition)
+	mux.HandleFunc("POST /api/v1/care/handover/create", h.careCreateHandover)
+	mux.HandleFunc("POST /api/v1/care/handover/accept", h.careAcceptHandover)
+	mux.HandleFunc("POST /api/v1/care/handover/cancel", h.careCancelHandover)
 	mux.HandleFunc("POST /api/v1/care/events", h.careEvents)
 	mux.HandleFunc("POST /api/v1/care/receipt", h.careReceipt)
 	mux.HandleFunc("POST /api/v1/care/diagnostics", h.careDiagnostics)
 	mux.HandleFunc("POST /api/v1/care/staff", h.careStaff)
 	mux.HandleFunc("POST /api/v1/care/assignDuty", h.careAssignDuty)
+	mux.HandleFunc("POST /api/v1/care/accounts/status", h.careAccountStatus)
 	mux.HandleFunc("POST /api/v1/care/accessAudit", h.careAccessAudit)
 }
 
@@ -37,31 +42,16 @@ func careAdmin(w http.ResponseWriter, r *http.Request) (int64, bool) {
 	return p.ID, true
 }
 
-func careNotificationStatusExpr(mysql bool) string {
-	agg := "bool_or"
-	if mysql {
-		agg = "MAX"
-	}
-	return `(SELECT CASE
-            WHEN ` + agg + `(n.status='delivered') THEN 'delivered'
-            WHEN ` + agg + `(n.status='failed') THEN 'failed'
-            WHEN ` + agg + `(n.status='sending') THEN 'sending'
-            WHEN ` + agg + `(n.status='pending') THEN 'pending'
-            WHEN ` + agg + `(n.status='sent') THEN 'sent'
-            ELSE 'no_recipient' END
-           FROM care_notification_outbox n WHERE n.incident_id=i.id)`
-}
-
 func (h *Handler) careIncidents(w http.ResponseWriter, r *http.Request) {
 	actor, ok := careAdmin(w, r)
-	if !ok || !h.auditCareAccess(w, r, actor, "incident_list", nil) {
+	if !ok {
 		return
 	}
 	m, ok := optBody(w, r)
 	if !ok {
 		return
 	}
-	page, ps, ok := strictPage(w, m)
+	page, pageSize, ok := strictPage(w, m)
 	if !ok {
 		return
 	}
@@ -73,43 +63,19 @@ func (h *Handler) careIncidents(w http.ResponseWriter, r *http.Request) {
 		write400(w, "任务范围应为 active 或 verified")
 		return
 	}
-	duty, ok := h.careDuty(w, r, actor)
+	tx, duty, ok := h.beginCareRead(w, r, actor, carepolicy.ReadTasks)
 	if !ok {
 		return
 	}
-	var total int64
-	if internalError(w, h.DB.QueryRow(r.Context(), `SELECT count(*) FROM care_incident WHERE (state='verified')=$1`, state == "verified").Scan(&total)) {
+	defer tx.Rollback()
+	if _, err := tx.ExecContext(r.Context(), "INSERT INTO care_access_audit(admin_id,action) VALUES(?,'incident_list')", actor); internalError(w, err) {
 		return
 	}
-	items, ok := queryRows(h, w, r.Context(), func(rows db.Rows) (map[string]any, error) {
-		var id, oldID, deviceID int64
-		var kind, state, severity string
-		var created, due time.Time
-		var assigned, resolved, verified, oldName *string
-		var deliveryStatus string
-		var ackAt, resAt, verAt *time.Time
-		if err := rows.Scan(&id, &oldID, &deviceID, &kind, &state, &severity, &created, &due,
-			&assigned, &ackAt, &resolved, &resAt, &verified, &verAt, &oldName, &deliveryStatus); err != nil {
-			return nil, err
-		}
-		return map[string]any{
-			"id": id, "oldId": oldID, "deviceId": deviceID, "kind": kind, "state": state,
-			"severity": severity, "createdAt": created, "dueAt": due,
-			"oldPersonName": oldName, "notificationState": deliveryStatus,
-			"acknowledgedBy": assigned, "acknowledgedAt": ackAt,
-			"resolvedBy": resolved, "resolvedAt": resAt, "verifiedBy": verified, "verifiedAt": verAt,
-		}, nil
-	}, `SELECT i.id,i.old_id,i.device_id,i.kind,i.state,i.severity,i.created_at,i.due_at,
-          i.acknowledged_by,i.acknowledged_at,i.resolved_by,i.resolved_at,i.verified_by,i.verified_at,
-          o.name,
-          `+careNotificationStatusExpr(h.DB.IsMySQL())+`
-     FROM care_incident i LEFT JOIN oldperson o ON o.old_id=i.old_id
-     WHERE (i.state='verified')=$1 ORDER BY i.due_at ASC, i.id DESC
-     LIMIT $2 OFFSET $3`, state == "verified", ps, (page-1)*ps)
-	if !ok {
+	items, total, err := careworkflow.ListIncidents(r.Context(), tx, duty, actor, state == "verified", page, pageSize)
+	if internalError(w, err) || internalError(w, tx.Commit()) {
 		return
 	}
-	response.OK(w, map[string]any{"items": items, "total": total, "page": page, "pageSize": ps, "duty": duty, "actorId": actor})
+	response.OK(w, map[string]any{"items": items, "total": total, "page": page, "pageSize": pageSize, "duty": duty, "actorId": actor})
 }
 
 // Transitions are serialized with SELECT ... FOR UPDATE. A transition records its
@@ -137,26 +103,40 @@ func (h *Handler) careTransition(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	ctx := r.Context()
-	tx, err := h.DB.Begin(ctx)
+	tx, err := h.DB.BeginTx(ctx, &sql.TxOptions{Isolation: sql.LevelReadCommitted})
 	if internalError(w, err) {
 		return
 	}
-	defer tx.Rollback(ctx)
-	var before string
-	var resolver *string
-	if err := tx.QueryRow(ctx, "SELECT state,resolved_by FROM care_incident WHERE id=$1 FOR UPDATE", id).Scan(&before, &resolver); err != nil {
-		if err == pgx.ErrNoRows {
+	defer tx.Rollback()
+	// The read-time role check is only for an early 403 response. Hold a
+	// shared duty lock through commit so a concurrent demotion cannot race
+	// this state transition.
+	lockedDuty, err := carerepo.LockDuty(ctx, tx, actor)
+	if internalError(w, err) {
+		return
+	}
+	if !carepolicy.Allowed(carepolicy.Duty(lockedDuty), carepolicy.Action(action)) {
+		response.JSON(w, http.StatusForbidden, map[string]any{"code": "ACCESS_DENIED", "message": "岗位无此操作权限"})
+		return
+	}
+	before, resolver, acknowledgedBy, err := careworkflow.LockedIncidentState(ctx, tx, id)
+	if err != nil {
+		if isNotFound(err) {
 			response.Fail(w, "事件不存在")
 			return
 		}
 		response.Error500(w, ref())
 		return
 	}
+	if !carepolicy.AllowedForIncident(carepolicy.Duty(lockedDuty), carepolicy.Action(action), actor, acknowledgedBy) {
+		response.JSON(w, http.StatusForbidden, map[string]any{"code": "ACCESS_DENIED", "message": "只能处理自己接单的照护任务"})
+		return
+	}
 	if action == "verify" && resolver != nil && *resolver == strconv.FormatInt(actor, 10) {
 		response.JSON(w, http.StatusForbidden, map[string]any{"message": "处置人与复核人必须不同"})
 		return
 	}
-	next := nextCareState(before, action)
+	next := careworkflow.NextState(before, action)
 	if next == "" {
 		response.JSON(w, http.StatusConflict, map[string]any{"message": "当前状态不允许此操作"})
 		return
@@ -170,9 +150,9 @@ func (h *Handler) careTransition(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	verdict := str(m, "verdict")
-	if action == "verify" && h.DB.IsMySQL() {
-		// Older clients submit no verdict: retain their explicit verification as
-		// confirmed. Never invent conclusions for historical verified incidents.
+	if action == "verify" {
+		// Empty verification verdict means confirmed; preserve the current API
+		// contract while keeping review writes in the same incident transaction.
 		if verdict == "" {
 			verdict = "confirmed"
 		}
@@ -180,16 +160,15 @@ func (h *Handler) careTransition(w http.ResponseWriter, r *http.Request) {
 			write400(w, "复核结论须为 confirmed 或 false_alarm")
 			return
 		}
-		if _, err := tx.Exec(ctx, `INSERT INTO alert_review(entity,record_id,kind,verdict,reason,actor_id)
- SELECT 'care',id,kind,$2,$3,$4 FROM care_incident WHERE id=$1`, id, verdict, note, actor); err != nil {
+		if err := careworkflow.PersistReviewVerdict(ctx, tx, id, verdict, note, actor); err != nil {
 			response.Error500(w, ref())
 			return
 		}
 	}
-	if internalError(w, persistCareTransition(ctx, tx, id, next, action, strconv.FormatInt(actor, 10), note)) {
+	if internalError(w, careworkflow.PersistTransition(ctx, tx, id, next, action, strconv.FormatInt(actor, 10), note)) {
 		return
 	}
-	if internalError(w, tx.Commit(ctx)) {
+	if internalError(w, tx.Commit()) {
 		return
 	}
 	response.OK(w, map[string]any{"id": id, "state": next})
@@ -208,82 +187,44 @@ func (h *Handler) careEvents(w http.ResponseWriter, r *http.Request) {
 	if !ok {
 		return
 	}
-	if !h.auditCareAccess(w, r, actor, "incident_events", &id) {
-		return
-	}
-	page, ps, ok := strictPage(w, m)
+	page, pageSize, ok := strictPage(w, m)
 	if !ok {
 		return
 	}
-	var total int64
-	if internalError(w, h.DB.QueryRow(r.Context(), `SELECT count(*) FROM care_incident_event WHERE incident_id=$1`, id).Scan(&total)) {
-		return
-	}
-	events, ok := queryRows(h, w, r.Context(), func(rows db.Rows) (map[string]any, error) {
-		var actor, action string
-		var note *string
-		var created time.Time
-		if err := rows.Scan(&actor, &action, &note, &created); err != nil {
-			return nil, err
-		}
-		if note != nil {
-			plain, err := h.openNote(*note)
-			if err != nil {
-				return nil, err
-			}
-			note = &plain
-		}
-		return map[string]any{"actor": actor, "action": action, "note": note, "createdAt": created}, nil
-	},
-		`SELECT actor,action,note,created_at FROM care_incident_event
-      WHERE incident_id=$1 ORDER BY id ASC LIMIT $2 OFFSET $3`, id, ps, (page-1)*ps)
+	tx, duty, ok := h.beginCareRead(w, r, actor, carepolicy.ReadTasks)
 	if !ok {
 		return
 	}
-	response.OK(w, map[string]any{"events": events, "total": total, "page": page, "pageSize": ps})
-}
-
-func nextCareState(before, action string) string {
-	allowed := map[string]map[string]string{
-		"received":       {"acknowledge": "acknowledged", "escalate": "escalated"},
-		"notifying":      {"acknowledge": "acknowledged", "escalate": "escalated"},
-		"notified":       {"acknowledge": "acknowledged", "escalate": "escalated"},
-		"escalated":      {"acknowledge": "acknowledged"},
-		"review_overdue": {"verify": "verified", "reopen": "in_progress"},
-		"acknowledged":   {"start": "in_progress", "escalate": "escalated"},
-		"in_progress":    {"resolve": "resolved", "escalate": "escalated"},
-		"resolved":       {"verify": "verified", "reopen": "in_progress"},
+	defer tx.Rollback()
+	visible, err := careworkflow.CanReadIncident(r.Context(), tx, duty, actor, id)
+	if internalError(w, err) {
+		return
 	}
-	return allowed[before][action]
-}
-
-func persistCareTransition(ctx context.Context, tx *db.Transaction, id int64, next, action, actor, note string) error {
-	if _, err := tx.Exec(ctx, `UPDATE care_incident SET
-    state=$2,updated_at=now(),
-    due_at=CASE
-      WHEN $3='acknowledge' THEN now()+interval '10 minutes'
-      WHEN $3='start' THEN now()+interval '30 minutes'
-      WHEN $3='resolve' THEN now()+interval '30 minutes'
-      WHEN $3='reopen' THEN now()+interval '10 minutes'
-      ELSE due_at END,
-    acknowledged_by=CASE WHEN $3='acknowledge' THEN $4 ELSE acknowledged_by END,
-    acknowledged_at=CASE WHEN $3='acknowledge' THEN now() ELSE acknowledged_at END,
-    resolved_by=CASE WHEN $3='resolve' THEN $4 ELSE resolved_by END,
-    resolved_at=CASE WHEN $3='resolve' THEN now() ELSE resolved_at END,
-    resolution_note=CASE WHEN $3='resolve' THEN $5 ELSE resolution_note END,
-    verified_by=CASE WHEN $3='verify' THEN $4 ELSE verified_by END,
-    verified_at=CASE WHEN $3='verify' THEN now() ELSE verified_at END
-   WHERE id=$1`, id, next, action, actor, note); err != nil {
-		return err
+	if !visible {
+		response.JSON(w, http.StatusForbidden, map[string]any{"code": "ACCESS_DENIED", "message": "任务不在可见范围"})
+		return
 	}
-	if action == "verify" {
-		if _, err := tx.Exec(ctx, `UPDATE alarm_precess SET status='0'
-			WHERE id=(SELECT source_alarm_id FROM care_incident WHERE id=$1)`, id); err != nil {
-			return err
+	if _, err := tx.ExecContext(r.Context(), "INSERT INTO care_access_audit(admin_id,action,incident_id) VALUES(?,'incident_events',?)", actor, id); internalError(w, err) {
+		return
+	}
+	events, total, err := careworkflow.ListEvents(r.Context(), tx, id, page, pageSize)
+	if internalError(w, err) {
+		return
+	}
+	for i := range events {
+		if events[i].Note == nil {
+			continue
 		}
+		plain, err := h.openNote(*events[i].Note)
+		if internalError(w, err) {
+			return
+		}
+		events[i].Note = &plain
 	}
-	_, err := tx.Exec(ctx,
-		"INSERT INTO care_incident_event(incident_id,actor,action,note) VALUES($1,$2,$3,$4)",
-		id, actor, action, note)
-	return err
+	if internalError(w, tx.Commit()) {
+		return
+	}
+	response.OK(w, map[string]any{
+		"events": events, "total": total, "page": page, "pageSize": pageSize,
+	})
 }

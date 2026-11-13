@@ -1,36 +1,26 @@
 package handlers
 
 import (
-	"errors"
+	"database/sql"
 	"net/http"
 
-	"github.com/jackc/pgx/v5"
 	"suining-care/internal/auth"
+	"suining-care/internal/carepolicy"
+	"suining-care/internal/carerepo"
 	"suining-care/internal/response"
 )
 
-// EnforceAdminDuty closes the legacy ADMIN route gap: a caregiver or auditor
-// must not gain unrestricted administrative access outside the care workspace.
-// Run this AFTER auth.Middleware so the principal is available from context.
-// Legacy ADMIN accounts without an explicit assignment remain supervisors;
-// the rollout still requires an operator to inventory and assign those accounts.
+// EnforceAdminDuty grants broad admin routes only to explicitly assigned supervisors.
+// Run after authentication so the principal is available in request context.
 func (h *Handler) EnforceAdminDuty(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		principal := auth.Principal(r)
-		if principal == nil || principal.Role != auth.RoleAdmin || restrictedAdminRouteAllowed(r) {
+		if principal == nil || principal.Role != auth.RoleAdmin {
 			next.ServeHTTP(w, r)
 			return
 		}
 
-		var duty string
-		err := h.DB.QueryRow(r.Context(),
-			"SELECT duty FROM care_staff_permission WHERE admin_id=$1",
-			principal.ID).Scan(&duty)
-		if errors.Is(err, pgx.ErrNoRows) {
-			// Preserve the documented migration behavior for unassigned ADMINs.
-			next.ServeHTTP(w, r)
-			return
-		}
+		duty, active, err := carerepo.AccountAccess(r.Context(), h.DB, principal.ID)
 		if err != nil {
 			// An unavailable role store must not turn into an allow decision.
 			response.JSON(w, http.StatusServiceUnavailable, map[string]any{
@@ -39,13 +29,13 @@ func (h *Handler) EnforceAdminDuty(next http.Handler) http.Handler {
 			})
 			return
 		}
-		if duty != "supervisor" {
+		if !active || (!restrictedAdminRouteAllowed(r) && duty != "supervisor") {
 			// The authorization gate runs outside sensitiveCareAudit. Persist
 			// denied access separately, without recording request content, query
 			// arguments, names or unbounded paths. If the audit store is down,
 			// remain fail-closed.
-			if _, err := h.DB.Exec(r.Context(), `INSERT INTO care_sensitive_access_audit
-				(actor_id,actor_role,resource,method) VALUES($1,$2,$3,$4)`,
+			if _, err := h.DB.ExecContext(r.Context(), `INSERT INTO care_sensitive_access_audit
+				(actor_id,actor_role,resource,method) VALUES(?,?,?,?)`,
 				principal.ID, principal.Role, "/api/v1/legacy-admin-denied", r.Method); err != nil {
 				response.JSON(w, http.StatusServiceUnavailable, map[string]any{
 					"code":    "AUTHZ_AUDIT_UNAVAILABLE",
@@ -61,6 +51,22 @@ func (h *Handler) EnforceAdminDuty(next http.Handler) http.Handler {
 		}
 		next.ServeHTTP(w, r)
 	})
+}
+
+// beginAdminActionTx makes the requested capability part of the live-duty lock.
+// The caller commits before responding or rolls back on failure.
+func (h *Handler) beginAdminActionTx(w http.ResponseWriter, r *http.Request, action carepolicy.Action) (*sql.Tx, bool) {
+	actor, ok := careAdmin(w, r)
+	if !ok {
+		return nil, false
+	}
+	tx, _, ok := h.beginCareRead(w, r, actor, action)
+	return tx, ok
+}
+
+// Legacy staff-management handlers use the same locked authorization boundary.
+func (h *Handler) beginSupervisorTx(w http.ResponseWriter, r *http.Request) (*sql.Tx, bool) {
+	return h.beginAdminActionTx(w, r, carepolicy.ManageStaff)
 }
 
 // Every care endpoint below performs its own fine-grained duty checks.

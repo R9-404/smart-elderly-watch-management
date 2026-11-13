@@ -61,6 +61,9 @@ fields = {
     "/api/v1/health/latest": {"oldId": "integer"},
     "/api/v1/alert-reviews": {"recordId": "integer", "kind": "string", "verdict": "string", "reason": "string", "expectedReviewId": "integer"},
     "/api/v1/alert-reviews/search": {"entity": "string", "recordId": "integer", "kind": "string", "after": "integer"},
+    "/api/v1/care/handover/create": {"toAdminId": "integer", "note": "string"},
+    "/api/v1/care/handover/accept": {"handoverId": "integer"},
+    "/api/v1/care/handover/cancel": {"handoverId": "integer"},
 }
 def json_request(schema):
     return {"required": True, "content": {"application/json": {"schema": schema}}}
@@ -109,7 +112,7 @@ for file in sorted((backend / "internal/handlers").glob("*.go")):
                 " HarmonyOS clients send optional platform=harmonyos with protocolVersion=1; "
                 "both are required together when platform is supplied. Authenticated success returns "
                 "protocolVersion=1 and maxBatchSize=200 plus the existing bindingVersion/owner. "
-                "Unsupported platform/version returns 400. Omit platform for the legacy login contract. "
+                "Unsupported platform/version returns 400. Omit platform when platform-specific capability negotiation is not needed. "
                 "Invalid credentials return 401 with code=DEVICE_AUTH_FAILED; disabled devices return 403."
             )
         if path == "/api/v1/health/latest":

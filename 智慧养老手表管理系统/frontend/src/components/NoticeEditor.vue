@@ -16,25 +16,36 @@
 </template>
 <script setup lang="ts">
 import { Plus } from '@element-plus/icons-vue'
-import { computed, onMounted, ref, watch } from 'vue'
+import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import { onBeforeRouteLeave, onBeforeRouteUpdate, useRoute, useRouter } from 'vue-router'
-import { ElMessage, ElMessageBox } from 'element-plus'
+import { ElMessage, ElMessageBox, type FormInstance, type UploadFile, type UploadFiles } from 'element-plus'
 import { api, accepted, type Envelope } from '../api/client'
 import { apiErrorMessage } from '../api/httpContract'
 import { authState } from '../auth'
+import { noticeEditTarget, noticeImageUrl, type NoticeDetailResponse } from '../domain/notices'
 
 const props = withDefaults(defineProps<{ editing?: boolean }>(), { editing: false })
 const route = useRoute()
 const router = useRouter()
 const uploadHeaders = computed(() => ({ [authState.csrfHeader]: authState.csrfToken }))
 const form = ref({ title: '', textMain: '' })
-const attachments = ref<Record<string, any>[]>([])
+// The save target must come from the same load that produced the content.
+// Reading the route at submit time lets a late response from record A be
+// written into record B after the route moved on.
+const loadedTextId = ref<string | null>(null)
+let loadRevision = 0
+let disposed = false
+function currentTextId(): string {
+  const value = route.query.textId
+  return typeof value === 'string' ? value : Array.isArray(value) ? String(value[0] ?? '') : ''
+}
+const attachments = ref<UploadFile[]>([])
 const loading = ref(false)
 const saving = ref(false)
 const loadError = ref('')
 const saveError = ref('')
 const baseline = ref(JSON.stringify({ title: '', textMain: '', names: [] as string[] }))
-const editorForm = ref<any>(null)
+const editorForm = ref<FormInstance | null>(null)
 const rules = {
   title: [{ required: true, whitespace: true, message: '请输入公告标题', trigger: 'blur' }],
   textMain: [{ required: true, whitespace: true, message: '请输入公告正文', trigger: 'blur' }]
@@ -63,23 +74,28 @@ onBeforeRouteLeave(confirmLeave)
 onBeforeRouteUpdate(confirmLeave)
 
 async function loadNotice() {
+  const revision = ++loadRevision
+  const textId = currentTextId()
   loading.value = true
   loadError.value = ''
-  attachments.value = []
+  loadedTextId.value = null
   try {
-    const { data } = await api.post<Record<string, any>>('api/v1/notices/detail', {
-      textId: route.query.textId
-    })
+    const { data } = await api.post<NoticeDetailResponse>('api/v1/notices/detail', { textId })
+    if (disposed || revision !== loadRevision) return
     if (!data.text || data.text.picId == null) throw new Error('missing notice')
     form.value = { title: data.text.title || '', textMain: data.text.textMain || '' }
-    attachments.value = (data.pics || []).map((pic: any, index: number) => ({
-      uid: 'existing-' + index, name: pic.picName,
-      url: '/api/v1/image/download?name=' + encodeURIComponent(pic.picName), status: 'success'
+    attachments.value = (data.pics || []).map((pic, index) => ({
+      uid: -(index + 1), name: pic.picName,
+      url: noticeImageUrl(pic.picName), status: 'success' as const
     }))
+    loadedTextId.value = textId
     baseline.value = signature.value
   } catch (error) {
+    if (disposed || revision !== loadRevision) return
     loadError.value = apiErrorMessage(error, '公告暂时无法加载，请重试。')
-  } finally { loading.value = false }
+  } finally {
+    if (!disposed && revision === loadRevision) loading.value = false
+  }
 }
 function beforeUpload(file: File) {
   if (!['image/jpeg','image/png'].includes(file.type)) {
@@ -96,22 +112,24 @@ function beforeUpload(file: File) {
   }
   return true
 }
-function filesChanged(_file: any, files: any[]) { attachments.value = files }
-function filesRemoved(_file: any, files: any[]) { attachments.value = files }
-function uploadSuccess(response: any, file: any, files: any[]) {
+function filesChanged(_file: UploadFile, files: UploadFiles) { attachments.value = files }
+function filesRemoved(_file: UploadFile, files: UploadFiles) { attachments.value = files }
+function uploadSuccess(response: { returnCode?: string; filename?: string } | null, file: UploadFile, files: UploadFiles) {
   if (!response || response.returnCode !== '1111' || !response.filename) {
     file.status = 'fail'
     ElMessage.error(apiErrorMessage({ cause: response }, '图片未能上传，请删除后重试'))
   } else file.name = response.filename
   attachments.value = files
 }
-function uploadError(error: unknown, _file: any, files: any[]) {
+function uploadError(error: Error, _file: UploadFile, files: UploadFiles) {
   attachments.value = files
   ElMessage.error(apiErrorMessage(error, '图片暂时无法上传，请删除后重试'))
 }
 function uploadExceeded() { ElMessage.warning('最多添加10张公告图片') }
 async function submit() {
   if (saving.value || loading.value || loadError.value || uploadsPending.value) return
+  const target = noticeEditTarget(loadedTextId.value, currentTextId())
+  if (props.editing && target === null) return
   const valid = await editorForm.value?.validate().catch(() => false)
   if (!valid || saving.value) return
   saving.value = true
@@ -121,7 +139,7 @@ async function submit() {
     textMain: form.value.textMain.trim(),
     fileListName: successfulAttachments.value.map(file => file.name)
   }
-  if (props.editing) params.textId = route.query.textId
+  if (props.editing) params.textId = target
   try {
     const { data } = await api.post<Envelope>(
       props.editing ? 'api/v1/notices/update' : 'api/v1/notices/create', params
@@ -135,6 +153,7 @@ async function submit() {
   } finally { saving.value = false }
 }
 onMounted(() => { if (props.editing) void loadNotice() })
+onBeforeUnmount(() => { disposed = true; loadRevision++ })
 watch(() => route.query.textId, () => { if (props.editing) void loadNotice() })
 </script>
 <style scoped>

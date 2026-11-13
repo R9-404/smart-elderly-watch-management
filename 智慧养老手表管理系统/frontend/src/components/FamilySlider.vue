@@ -1,5 +1,5 @@
 <template>
-  <aside class="care-sidebar" aria-label="家人照护导航">
+  <nav class="care-sidebar" aria-label="家人照护导航">
     <div class="sidebar-label">家人照护</div>
     <el-menu :default-active="route.path" class="care-menu" router>
       <el-menu-item index="/family-portal/overview" aria-label="照护总览"><el-icon aria-hidden="true"><Menu /></el-icon><span class="nav-label-full">照护总览</span><span class="nav-label-short">总览</span></el-menu-item>
@@ -10,9 +10,9 @@
     </el-menu>
     <div class="sidebar-moment" aria-hidden="true"><img src="/static/img/care-botanical.webp" alt="" width="440" height="660"><p>让关爱<br>成为日常</p></div>
     <div class="sidebar-note"><el-icon aria-hidden="true"><Clock /></el-icon><span>数据以最近一次<br>设备上报为准</span></div>
-  </aside>
+  </nav>
 </template>
-<script setup>
+<script setup lang="ts">
 import { Clock, Document, Location, Menu } from '@element-plus/icons-vue'
 import { useRoute } from 'vue-router'
 const route = useRoute()

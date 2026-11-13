@@ -2,18 +2,28 @@ package handlers
 
 import (
 	"context"
-	"github.com/jackc/pgx/v5"
+	"database/sql"
+	"errors"
 	"net/http"
 	"strconv"
 	"strings"
-	dbstore "suining-care/internal/db"
-	"suining-care/internal/response"
 	"time"
+
+	"suining-care/internal/carepolicy"
+	"suining-care/internal/careworkflow"
+	"suining-care/internal/devicealertworkflow"
+	"suining-care/internal/devicerepo"
+	"suining-care/internal/response"
 )
 
 func (h *Handler) deviceAlertCounts(w http.ResponseWriter, r *http.Request) {
+	tx, ok := h.beginAdminActionTx(w, r, carepolicy.ReadAlerts)
+	if !ok {
+		return
+	}
+	defer tx.Rollback()
 	ctx := r.Context()
-	rows, err := h.DB.Query(ctx,
+	rows, err := tx.QueryContext(ctx,
 		`SELECT `+personCols+`,
 			(SELECT COUNT(1) FROM ratepre r WHERE r.device_id = d.device_id AND `+pendingRate+`) AS rate_count,
 			(SELECT COUNT(1) FROM ratepre r WHERE r.device_id = d.device_id AND `+pendingPressure+`) AS pre_count
@@ -43,7 +53,7 @@ func (h *Handler) deviceAlertCounts(w http.ResponseWriter, r *http.Request) {
 		rateTotal += rateCount
 		preTotal += preCount
 	}
-	if internalError(w, rows.Err()) {
+	if internalError(w, rows.Err()) || internalError(w, rows.Close()) || internalError(w, tx.Commit()) {
 		return
 	}
 	response.OK(w, map[string]any{
@@ -64,26 +74,32 @@ func (h *Handler) deviceAlertDetail(w http.ResponseWriter, r *http.Request) {
 	}
 	kind, _ := vstr(m, "kind")
 	kind = strings.ToLower(kind)
-	// 规格：kind 默认 person；非法值按 person 处理。
 	if kind != "person" && kind != "rate" && kind != "pre" {
-		kind = "person"
-	}
-	ctx := r.Context()
-	d, err := h.findDeviceByID(ctx, h.DB, deviceID)
-	if internalError(w, err) {
+		write400(w, "kind 必须为 person、rate 或 pre")
 		return
 	}
-	if d == nil {
+	ctx := r.Context()
+	tx, ok := h.beginAdminActionTx(w, r, carepolicy.ReadAlerts)
+	if !ok {
+		return
+	}
+	defer tx.Rollback()
+	d, err := devicerepo.FindDeviceByID(ctx, tx, deviceID)
+	if isNotFound(err) {
 		response.Fail(w, "设备不存在")
+		return
+	}
+	if internalError(w, err) {
 		return
 	}
 	oldName := "（未绑定）"
 	if d.OldID != nil {
-		var nm *string
-		if err := h.DB.QueryRow(ctx, `SELECT name FROM oldperson WHERE old_id=$1`, *d.OldID).Scan(&nm); err != nil && err != pgx.ErrNoRows {
+		nm, err := devicerepo.ResidentName(ctx, tx, *d.OldID)
+		if err != nil && !isNotFound(err) {
 			response.Error500(w, ref())
 			return
-		} else if nm != nil {
+		}
+		if nm != nil {
 			oldName = *nm
 		}
 	}
@@ -94,14 +110,14 @@ func (h *Handler) deviceAlertDetail(w http.ResponseWriter, r *http.Request) {
 	}
 	var alert map[string]any
 	if kind == "person" {
-		pr, err := scanPersonRow(h.DB.QueryRow(ctx,
-			`SELECT `+personCols+` `+personFrom+` WHERE d.device_id=$1`, deviceID))
+		pr, err := scanPersonRow(tx.QueryRowContext(ctx,
+			`SELECT `+personCols+` `+personFrom+` WHERE d.device_id=?`, deviceID))
 		if internalError(w, err) {
 			return
 		}
 		alert = describePersonAlert(pr, time.Now())
 	} else {
-		alert, err = h.findRatepreAlert(ctx, h.DB, deviceID, kind, nil)
+		alert, err = h.findRatepreAlert(ctx, tx, deviceID, kind, nil)
 		if internalError(w, err) {
 			return
 		}
@@ -109,6 +125,9 @@ func (h *Handler) deviceAlertDetail(w http.ResponseWriter, r *http.Request) {
 	if alert == nil {
 		fields["hasAlert"] = 0
 		fields["message"] = "该设备当前没有未处理的「" + kindTextOf(kind) + "」问题"
+		if internalError(w, tx.Commit()) {
+			return
+		}
 		response.OK(w, fields)
 		return
 	}
@@ -122,11 +141,18 @@ func (h *Handler) deviceAlertDetail(w http.ResponseWriter, r *http.Request) {
 	fields["occurTime"] = alert["occurTime"]
 	fields["recordId"] = alert["recordId"]
 	fields["advice"] = adviceOfKind(kind)
+	if internalError(w, tx.Commit()) {
+		return
+	}
 	response.OK(w, fields)
 }
 
 // POST /api/v1/device/resolveAlert —— 处置异常、消除红点（ADMIN，事务）。
 func (h *Handler) deviceResolveAlert(w http.ResponseWriter, r *http.Request) {
+	actor, ok := careAdmin(w, r)
+	if !ok {
+		return
+	}
 	m, ok := bodyMap(w, r)
 	if !ok {
 		return
@@ -135,62 +161,27 @@ func (h *Handler) deviceResolveAlert(w http.ResponseWriter, r *http.Request) {
 	if !ok {
 		return
 	}
-	deviceID, kind, recordID := req.deviceID, req.kind, req.recordID
-	ctx := r.Context()
-	tx, err := h.DB.Begin(ctx)
-	if internalError(w, err) {
-		return
-	}
-	rollback := func() { _ = tx.Rollback(ctx) }
-	var exists bool
-	if err := tx.QueryRow(ctx, `SELECT EXISTS(SELECT 1 FROM device WHERE device_id=$1)`, deviceID).Scan(&exists); rollbackOnError(w, rollback, err) {
-		return
-	}
-	if !exists {
-		rollback()
+	before, err := devicealertworkflow.Resolve(r.Context(), h.DB, actor, req.deviceID, req.kind, req.recordID, h.alertResolutionReason)
+	switch {
+	case errors.Is(err, careworkflow.ErrCapabilityDenied):
+		response.JSON(w, http.StatusForbidden, map[string]any{"code": "ACCESS_DENIED", "message": "岗位无此操作权限"})
+	case errors.Is(err, devicealertworkflow.ErrDeviceMissing):
 		response.Fail(w, "设备不存在")
-		return
-	}
-	before, err := h.alertResolutionReason(ctx, tx, deviceID, kind, recordID)
-	if rollbackOnError(w, rollback, err) {
-		return
-	}
-	var rows int64
-	switch kind {
-	case "rate", "pre":
-		rows, err = h.resolveVitalAlert(ctx, tx, deviceID, kind, recordID)
-		if rollbackOnError(w, rollback, err) {
-			return
-		}
-	case "person":
-		// 记录"已确认过的掉线次数"：只有设备重新上线后又掉线（boot_seq 增长）才会再次报警。
-		ct, err := tx.Exec(ctx,
-			`UPDATE device SET person_handled=1, person_handled_at=now(), handled_seq=boot_seq
-			 WHERE device_id=$1`, deviceID)
-		if rollbackOnError(w, rollback, err) {
-			return
-		}
-		rows = ct.RowsAffected()
-	default:
-		rollback()
-		response.Fail(w, "未知的异常类型："+kind)
-		return
-	}
-	if rows < 1 {
-		rollback()
-		if recordID != nil {
+	case errors.Is(err, devicealertworkflow.ErrUnknownKind):
+		response.Fail(w, "未知的异常类型："+req.kind)
+	case errors.Is(err, devicealertworkflow.ErrNoPendingAlert):
+		if req.recordID != nil {
 			response.Fail(w, "记录不存在或不属于该设备，处置失败")
 		} else {
 			response.Fail(w, "没有可处置的异常记录")
 		}
+	case internalError(w, err):
 		return
+	default:
+		response.OK(w, map[string]any{
+			"handledReason": before, "message": "已处置，红点已消除",
+		})
 	}
-	if internalError(w, tx.Commit(ctx)) {
-		return
-	}
-	response.OK(w, map[string]any{
-		"handledReason": before, "message": "已处置，红点已消除",
-	})
 }
 
 type alertResolution struct {
@@ -225,13 +216,13 @@ func parseAlertResolution(w http.ResponseWriter, m map[string]any) (alertResolut
 	return alertResolution{deviceID, kind, recordID}, true
 }
 
-func (h *Handler) alertResolutionReason(ctx context.Context, tx *dbstore.Transaction, deviceID int64, kind string, recordID *int64) (string, error) {
+func (h *Handler) alertResolutionReason(ctx context.Context, tx *sql.Tx, deviceID int64, kind string, recordID *int64) (string, error) {
 	// 处置前的 reason，用于 handledReason 回显。
 	var before string
 	switch kind {
 	case "person":
-		pr, err := scanPersonRow(tx.QueryRow(ctx,
-			`SELECT `+personCols+` `+personFrom+` WHERE d.device_id=$1`, deviceID))
+		pr, err := scanPersonRow(tx.QueryRowContext(ctx,
+			`SELECT `+personCols+` `+personFrom+` WHERE d.device_id=?`, deviceID))
 		if err != nil {
 			return "", err
 		}
@@ -248,33 +239,4 @@ func (h *Handler) alertResolutionReason(ctx context.Context, tx *dbstore.Transac
 		}
 	}
 	return before, nil
-}
-
-func (h *Handler) resolveVitalAlert(ctx context.Context, tx *dbstore.Transaction, deviceID int64, kind string, recordID *int64) (int64, error) {
-	handled, pending := "rate_handled", pendingRate
-	if kind == "pre" {
-		handled, pending = "pre_handled", pendingPressure
-	}
-	query := vitalAlertUpdate(kind) + " WHERE device_id=$1 AND "
-	args := []any{deviceID}
-	if recordID != nil {
-		query += "id=$2"
-		args = append(args, *recordID)
-	} else {
-		query += pending
-	}
-	result, err := tx.Exec(ctx, query, args...)
-	if err != nil {
-		return 0, err
-	}
-	var hasPending bool
-	if err := tx.QueryRow(ctx, "SELECT EXISTS(SELECT 1 FROM ratepre r WHERE r.device_id=$1 AND "+pending+")", deviceID).Scan(&hasPending); err != nil {
-		return 0, err
-	}
-	if !hasPending {
-		if _, err := tx.Exec(ctx, "UPDATE device SET "+handled+"=1 WHERE device_id=$1", deviceID); err != nil {
-			return 0, err
-		}
-	}
-	return result.RowsAffected(), nil
 }

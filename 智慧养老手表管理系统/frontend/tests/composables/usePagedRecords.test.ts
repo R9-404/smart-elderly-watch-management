@@ -80,3 +80,64 @@ it('does not loop when the server returns an empty first page', async () => {
   expect(post).toHaveBeenCalledTimes(1) // 这一次就是自加载，没有二次回退请求
   wrapper.unmount()
 })
+
+it('returns to page one after deleting the final record in a collection', async () => {
+  mock.post.mockReset()
+  mock.post.mockResolvedValue({ data: { items: [], total: 0 } })
+  let state!: ReturnType<typeof usePagedRecords<{ id: number }>>
+  const wrapper = mount(defineComponent({
+    setup() {
+      state = usePagedRecords<{ id: number }>({ path: 'api/v1/x', responseKey: 'items' })
+      return () => null
+    }
+  }))
+  await flushPromises()
+
+  mock.post.mockReset()
+  mock.post.mockResolvedValue({ data: { items: [], total: 0 } })
+  state.currentPage.value = 2
+  await state.load(true)
+  await flushPromises()
+
+  expect(mock.post.mock.calls.map(call => call[1].page)).toEqual([2, 1])
+  expect(state.currentPage.value).toBe(1)
+  expect(state.total.value).toBe(0)
+  expect(state.records.value).toEqual([])
+  wrapper.unmount()
+})
+
+it('keeps confirmed records on failed same-page refresh but clears old rows on page change', async () => {
+  mock.post.mockReset()
+  mock.post.mockResolvedValueOnce({ data: { items: [{ id: 1 }], total: 30 } })
+  let state!: ReturnType<typeof usePagedRecords<{ id: number }>>
+  const wrapper = mount(defineComponent({
+    setup() {
+      state = usePagedRecords<{ id: number }>({ path: '/api/v1/items', responseKey: 'items' })
+      return () => null
+    }
+  }))
+  try {
+    await flushPromises()
+    expect(state.records.value).toEqual([{ id: 1 }])
+    mock.post.mockRejectedValueOnce({ code: 'ERR_NETWORK' })
+    await state.load(true)
+    expect(state.records.value).toEqual([{ id: 1 }])
+    expect(state.total.value).toBe(30)
+    expect(state.loadError.value).toContain('网络')
+
+    let resolveNext!: (response: { data: { items: { id: number }[]; total: number } }) => void
+    mock.post.mockImplementationOnce(() => new Promise(resolve => { resolveNext = resolve }))
+    const nextPage = state.changePage(2)
+    expect(state.records.value).toEqual([])
+    expect(state.loadError.value).toBe('')
+    expect(state.isLoading.value).toBe(true)
+    await flushPromises()
+    resolveNext({ data: { items: [{ id: 11 }], total: 30 } })
+    await nextPage
+    expect(state.records.value).toEqual([{ id: 11 }])
+    expect(state.loadError.value).toBe('')
+  } finally {
+    wrapper.unmount()
+    mock.post.mockReset()
+  }
+})

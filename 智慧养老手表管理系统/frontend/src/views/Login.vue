@@ -24,13 +24,13 @@
             </el-input>
           </el-form-item>
           <el-form-item label="密码" prop="password" for="login-password">
-            <el-input id="login-password" aria-label="密码" v-model="loginForm.password" :type="showPassword ? 'text' : 'password'" placeholder="请输入密码" autocomplete="current-password" @keyup.enter="submitForm">
-              <template #prefix><svg class="el-input__icon password-lock" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><rect x="5" y="10" width="14" height="11" rx="2"/><path d="M8 10V7a4 4 0 0 1 8 0v3m-4 4v3"/></svg></template><template #suffix><button  type="button" class="password-visibility" :aria-label="showPassword ? '隐藏密码' : '显示密码'" :aria-pressed="String(showPassword)" @click="showPassword = !showPassword"><el-icon aria-hidden="true"><View /></el-icon></button></template>
+            <el-input id="login-password" aria-label="密码" v-model="loginForm.password" :type="showPassword ? 'text' : 'password'" placeholder="请输入密码" autocomplete="current-password">
+              <template #prefix><svg class="el-input__icon password-lock" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><rect x="5" y="10" width="14" height="11" rx="2"/><path d="M8 10V7a4 4 0 0 1 8 0v3m-4 4v3"/></svg></template><template #suffix><button  type="button" class="password-visibility" :aria-label="showPassword ? '隐藏密码' : '显示密码'" :aria-pressed="showPassword" @click="showPassword = !showPassword"><el-icon aria-hidden="true"><View /></el-icon></button></template>
             </el-input>
           </el-form-item>
           <el-form-item v-if="mfaRequired" label="动态验证码或恢复码"><el-input v-model="loginForm.otp" aria-label="动态验证码" autocomplete="one-time-code" inputmode="numeric" maxlength="6" placeholder="6 位动态验证码" /><el-input v-model="loginForm.recoveryCode" aria-label="一次性恢复码" autocomplete="off" placeholder="无法使用验证器时填写恢复码" /></el-form-item>
           <p v-if="errorMessage" class="auth-error" role="alert">{{ errorMessage }}</p>
-          <el-button type="primary" class="submit-button" :loading="submitting" @click="submitForm">登录</el-button>
+          <el-button type="primary" native-type="submit" class="submit-button" :loading="submitting" :disabled="submitting">登录</el-button>
         </el-form>
         <div class="auth-register"><span>首次使用？</span><el-button link @click="goRegister">使用邀请码注册</el-button></div>
         <p class="auth-footnote"><el-icon><Setting /></el-icon> 账号信息仅用于本系统登录</p>
@@ -40,25 +40,32 @@
   </div>
 </template>
 
-<script setup>
+<script setup lang="ts">
 import { Iphone, Setting, View } from '@element-plus/icons-vue'
 import { onMounted, reactive, ref } from 'vue'
+import type { FormInstance, FormItemRule } from 'element-plus'
 import { useRouter } from 'vue-router'
 import { apiErrorMessage } from '../api/httpContract'
+import { api } from '../api/client'
 import axios from 'axios'
 import { loadSession } from '../auth'
 
 const router = useRouter()
-const registeredPhone = localStorage.getItem('login_phone') || ''
-localStorage.removeItem('login_phone')
+let registeredPhone = ''
+let savedLargeText = false
+try {
+  registeredPhone = localStorage.getItem('login_phone') || ''
+  localStorage.removeItem('login_phone')
+  savedLargeText = localStorage.getItem('large_text') === 'true'
+} catch { /* Login remains available when browser storage is blocked. */ }
 const heroImage = '/static/img/care-lakeside-artisan.webp'
 const submitting = ref(false)
 const showPassword = ref(false)
 const mfaRequired = ref(false)
 const errorMessage = ref('')
-const largeText = ref(localStorage.getItem('large_text') === 'true')
+const largeText = ref(savedLargeText)
 const loginForm = reactive({ phone: registeredPhone, password: '', otp: '', recoveryCode: '' })
-const loginFormRef = ref(null)
+const loginFormRef = ref<FormInstance | null>(null)
 const rules = {
   phone: [
     { required: true, message: '请输入手机号', trigger: 'blur' },
@@ -66,9 +73,9 @@ const rules = {
   ],
   password: [
     { required: true, message: '请输入密码', trigger: 'blur' },
-    { validator: (_rule, value, done) => done(
+    { validator: ((_rule, value, done) => done(
       new TextEncoder().encode(value || '').length <= 72
-        ? undefined : new Error('密码不能超过 72 个字节')), trigger: 'blur' }
+        ? undefined : new Error('密码不能超过 72 个字节'))) satisfies FormItemRule['validator'], trigger: 'blur' }
   ]
 }
 function applyTextSize() {
@@ -76,18 +83,18 @@ function applyTextSize() {
 }
 function toggleTextSize() {
   largeText.value = !largeText.value
-  localStorage.setItem('large_text', String(largeText.value))
+  try { localStorage.setItem('large_text', String(largeText.value)) } catch { /* Session-only preference. */ }
   applyTextSize()
 }
 function goRegister() { void router.push('/join-family') }
 async function submitForm() {
   if (submitting.value) return
-  const valid = await loginFormRef.value?.validate().catch(() => false)
-  if (!valid) return
   submitting.value = true
-  errorMessage.value = ''
   try {
-    const { data } = await axios.post('/api/v1/auth/login', { ...loginForm })
+    const valid = await loginFormRef.value?.validate().catch(() => false)
+    if (!valid) return
+    errorMessage.value = ''
+    const { data } = await api.post<{ authenticated?: boolean; message?: string }>('/api/v1/auth/login', { ...loginForm })
     if (data?.authenticated === true) {
       const account = await loadSession(true)
       if (!account) throw new Error('Login session not established')
@@ -96,12 +103,12 @@ async function submitForm() {
       errorMessage.value = data?.message || '手机号或密码不正确，请重试'
     }
   } catch (error) {
-    const code = error.response?.data?.code
+    const code = axios.isAxiosError(error) ? error.response?.data?.code : undefined
     if (code === 'MFA_REQUIRED') {
       mfaRequired.value = true
-      errorMessage.value = error.response.data.message
+      errorMessage.value = axios.isAxiosError(error) ? error.response?.data?.message || '需要进行二次验证' : '需要进行二次验证'
     } else if (['INVALID_CREDENTIALS', 'INVALID_LOGIN_INPUT', 'ACCOUNT_UNLINKED'].includes(code)) {
-      errorMessage.value = error.response.data.message
+      errorMessage.value = axios.isAxiosError(error) ? error.response?.data?.message || '登录失败，请重试' : '登录失败，请重试'
     } else {
       errorMessage.value = apiErrorMessage(error, '暂时无法登录，请稍后重试')
     }

@@ -1,6 +1,6 @@
 import { expect, it } from 'vitest'
 import { CanceledError, type AxiosResponse } from 'axios'
-import { apiErrorMessage, assertApiResponse, isApplicationAPI, isSuccessEnvelope } from '@/api/httpContract'
+import { apiErrorMessage, readErrorMessage, assertApiResponse, isApplicationAPI, isSuccessEnvelope } from '@/api/httpContract'
 import { accepted, apiPath } from '@/api/client'
 
 const response = (data: unknown) => ({ data, status: 200, config: { url: '/api/v1/guardians/list' } }) as AxiosResponse
@@ -57,4 +57,11 @@ it('canonicalizes local Go API routes and rejects non-API destinations', () => {
     '/api/v1/guardians/list?next=/admin',
     '/api/v1/guardians/list#fragment'
   ]) expect(() => apiPath(path)).toThrow()
+})
+
+it('allows safe read retry messaging without weakening ambiguous write warnings', () => {
+  expect(readErrorMessage({ code: 'ERR_NETWORK' })).toContain('查询时网络连接中断')
+  expect(readErrorMessage({ code: 'ETIMEDOUT' })).toBe('查询超时，请稍后重试')
+  expect(apiErrorMessage({ code: 'ERR_NETWORK' })).toContain('先核对结果')
+  expect(readErrorMessage({ response: { status: 403, data: { returnCode: '0000', code: 'ACCESS_DENIED', message: '无权查看' } } })).toBe('无权查看')
 })
