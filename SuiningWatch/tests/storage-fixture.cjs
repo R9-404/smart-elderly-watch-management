@@ -33,7 +33,7 @@ function cryptoBoundary() {
     finishSession: async handle => {
       const session = sessions.get(handle); const final = session.cipher.final();
       const output = session.encrypt ? Buffer.concat([final, session.cipher.getAuthTag()]) : final;
-      sessions.delete(handle); calls.push('finish'); return { outData: new Uint8Array(output) };
+      sessions.delete(handle); calls.push('finish'); return output.length ? { outData: new Uint8Array(output) } : null;
     },
     abortSession: async handle => { sessions.delete(handle); calls.push('abort'); }
   };

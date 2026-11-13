@@ -59,6 +59,19 @@ test('each encryption uses fresh random nonce and authenticates multi-chunk UTF-
   assert.equal(boundary.sessions.size, 0);
 });
 
+test('native HUKS null finish result authenticates bytes already returned by update', async () => {
+  const boundary = cryptoBoundary();
+  let nullFinishes = 0;
+  const huks = boundary.mocks['@kit.UniversalKeystoreKit'].huks;
+  const finish = huks.finishSession;
+  huks.finishSession = async (...args) => { const result = await finish(...args); if (result === null) nullFinishes++; return result; };
+  const { WatchVault } = load('services/WatchVault', boundary.mocks);
+  const vault = new WatchVault();
+  assert.equal(await vault.open(await vault.seal('authenticated record')), 'authenticated record');
+  assert.equal(nullFinishes, 1);
+  assert.equal(boundary.sessions.size, 0);
+});
+
 test('ciphertext, tag, nonce and version corruption cannot fall back to legacy plaintext', async () => {
   const fixture = storeFixture({ batch: JSON.stringify(batch) });
   await fixture.open();

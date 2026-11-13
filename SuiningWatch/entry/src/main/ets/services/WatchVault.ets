@@ -52,10 +52,12 @@ export class WatchVault {
       // A full 200-sample queue exceeds the single-call HUKS input limit.
       for (let offset = 0; offset < data.length; offset += 16384) {
         const result = await huks.updateSession(session.handle, { properties: properties, inData: data.slice(offset, offset + 16384) });
-        if (result.outData) { pieces.push(result.outData); }
+        if (result && result.outData) { pieces.push(result.outData); }
       }
       const result = await huks.finishSession(session.handle, { properties: properties, inData: new Uint8Array(0) });
-      if (result.outData) { pieces.push(result.outData); }
+      // API 24 can resolve finishSession with null when no final bytes remain.
+      // Completion still authenticates the session; never skip the await above.
+      if (result && result.outData) { pieces.push(result.outData); }
       let size = 0;
       for (const piece of pieces) { size += piece.length; }
       const output = new Uint8Array(size);
