@@ -1,13 +1,34 @@
-import { preferences } from '@kit.ArkData';
 import { common } from '@kit.AbilityKit';
+import { EncryptedPreferences } from './EncryptedPreferences';
 import { WatchConfig, PendingBatch, PendingSOS, SimulatorState, Binding, isExpiredBinding, readPendingSOS } from '../model/Protocol';
 
 export class WatchStore {
-  private prefs: preferences.Preferences;
+  private prefs: EncryptedPreferences;
   private sosStorageFailed: boolean = false;
   private batchStorageFailed: boolean = false;
   constructor(context: common.Context) {
-    this.prefs = preferences.getPreferencesSync(context, { name: 'suining_watch_sim_v1' });
+    this.prefs = new EncryptedPreferences(context);
+  }
+  static async open(context: common.Context): Promise<WatchStore> {
+    const store = new WatchStore(context);
+    await store.prefs.open();
+    return store;
+  }
+  credential(config: WatchConfig): string {
+    if (this.prefs.getSync('credentialServer', '') !== config.server || this.prefs.getSync('credentialDevice', '') !== config.deviceNo) { return ''; }
+    return this.prefs.getSync('credential', '') as string;
+  }
+  async saveCredential(config: WatchConfig, secret: string): Promise<void> {
+    if (secret.length < 24 || secret.length > 128) { throw new Error('设备密钥长度无效'); }
+    if (this.credential(config) === secret) { return; }
+    this.prefs.putSync('credentialServer', config.server);
+    this.prefs.putSync('credentialDevice', config.deviceNo);
+    this.prefs.putSync('credential', secret);
+    await this.prefs.flush();
+  }
+  async forgetCredential(): Promise<void> {
+    this.prefs.putSync('credential', '');
+    await this.prefs.flush();
   }
   config(): WatchConfig {
     return {

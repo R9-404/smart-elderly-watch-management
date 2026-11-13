@@ -32,16 +32,26 @@ struct Index {
   private counterDay: string = new Date().toISOString().slice(0, 10);
   private sensors: HealthSensors = new HealthSensors();
   private sampling: NativeSampling = new NativeSampling();
+  private appearance: number = 0;
+  private pendingRestore: number | undefined = undefined;
 
   aboutToAppear(): void {
     this.sensors.resume();
-    try {
+    const appearance = ++this.appearance;
+    this.restoreLocalState(appearance);
+  }
+  private restoreLocalState(appearance: number): void {
+    if (this.busy) { this.pendingRestore = appearance; return; }
+    this.act(async () => {
       const context = this.getUIContext().getHostContext();
       if (!context) { throw new Error('无法取得应用上下文'); }
-      this.store = new WatchStore(context as common.UIAbilityContext);
+      const store = await WatchStore.open(context as common.UIAbilityContext);
+      if (appearance !== this.appearance) { return; }
+      this.store = store;
       const config = this.store.config();
       this.server = config.server;
       this.deviceNo = config.deviceNo;
+      this.secret = this.store.credential(config);
       const sosHistory = this.store.pendingSOS();
       this.sosPending = sosHistory.filter((item) => !item.incidentId).length;
       for (let i = sosHistory.length - 1; i >= 0; i--) {
@@ -54,11 +64,12 @@ struct Index {
       this.queued = batch ? batch.samples.length : 0;
       const simulator = this.store.simulator();
       if (simulator.day === this.counterDay) { this.steps = simulator.steps; }
-    } catch (error) {
-      this.status = '读取本地状态失败，请重新打开应用；不会覆盖旧记录';
-    }
+      this.status = this.secret ? '已恢复安全凭据，连接后可继续同步' : '安全存储已就绪，请配置设备连接';
+    });
   }
   aboutToDisappear(): void {
+    this.appearance++;
+    this.pendingRestore = undefined;
     this.sensors.suspend();
     this.sampling.reset();
   }
@@ -89,6 +100,7 @@ struct Index {
     this.connected = false;
     const config = this.config();
     const reply = await this.api.login(config, this.secret);
+    await this.store?.saveCredential(config, this.secret);
     if (reply.bound !== 1) { this.useBinding(undefined); }
     const binding = bindingFrom(config, reply);
     if (await this.store?.discardExpiredBatch(binding)) {
@@ -107,13 +119,19 @@ struct Index {
       const message = (error as Error).message;
       this.status = message || '请求失败，请检查连接；待上传记录已保留';
       this.connected = false;
-    } finally { this.busy = false; }
+    } finally {
+      this.busy = false;
+      const restore = this.pendingRestore;
+      this.pendingRestore = undefined;
+      if (restore !== undefined && restore === this.appearance) { this.restoreLocalState(restore); }
+    }
   }
   private async connect(): Promise<void> {
     this.credentials();
     const config = this.config();
     await this.store?.saveConfig(config);
     const reply = await this.api.login(config, this.secret);
+    await this.store?.saveCredential(config, this.secret);
     if (reply.bound !== 1) {
       this.useBinding(undefined);
       this.status = '设备认证成功，请输入设备绑定码';
@@ -289,10 +307,15 @@ struct Index {
     this.caption('设备号（后台登记）')
     TextInput({ text: this.deviceNo, placeholder: 'WATCH5_SIM_001' }).fontSize(13)
       .height(38).enabled(!this.busy).onChange((value: string) => { this.deviceNo = value; this.useBinding(undefined); })
-    this.caption('设备密钥（仅本次运行使用）')
+    this.caption('设备密钥（认证成功后加密保存）')
     TextInput({ text: this.secret, placeholder: '后台生成的设备密钥' }).type(InputType.Password).fontSize(13)
       .height(38).enabled(!this.busy).onChange((value: string) => { this.secret = value; this.useBinding(undefined); })
     this.action('保存地址并认证', () => { this.act(async () => { await this.connect(); }); })
+    this.action('忘记本机设备密钥', () => { this.act(async () => {
+      if (!this.store) { throw new Error('安全存储未就绪，无法确认密钥移除'); }
+      await this.store.forgetCredential(); this.secret = ''; this.useBinding(undefined);
+      this.status = '本机设备密钥已移除，健康记录及求助历史仍保留';
+    }); }, '#373B35')
     this.caption('设备绑定码（不是家属邀请码）')
     TextInput({ text: this.bindCode, placeholder: '输入设备绑定码' }).fontSize(15)
       .height(38).enabled(!this.busy).onChange((value: string) => { this.bindCode = value; })

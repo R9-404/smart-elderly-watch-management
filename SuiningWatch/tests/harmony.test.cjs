@@ -1,6 +1,7 @@
 const assert = require('node:assert/strict');
 const test = require('node:test');
 const load = require('./load-ets.cjs');
+const { storeFixture } = require('./storage-fixture.cjs');
 const p = load('model/Protocol');
 const { NativeSampling } = load('model/NativeSampling');
 const config = p.normalizeConfig('https://care.example.com', 'WATCH001');
@@ -61,13 +62,10 @@ test('transport negotiates capabilities, destroys HTTP handles, and never replay
 test('a verified newer epoch clears only its old telemetry and preserves SOS history', async () => {
   const batch = { binding, samples: p.makeSamples('WATCH001', 'old', new Date(), 72, 100) };
   const sos = JSON.stringify([{ binding, requestId: 'unconfirmed-sos' }]);
-  const values = { batch: JSON.stringify(batch), sos };
+  const fixture = storeFixture({ batch: JSON.stringify(batch), sos });
+  const store = await fixture.open();
   let flushes = 0;
-  const { WatchStore } = load('services/WatchStore', { '@kit.ArkData': { preferences: {
-    getPreferencesSync: () => ({ getSync: (key, fallback) => values[key] ?? fallback,
-      putSync: (key, value) => { values[key] = value; }, flush: async () => { flushes++; } })
-  } } });
-  const store = new WatchStore({});
+  fixture.setFlush(async () => { flushes++; });
   for (const live of [binding, { ...binding, version: 0 },
     { ...binding, server: 'https://other.example.com', version: 2 },
     { ...binding, deviceNo: 'OTHER', version: 2 }]) {
@@ -77,18 +75,17 @@ test('a verified newer epoch clears only its old telemetry and preserves SOS his
   assert.throws(() => p.batchRequest(batch, { ...binding, version: 2 }, 'secret'), error => error.code === 'EPOCH_EXPIRED');
   assert.equal(await store.discardExpiredBatch({ ...binding, version: 2 }), true);
   assert.equal(store.batch(), undefined);
-  assert.equal(values.sos, sos);
+  assert.equal(JSON.stringify(store.pendingSOS()), sos);
+  assert.equal(fixture.values.sos, undefined);
+  assert.ok(fixture.values.encryptedStateV1);
   assert.equal(flushes, 1);
   assert.equal(await store.discardExpiredBatch({ ...binding, version: 2 }), false);
 });
 
 test('failed persistence of epoch cleanup blocks further sampling', async () => {
-  const values = { batch: JSON.stringify({ binding, samples: [] }) };
-  const { WatchStore } = load('services/WatchStore', { '@kit.ArkData': { preferences: {
-    getPreferencesSync: () => ({ getSync: (key, fallback) => values[key] ?? fallback,
-      putSync: (key, value) => { values[key] = value; }, flush: async () => { throw new Error('disk failure'); } })
-  } } });
-  const store = new WatchStore({});
+  const fixture = storeFixture({ batch: JSON.stringify({ binding, samples: [] }) });
+  const store = await fixture.open();
+  fixture.setFlush(async () => { throw new Error('disk failure'); });
   await assert.rejects(store.discardExpiredBatch({ ...binding, version: 2 }), /重启/);
   assert.throws(() => store.batch(), /重启/);
 });
@@ -132,15 +129,14 @@ test('native sensor callbacks and cancellation remove listeners', async () => {
 });
 
 test('uncertain batch persistence blocks new deltas until recovery', async () => {
-  const data = new Map();
-  const { WatchStore } = load('services/WatchStore', { '@kit.ArkData': { preferences: { getPreferencesSync: () => ({
-    getSync: (key, fallback) => data.get(key) ?? fallback, putSync: (key, value) => data.set(key, value), flush: async () => { throw new Error('disk'); }
-  }) } } });
-  const store = new WatchStore({});
+  const fixture = storeFixture();
+  const store = await fixture.open();
+  fixture.setFlush(async () => { throw new Error('disk'); });
   await assert.rejects(store.saveBatch({ samples: [] }), /重启/);
   assert.throws(() => store.batch(), /重启/);
   await assert.rejects(store.saveBatch(undefined), /重启/);
-  assert.ok(new WatchStore({}).batch());
+  fixture.setFlush(async () => {});
+  assert.ok((await fixture.open()).batch());
 });
 
 test('sensor timeout removes the listener and reports unavailability', async (context) => {
