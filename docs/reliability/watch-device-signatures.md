@@ -20,7 +20,7 @@ HarmonyOS 采用 CryptoArchitectureKit 的 SHA256 摘要和 MAC、`createSymKeyG
 
 ## 重试与业务幂等
 
-每次传输生成新的 nonce，包括后台已提交但 ACK 丢失后的人工或自动重试。健康样本的 `recordId`、原绑定版本和未确认 SOS 的 `requestId` 保持不变，业务幂等仍由后端负责。HTTP 失败不在传输层隐式重放。401/403 停止自动离线归属，时间窗错误需检查设备时间后重新认证，不放宽服务器校验。
+WatchApi 每次主动调用生成新的 nonce，包括后台已提交但 ACK 丢失后的人工或自动重试。健康样本的 `recordId`、原绑定版本和未确认 SOS 的 `requestId` 保持不变，业务幂等仍由后端负责。WatchApi 不自行重发同一签名，但原生 HTTP 栈可能在空连接断开后透明重发；真实后端必须拒绝重复 nonce，客户端保留未确认记录，不将该拒绝当作业务 ACK。原生联调的受控丢 ACK 与重放核验见 [原生测试说明](watch-native-tests.md)。401/403 停止自动离线归属，时间窗错误需检查设备时间后重新认证，不放宽服务器校验。
 
 ## 验证
 
