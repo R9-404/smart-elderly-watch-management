@@ -278,7 +278,8 @@ struct Index {
     Text('计步器累计 ' + (this.nativeCounter >= 0 ? this.nativeCounter.toString() : '尚未读取')).fontSize(15).fontColor('#D8E4DC')
     this.action('授权并读取传感器', () => { this.act(async () => { await this.sampleNative(); }); })
     this.caption('前台读取；仅上传两次计步观测的增量，不冒充全天步数。')
-    this.action('SOS 求助' + (this.sosPending ? '（待核查 ' + this.sosPending + '）' : ''), () => { this.confirmSOS(); }, '#803F37')
+    this.action('SOS 求助', () => { this.confirmSOS(); }, '#803F37')
+    if (this.sosPending) { this.caption('待核查求助：' + this.sosPending + ' 条') }
     if (this.lastSOS) { this.caption(this.lastSOS) }
   }
   @Builder
