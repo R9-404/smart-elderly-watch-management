@@ -6,11 +6,11 @@ export class WatchStore {
   private prefs: EncryptedPreferences;
   private sosStorageFailed: boolean = false;
   private batchStorageFailed: boolean = false;
-  constructor(context: common.Context) {
-    this.prefs = new EncryptedPreferences(context);
+  constructor(context: common.Context, preferencesName: string = 'suining_watch_sim_v1') {
+    this.prefs = new EncryptedPreferences(context, preferencesName);
   }
-  static async open(context: common.Context): Promise<WatchStore> {
-    const store = new WatchStore(context);
+  static async open(context: common.Context, preferencesName: string = 'suining_watch_sim_v1'): Promise<WatchStore> {
+    const store = new WatchStore(context, preferencesName);
     await store.prefs.open();
     return store;
   }

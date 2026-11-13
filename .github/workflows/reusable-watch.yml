@@ -95,6 +95,13 @@ jobs:
           if ($LASTEXITCODE -ne 0) { throw 'SDK extraction or CRC verification failed; native compilation has not run' }
           $toolRoot = Join-Path $toolDirectory 'command-line-tools'
           & SuiningWatch/scripts/build.ps1 -CommandLineHome $toolRoot -ReportPath (Join-Path $evidence 'native-build.json')
+          # Preserve the completed product before the test target's clean task.
+          $product = Get-Content -LiteralPath (Join-Path $evidence 'native-build.json') -Raw | ConvertFrom-Json
+          Copy-Item -LiteralPath $product.artifact.path -Destination (Join-Path $evidence 'entry-default-unsigned.hap')
+          & SuiningWatch/scripts/build.ps1 -CommandLineHome $toolRoot -BuildTarget ohosTest -ReportPath (Join-Path $evidence 'native-test-build.json')
+          $test = Get-Content -LiteralPath (Join-Path $evidence 'native-test-build.json') -Raw | ConvertFrom-Json
+          Copy-Item -LiteralPath $test.artifact.path -Destination (Join-Path $evidence 'entry-ohosTest-unsigned.hap')
+          # This runner compiles tests only; it has no wearable emulator image.
       - if: always()
         uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f
         with:

@@ -73,6 +73,17 @@ npm test
 
 如需针对真实后端运行端到端协议联调脚本 `tests/backend.e2e.cjs`，请先准备全新空库的独立测试后端实例，为该实例设置 `SUINING_REQUIRE_SIGNED_DEVICE=1`，并设置测试进程的环境变量 `WATCH_TEST_URL`（仅限本机 HTTP 地址）与 `WATCH_TEST_SETUP_TOKEN`。脚本会先验证无签名请求被拒绝，未开启严格模式不能通过。详细的集成验收记录见 [手表端同分支整合说明](../docs/WATCH_INTEGRATION.md)。
 
+## 原生系统测试
+
+独立 `ohosTest` 目标使用官方 Hypium 1.0.25（版本与完整性摘要已锁定）。它调用实际系统 HMAC/HUKS，并在单独名称的 Preferences 中验证 200 条采样和凭据/SOS 重载，不用已有生产数据当测试夹具。测试模块没有启动器入口，不打进默认产品 HAP。
+
+```powershell
+./scripts/build.ps1 -CommandLineHome 'E:\suining-sdk26\command-line-tools' -DevEcoHome '' -BuildTarget ohosTest -ReportPath './artifacts/native-test-build.json'
+./scripts/run-native-tests.ps1 -CommandLineHome 'E:\suining-sdk26\command-line-tools' -BuildReport './artifacts/native-test-build.json' -Target '127.0.0.1:5555'
+```
+
+正式运行要求源码干净、HAP 摘要与报告一致、指定目标已连接；无目标时不会新建/重置模拟器。三个必需用例必须全部通过且无 skip，主机还会独立验证原生签名结果。调试可显式使用 `-AllowDirty`，报告仍保留 dirty 标记，不作为正式源码交付证据。目标切换的 `clean` 可能清除另一个目标产物，请分别保存产品及测试包。详见[原生系统验收](../docs/reliability/watch-native-tests.md)。
+
 ## 当前已知限制
 
 - 自动监测限应用前台，不提供息屏/后台常驻采样保证，也不补造后台期间的读数。普通手表应用不能滥用音频、定位或任务保持权限绕过系统限制；后台方案需另行验证合法 API、跨进程存储和恢复边界。

@@ -17,8 +17,9 @@ export class EncryptedPreferences {
   private readonly legacyStrings: string[] = ['server', 'deviceNo', 'batch', 'sos', 'counterDay'];
   private readonly legacyNumbers: string[] = ['counterSteps', 'sequence'];
 
-  constructor(context: common.Context) {
-    this.prefs = preferences.getPreferencesSync(context, { name: 'suining_watch_sim_v1' });
+  constructor(context: common.Context, preferencesName: string = 'suining_watch_sim_v1') {
+    if (!/^[A-Za-z0-9_-]{1,64}$/.test(preferencesName)) { throw new Error('本地存储名称无效'); }
+    this.prefs = preferences.getPreferencesSync(context, { name: preferencesName });
   }
 
   async open(): Promise<void> {

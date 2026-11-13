@@ -2,6 +2,13 @@ const assert = require('node:assert/strict');
 const test = require('node:test');
 const load = require('./load-ets.cjs');
 const { cryptoBoundary, storeFixture } = require('./storage-fixture.cjs');
+
+test('storage namespace rejects paths and invalid names before opening preferences', () => {
+  const { WatchStore } = storeFixture();
+  for (const name of ['', '../suining_watch_sim_v1', '/data/preferences', 'a/b', 'a\\b', 'x'.repeat(65)]) {
+    assert.throws(() => new WatchStore({}, name), /名称无效/);
+  }
+});
 const p = load('model/Protocol');
 const config = p.normalizeConfig('https://care.example.com', 'WATCH001');
 const binding = p.bindingFrom(config, { bound: 1, residentId: 7, bindingVersion: 1 });

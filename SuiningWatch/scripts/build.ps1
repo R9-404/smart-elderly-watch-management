@@ -2,6 +2,7 @@ param(
   [string]$DevEcoHome = $env:DEVECO_STUDIO_HOME,
   [string]$CommandLineHome = $env:HARMONY_COMMANDLINE_HOME,
   [string]$SdkHome = $env:DEVECO_SDK_HOME,
+  [ValidateSet('default', 'ohosTest')][string]$BuildTarget = 'default',
   [string]$ReportPath = ''
 )
 $ErrorActionPreference = 'Stop'
@@ -9,7 +10,7 @@ $projectRoot = Split-Path $PSScriptRoot -Parent
 if (!$ReportPath) { $ReportPath = Join-Path $projectRoot 'artifacts\native-build.json' }
 $ReportPath = [IO.Path]::GetFullPath($ReportPath)
 New-Item -ItemType Directory -Path (Split-Path $ReportPath -Parent) -Force | Out-Null
-$report = [ordered]@{ status = 'blocked'; source = ''; dirty = $false; toolchain = ''; sdk = ''; versions = $null; artifact = $null; error = ''; startedAt = [DateTime]::UtcNow.ToString('o') }
+$report = [ordered]@{ status = 'blocked'; source = ''; dirty = $false; target = $BuildTarget; toolchain = ''; sdk = ''; versions = $null; artifact = $null; error = ''; startedAt = [DateTime]::UtcNow.ToString('o') }
 $savedEnvironment = @{}
 foreach ($name in @('NODE_PATH', 'NODE_HOME', 'DEVECO_NODE_HOME', 'DEVECO_SDK_HOME', 'JAVA_HOME', 'PATH')) {
   $savedEnvironment[$name] = [Environment]::GetEnvironmentVariable($name, 'Process')
@@ -71,12 +72,22 @@ try {
     $report.versions = & (Join-Path $PSScriptRoot 'check-toolchain.ps1') -ToolRoot $toolRoot -SdkHome $env:DEVECO_SDK_HOME -CommandLine:([bool]$CommandLineHome)
   }
   $report.status = 'failed'
+  if ($BuildTarget -eq 'ohosTest') {
+    $lock = Join-Path $projectRoot 'oh-package-lock.json5'
+    if (!(Test-Path -LiteralPath $lock -PathType Leaf)) { throw '原生测试缺少已提交的依赖锁文件' }
+    $lockedContent = [IO.File]::ReadAllText($lock).Replace("`r`n", "`n")
+    $ohpm = if ($CommandLineHome) { Join-Path $toolRoot 'bin/ohpm.bat' } else { Join-Path $toolRoot 'tools/ohpm/bin/ohpm.bat' }
+    if (!(Test-Path -LiteralPath $ohpm -PathType Leaf)) { throw '原生测试缺少官方 ohpm' }
+    & $ohpm install --all 2>&1 | Tee-Object -FilePath ($ReportPath + '.log') -Append
+    if ($LASTEXITCODE -ne 0) { throw "ohpm 测试依赖安装失败（$LASTEXITCODE）" }
+    if ([IO.File]::ReadAllText($lock).Replace("`r`n", "`n") -cne $lockedContent) { throw '原生测试依赖发生锁文件漂移，拒绝构建' }
+  }
   # A clean SDK build prevents an old HAP from satisfying this run's gate.
   foreach ($task in @('clean', 'assembleHap')) {
-    & $runner @prefix $task --mode module -p module=entry@default -p product=default -p buildMode=debug --no-daemon 2>&1 | Tee-Object -FilePath ($ReportPath + '.log') -Append
+    & $runner @prefix $task --mode module -p "module=entry@$BuildTarget" -p product=default -p buildMode=debug --no-daemon 2>&1 | Tee-Object -FilePath ($ReportPath + '.log') -Append
     if ($LASTEXITCODE -ne 0) { throw "Hvigor $task 失败（$LASTEXITCODE）" }
   }
-  $hap = Join-Path $projectRoot 'entry\build\default\outputs\default\entry-default-unsigned.hap'
+  $hap = Join-Path $projectRoot "entry/build/default/outputs/$BuildTarget/entry-$BuildTarget-unsigned.hap"
   if (!(Test-Path -LiteralPath $hap)) { throw '编译未生成预期 HAP' }
   $report.artifact = @{ path = $hap; sha256 = (Get-FileHash -LiteralPath $hap -Algorithm SHA256).Hash; bytes = (Get-Item -LiteralPath $hap).Length; signed = $false }
   $report.status = 'passed'
