@@ -5,7 +5,7 @@
 ## 通信流程
 
 1. 管理员先创建长者档案，再登记设备，保存创建时展示的设备密钥。
-2. 手表配置可访问的 HTTPS 后端地址、设备号和密钥，调用 `device/login`，携带 `platform=harmonyos`、`protocolVersion=1`。
+2. 手表配置可访问的 HTTPS 后端地址、设备号和密钥，调用 `device/login`，携带 `platform=harmonyos`、`protocolVersion=1`。所有设备请求使用现有后端 HMAC 签名合同，签名、时间戳及安全随机 nonce 见[签名说明](reliability/watch-device-signatures.md)。
 3. 后端返回协议版本、批次上限、长者归属和 `bindingVersion`。输入设备绑定码调用 `device/bind` 后重新认证。
 4. 手表申请心率和活动权限；心率按瞬时样本保存，累计计步先建立基线，再转换为区间增量。调试采样单独标记 `simulated`。
 5. `device/healthBatch` 携带原绑定版本和稳定采样 ID。重试复用记录 ID；未经核实的绑定变化保留旧队列并阻止补传，认证确认同一设备的新纪元后清除过期采样，SOS 历史保留待核查。

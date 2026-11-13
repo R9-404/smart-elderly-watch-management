@@ -2,6 +2,7 @@ const assert = require('node:assert/strict');
 const test = require('node:test');
 const load = require('./load-ets.cjs');
 const { storeFixture } = require('./storage-fixture.cjs');
+const { signatureBoundary } = require('./signature-fixture.cjs');
 const p = load('model/Protocol');
 const { NativeSampling } = load('model/NativeSampling');
 const config = p.normalizeConfig('https://care.example.com', 'WATCH001');
@@ -40,7 +41,7 @@ test('uncommitted sampling candidate cannot lose the next step delta', () => {
 test('transport negotiates capabilities, destroys HTTP handles, and never replays rejected writes', async () => {
   const calls = []; let destroyed = 0; let status = 200;
   let reply = { returnCode: '1111', protocolVersion: 1, maxBatchSize: 200 };
-  const { WatchApi } = load('services/WatchApi', { '@kit.NetworkKit': { http: {
+  const { WatchApi } = load('services/WatchApi', { ...signatureBoundary().mocks, '@kit.NetworkKit': { http: {
     RequestMethod: { POST: 'POST' }, HttpDataType: { STRING: 'STRING' },
     createHttp: () => ({ request: async (url, options) => { calls.push({ url, options }); return { responseCode: status, result: JSON.stringify(reply) }; }, destroy: () => destroyed++ })
   } } });
@@ -53,7 +54,7 @@ test('transport negotiates capabilities, destroys HTTP handles, and never replay
   await assert.rejects(api.login(config, 'not-logged'), /协议|兼容/);
   status = 409;
   reply = { returnCode: '0000', code: 'EPOCH_EXPIRED', message: '绑定版本已变化', reference: 'watch-test' };
-  await assert.rejects(api.upload(config, {}), error => error.code === 'EPOCH_EXPIRED' && /绑定版本/.test(error.message));
+  await assert.rejects(api.upload(config, { deviceNo: config.deviceNo, secret: 'not-logged', samples: [] }), error => error.code === 'EPOCH_EXPIRED' && /绑定版本/.test(error.message));
   assert.equal(calls.length, 3);
   assert.equal(destroyed, 3);
   assert.throws(() => p.normalizeConfig('http://192.168.1.2', 'WATCH001'));

@@ -2,6 +2,7 @@ const assert = require('node:assert/strict');
 const test = require('node:test');
 const load = require('./load-ets.cjs');
 const { storeFixture } = require('./storage-fixture.cjs');
+const { signatureBoundary } = require('./signature-fixture.cjs');
 const p = load('model/Protocol');
 const config = p.normalizeConfig('https://care.example.com', 'WATCH001');
 const secret = 'authenticated-device-secret-123456';
@@ -44,7 +45,7 @@ async function fixture(context) {
       state.listeners++;
       queueMicrotask(() => callback(id === 1 ? { heartRate: 72, timestamp: state.sensorTime * 1e9 } : { steps: state.steps, timestamp: state.sensorTime * 1e9 }));
     }, off() {} };
-  const { WatchApi } = load('services/WatchApi', { '@kit.NetworkKit': network });
+  const { WatchApi } = load('services/WatchApi', { ...signatureBoundary().mocks, '@kit.NetworkKit': network });
   const { HealthSensors } = load('services/HealthSensors', {
     '@kit.SensorServiceKit': { sensor: sensors }, '@kit.AbilityKit': { abilityAccessCtrl: { createAtManager: () => ({
       checkAccessToken: async () => state.permissions,

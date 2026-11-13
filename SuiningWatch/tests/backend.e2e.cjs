@@ -19,11 +19,14 @@ mod._compile(ts.transpileModule(fs.readFileSync(source, 'utf8'), {
 }).outputText, source);
 const protocol = mod.exports;
 const load = require('./load-ets.cjs');
+const { signatureBoundary } = require('./signature-fixture.cjs');
 let transportProxy = '';
+const signedAttempts = [];
 // Real HTTP to the disposable Go server through the production WatchApi.
-const { WatchApi } = load('services/WatchApi', { '@kit.NetworkKit': { http: {
+const { WatchApi } = load('services/WatchApi', { ...signatureBoundary().mocks, '@kit.NetworkKit': { http: {
   RequestMethod: { POST: 'POST' }, HttpDataType: { STRING: 'STRING' },
   createHttp: () => ({ request: async (url, options) => {
+    signedAttempts.push({ path: new URL(url).pathname, headers: { ...options.header } });
     const response = await fetch(transportProxy ? transportProxy + new URL(url).pathname : url, { method: options.method, headers: options.header, body: options.extraData, signal: AbortSignal.timeout(options.readTimeout) });
     return { responseCode: response.status, result: await response.text() };
   }, destroy() {} })
@@ -32,10 +35,17 @@ const { NativeSampling } = load('model/NativeSampling');
 const watch = new WatchApi();
 let cookie = '', csrf = '';
 const checks = [];
-async function request(route, body, headers = {}, expected = 200) {
+function referenceSignature(body, nonce = crypto.randomBytes(16).toString('hex'), seconds = Math.floor(Date.now() / 1000)) {
+  const timestamp = String(seconds), raw = JSON.stringify(body);
+  const digest = crypto.createHash('sha256').update(raw).digest('hex');
+  return { 'X-Device-Timestamp': timestamp, 'X-Device-Nonce': nonce,
+    'X-Device-Signature': crypto.createHmac('sha256', body.secret).update(body.deviceNo.trim().toUpperCase() + ':' + timestamp + ':' + nonce + ':' + digest).digest('hex') };
+}
+async function request(route, body, headers = {}, expected = 200, signDevice = true) {
+  const signature = signDevice && typeof body?.deviceNo === 'string' && typeof body?.secret === 'string' ? referenceSignature(body) : {};
   const response = await fetch(base + route, {
     method: body === undefined ? 'GET' : 'POST',
-    headers: { 'Content-Type': 'application/json', Cookie: cookie, 'X-CSRF-TOKEN': csrf, ...headers },
+    headers: { 'Content-Type': 'application/json', Cookie: cookie, 'X-CSRF-TOKEN': csrf, ...signature, ...headers },
     body: body === undefined ? undefined : JSON.stringify(body), signal: AbortSignal.timeout(15000)
   });
   const setCookie = response.headers.get('set-cookie');
@@ -60,12 +70,19 @@ async function main() {
   const elder = (await request('/api/v1/residents/list', { name: '模拟长者', page: 1, pageSize: 20 })).oldPeople[0];
   const device = await request('/api/v1/device/create', { alias: 'WATCH5 模拟协议测试', model: 'WATCH5-SIM' });
   const credentials = { deviceNo: device.deviceNo, secret: device.secret };
+  assert.equal((await request('/api/v1/device/login', credentials, {}, 401, false)).code, 'DEVICE_SIGNATURE_INVALID', 'backend must require signed devices');
+  const replayHeaders = referenceSignature(credentials);
+  await request('/api/v1/device/login', credentials, replayHeaders);
+  assert.equal((await request('/api/v1/device/login', credentials, replayHeaders, 409)).code, 'NONCE_REPLAY');
+  await request('/api/v1/device/login', credentials, referenceSignature(credentials, undefined, Math.floor(Date.now() / 1000) - 601), 401);
+  await request('/api/v1/device/login', { ...credentials, secret: credentials.secret + 'x' }, referenceSignature(credentials), 401);
+  checks.push('strict backend rejected unsigned, expired and modified-body signatures plus replayed nonce');
   const before = await request('/api/v1/device/login', credentials);
   assert.equal(before.bound, 0);
   checks.push('new device authenticated and reported unbound');
   const code = await request('/api/v1/device/createBindCode', { oldId: String(elder.oldId), expireDays: '1' });
-  await request('/api/v1/device/bind', { ...credentials, code: code.code });
   const config = protocol.normalizeConfig(base, device.deviceNo);
+  await watch.bind(config, device.secret, code.code);
   const live = protocol.bindingFrom(config, await watch.login(config, device.secret));
   assert.equal(live.residentId, elder.oldId);
   checks.push('bind code attached device to test elder');
@@ -102,7 +119,9 @@ async function main() {
       let payload = '';
       for await (const chunk of incoming) payload += chunk;
       forwarded++;
-      const response = await fetch(base + incoming.url, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: payload, signal: AbortSignal.timeout(10000) });
+      const response = await fetch(base + incoming.url, { method: 'POST', headers: { 'Content-Type': 'application/json',
+        'X-Device-Timestamp': incoming.headers['x-device-timestamp'], 'X-Device-Nonce': incoming.headers['x-device-nonce'],
+        'X-Device-Signature': incoming.headers['x-device-signature'] }, body: payload, signal: AbortSignal.timeout(10000) });
       assert.equal(response.status, 200);
       upstreamAck = await response.json();
       // The database committed, but the watch never receives its acknowledgement.
@@ -148,8 +167,8 @@ async function main() {
   const sos = { ...credentials, requestId: 'watch-sim-e2e-same-press', bindingVersion: live.version };
   await request('/api/v1/device/sos', { ...credentials, requestId: 'missing-binding-version' }, {}, 400);
   await request('/api/v1/device/sos', { ...credentials, bindingVersion: live.version }, {}, 400);
-  const first = await request('/api/v1/device/sos', sos);
-  const retry = await request('/api/v1/device/sos', sos);
+  const first = await watch.sos(config, sos);
+  const retry = await watch.sos(config, sos);
   assert.equal(retry.incidentId, first.incidentId);
   assert.equal(retry.duplicate, true);
   assert.equal(first.notificationState, 'no_recipient');
@@ -217,6 +236,10 @@ async function main() {
   const automaticChanges = await request('/api/v1/health/changes', { oldId: elder.oldId, after: 0, limit: 100 });
   assert.equal(automaticChanges.changes.filter(item => item.sample.source === 'suining-harmonyos').length, 5);
   checks.push('production AutoMonitor and WatchSynchronizer ran two automatic controlled-sensor cycles through real HTTP/Go/MySQL without per-cycle clicks or permission dialogs; SDK/crypto adapters are test boundaries');
+  const nonces = signedAttempts.map(item => item.headers['X-Device-Nonce']);
+  assert.equal(new Set(nonces).size, nonces.length, 'each transport attempt must use a fresh nonce, including lost-ack retries');
+  for (const path of ['login', 'bind', 'heartbeat', 'healthBatch', 'sos']) assert.ok(signedAttempts.some(item => item.path.endsWith('/' + path)));
+  checks.push('production HarmonyOS transport signed login, bind, heartbeat, healthBatch and SOS; lost-ack retries used fresh transport nonces with stable durable record IDs');
   console.log(JSON.stringify({ passed: checks.length, checks }, null, 2));
 }
 main().catch(error => { console.error(error.message); process.exitCode = 1; });

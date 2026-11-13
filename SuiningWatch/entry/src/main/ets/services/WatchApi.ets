@@ -1,4 +1,5 @@
 import { http } from '@kit.NetworkKit';
+import { DeviceSigner, DeviceSignature } from './DeviceSigner';
 import { WatchConfig, Credentials, DeviceReply, BindRequest, HeartbeatRequest,
   BatchRequest, SOSRequest, LoginRequest, DeviceRequestError, WATCH_APP_VERSION, WATCH_PROTOCOL_VERSION, verifyHandshake } from '../model/Protocol';
 
@@ -6,6 +7,7 @@ import { WatchConfig, Credentials, DeviceReply, BindRequest, HeartbeatRequest,
 export class WatchApi {
   private active: Set<http.HttpRequest> = new Set<http.HttpRequest>();
   private generation: number = 0;
+  private signer: DeviceSigner = new DeviceSigner();
   cancel(): void {
     this.generation++;
     for (const request of this.active) {
@@ -15,15 +17,25 @@ export class WatchApi {
   }
   private async post(config: WatchConfig, path: string,
     body: Credentials | LoginRequest | BindRequest | HeartbeatRequest | BatchRequest | SOSRequest): Promise<DeviceReply> {
-    const request = http.createHttp();
     const generation = this.generation;
+    const serialized = JSON.stringify(body);
+    let signature: DeviceSignature;
+    try { signature = await this.signer.sign(config.deviceNo, body.secret, serialized); }
+    catch (error) {
+      if (generation !== this.generation) { throw new DeviceRequestError('CANCELLED', '操作已取消'); }
+      if (error instanceof Error) { throw error; }
+      throw new DeviceRequestError('SIGNING_UNAVAILABLE', '系统安全签名失败，未发送请求，记录保留');
+    }
+    if (generation !== this.generation) { throw new DeviceRequestError('CANCELLED', '操作已取消'); }
+    const request = http.createHttp();
     this.active.add(request);
     try {
       let response: http.HttpResponse;
       try { response = await request.request(config.server + '/api/v1/device/' + path, {
         method: http.RequestMethod.POST,
-        header: { 'Content-Type': 'application/json' },
-        extraData: JSON.stringify(body),
+        header: { 'Content-Type': 'application/json', 'X-Device-Timestamp': signature.timestamp,
+          'X-Device-Nonce': signature.nonce, 'X-Device-Signature': signature.signature },
+        extraData: serialized,
         usingCache: false,
         expectDataType: http.HttpDataType.STRING,
         connectTimeout: 5000, readTimeout: 10000

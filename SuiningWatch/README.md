@@ -6,6 +6,7 @@
 
 - 适配圆形表盘的深色界面，包含“首页”、“记录”、“设置”三个标签页，支持滚动访问各项操作。
 - 支持设备密钥认证、通过后台生成的设备绑定码关联长者，以及发送设备心跳。
+- 所有设备请求携带系统 CryptoArchitectureKit 生成的 HMAC-SHA256 签名、秒级时间戳和 128 位安全随机 nonce，可连接启用 `SUINING_REQUIRE_SIGNED_DEVICE=1` 的后端。重试生成新 nonce，仍复用原采样/SOS ID；签名能力异常时不发送请求、不降级成无签名，详见[设备签名协议](../docs/reliability/watch-device-signatures.md)。
 - 首页“授权并读取传感器”申请心率、活动权限；计步累计值先建立基线，再转换成区间增量，通过 `healthBatch` 上报，不冒充每日总步数。传感器不支持或权限拒绝时明确提示。
 - 认证并绑定后可开启自动监测：前台立即运行一次，随后每次完成后间隔一分钟采样并同步；离开前台取消读取/网络请求，返回后自动恢复。授权仅由手动按钮发起，自动周期不弹授权框，也不生成模拟读数。
 - 离线仅沿用加密保存、与当前凭据一致的已验证归属；队列满时暂停新增采样，联网先核实绑定并补传原记录。认证撤销停止自动监测，停止按钮和确认 SOS 可取消正在运行的自动请求，全部存储操作串行执行。详见[自动监测策略](../docs/reliability/watch-auto-monitor.md)。
@@ -70,7 +71,7 @@ npm test
 
 单元测试基于 `package-lock.json` 固定的 TypeScript 5.9.3 转译生产模型及服务，验证调度串行/暂停恢复/退避、绑定隔离、重试幂等、计步转换、权限边界、凭据与队列加密恢复。真实 Go/MySQL E2E 还运行生产调度器与同步服务的两个自动周期，传感器在 SDK 边界提供受控数据。HUKS 边界适配器使用真实 Node AES-GCM；这些适配器不等价于 HarmonyOS HUKS 运行结果、ArkTS 编译或传感器硬件测试。
 
-如需针对真实后端运行端到端协议联调脚本 `tests/backend.e2e.cjs`，请先准备全新空库的独立测试后端实例，并设置环境变量 `WATCH_TEST_URL`（仅限本机 HTTP 地址）与 `WATCH_TEST_SETUP_TOKEN`。详细的集成验收记录见 [手表端同分支整合说明](../docs/WATCH_INTEGRATION.md)。
+如需针对真实后端运行端到端协议联调脚本 `tests/backend.e2e.cjs`，请先准备全新空库的独立测试后端实例，为该实例设置 `SUINING_REQUIRE_SIGNED_DEVICE=1`，并设置测试进程的环境变量 `WATCH_TEST_URL`（仅限本机 HTTP 地址）与 `WATCH_TEST_SETUP_TOKEN`。脚本会先验证无签名请求被拒绝，未开启严格模式不能通过。详细的集成验收记录见 [手表端同分支整合说明](../docs/WATCH_INTEGRATION.md)。
 
 ## 当前已知限制
 
