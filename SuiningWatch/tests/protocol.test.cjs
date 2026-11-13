@@ -24,6 +24,10 @@ test('server validation rejects credentials, paths and query strings', () => {
 test('unbound or missing binding version cannot produce an authenticated owner', () => {
   assert.throws(() => p.bindingFrom(config, { returnCode: '1111', bound: 0 }));
   assert.throws(() => p.bindingFrom(config, { returnCode: '1111', bound: 1, residentId: 7 }));
+  for (const value of [-1, 0, 1.5, Number.MAX_SAFE_INTEGER + 1]) {
+    assert.throws(() => p.bindingFrom(config, { returnCode: '1111', bound: 1, residentId: 7, bindingVersion: value }));
+    assert.throws(() => p.bindingFrom(config, { returnCode: '1111', bound: 1, residentId: value, bindingVersion: 1 }));
+  }
 });
 test('samples declare simulation, units, and UTC cumulative day boundary', () => {
   assert.equal(samples[0].metadata.simulated, 'true');

@@ -174,3 +174,16 @@ test('overlapping save is rejected without polluting the snapshot being committe
   assert.deepEqual(recovered.batch(), batch);
   assert.deepEqual(recovered.pendingSOS(), []);
 });
+
+test('monitor intent and last verified binding survive encrypted restart with scope isolation', async () => {
+  const fixture = storeFixture(); const store = await fixture.open();
+  assert.equal(store.monitoringEnabled(), false);
+  await store.saveMonitoringEnabled(true); await store.rememberBinding(binding);
+  const recovered = await fixture.open();
+  assert.equal(recovered.monitoringEnabled(), true);
+  assert.deepEqual(recovered.verifiedBinding(config), binding);
+  assert.equal(recovered.verifiedBinding({ ...config, deviceNo: 'OTHER' }), undefined);
+  await recovered.saveMonitoringEnabled(false); await recovered.rememberBinding(undefined);
+  const disabled = await fixture.open();
+  assert.equal(disabled.monitoringEnabled(), false); assert.equal(disabled.verifiedBinding(config), undefined);
+});

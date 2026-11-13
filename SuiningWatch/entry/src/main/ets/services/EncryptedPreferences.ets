@@ -52,6 +52,7 @@ export class EncryptedPreferences {
   private check(): void {
     if (!this.ready || this.failed) { throw new Error('本地保存状态未确认，请重启恢复记录，勿重复发送或采样'); }
   }
+  usable(): boolean { return this.ready && !this.failed; }
 
   getSync(key: string, fallback: WatchValue): WatchValue {
     this.check();

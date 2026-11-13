@@ -1,6 +1,6 @@
 import { common } from '@kit.AbilityKit';
 import { EncryptedPreferences } from './EncryptedPreferences';
-import { WatchConfig, PendingBatch, PendingSOS, SimulatorState, Binding, isExpiredBinding, readPendingSOS } from '../model/Protocol';
+import { WatchConfig, PendingBatch, PendingSOS, SimulatorState, Binding, bindingIdentity, sameBinding, isExpiredBinding, readPendingSOS } from '../model/Protocol';
 
 export class WatchStore {
   private prefs: EncryptedPreferences;
@@ -14,6 +14,7 @@ export class WatchStore {
     await store.prefs.open();
     return store;
   }
+  usable(): boolean { return this.prefs.usable() && !this.sosStorageFailed && !this.batchStorageFailed; }
   credential(config: WatchConfig): string {
     if (this.prefs.getSync('credentialServer', '') !== config.server || this.prefs.getSync('credentialDevice', '') !== config.deviceNo) { return ''; }
     return this.prefs.getSync('credential', '') as string;
@@ -28,6 +29,27 @@ export class WatchStore {
   }
   async forgetCredential(): Promise<void> {
     this.prefs.putSync('credential', '');
+    await this.prefs.flush();
+  }
+  monitoringEnabled(): boolean { return this.prefs.getSync('monitoringEnabled', '0') === '1'; }
+  async saveMonitoringEnabled(enabled: boolean): Promise<void> {
+    this.prefs.putSync('monitoringEnabled', enabled ? '1' : '0');
+    await this.prefs.flush();
+  }
+  verifiedBinding(config: WatchConfig): Binding | undefined {
+    const raw = this.prefs.getSync('verifiedBinding', '') as string;
+    if (!raw) { return undefined; }
+    const saved = JSON.parse(raw) as Binding;
+    if (!saved || saved.server !== config.server || saved.deviceNo !== config.deviceNo) { return undefined; }
+    return bindingIdentity(config, saved.residentId, saved.version);
+  }
+  async rememberBinding(binding: Binding | undefined): Promise<void> {
+    if (binding) {
+      const config: WatchConfig = { server: binding.server, deviceNo: binding.deviceNo };
+      const previous = this.verifiedBinding(config);
+      if (previous && sameBinding(previous, binding)) { return; }
+    } else if (!this.prefs.getSync('verifiedBinding', '')) { return; }
+    this.prefs.putSync('verifiedBinding', binding ? JSON.stringify(binding) : '');
     await this.prefs.flush();
   }
   config(): WatchConfig {

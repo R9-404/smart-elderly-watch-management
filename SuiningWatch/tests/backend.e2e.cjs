@@ -174,6 +174,49 @@ async function main() {
   assert.notEqual(currentSOS.incidentId, first.incidentId);
   checks.push('rebind returned EPOCH_EXPIRED through the production transport; verified handshake cleared only old telemetry and retained SOS history');
   checks.push('rebound device rejected old SOS retry and accepted a new SOS for the current binding');
+  const automaticStore = await storeFixture().open();
+  await automaticStore.saveConfig(config);
+  await automaticStore.saveCredential(config, device.secret);
+  await automaticStore.rememberBinding(rebound);
+  await automaticStore.saveMonitoringEnabled(true);
+  let dialogs = 0, ticks = 0;
+  const { HealthSensors } = load('services/HealthSensors', {
+    '@kit.SensorServiceKit': { sensor: {
+      SensorId: { HEART_RATE: 1, PEDOMETER: 2 },
+      getSensorList: async () => [{ sensorId: 1 }, { sensorId: 2 }],
+      once: (id, callback) => queueMicrotask(() => {
+        if (id === 1) { ticks++; callback({ heartRate: 73, timestamp: ticks * 1e9 }); }
+        else callback({ steps: 100 + ticks * 5, timestamp: ticks * 1e9 });
+      }), off() {}
+    } }, '@kit.AbilityKit': { abilityAccessCtrl: { createAtManager: () => ({
+      checkAccessToken: async () => 0,
+      requestPermissionsFromUser: async () => { dialogs++; throw new Error('Automatic cycles must not open permission dialogs'); }
+    }) } }
+  });
+  const { WatchSynchronizer } = load('services/WatchSynchronizer');
+  const { AutoMonitor } = load('services/AutoMonitor');
+  const synchronizer = new WatchSynchronizer(automaticStore, watch, new HealthSensors(), { applicationInfo: { accessTokenId: 100 } });
+  const results = [];
+  let completed, failed;
+  const finished = new Promise((resolve, reject) => { completed = resolve; failed = reject; });
+  const automatic = new AutoMonitor(async () => {
+    try {
+      results.push(await synchronizer.cycle(config, device.secret));
+      if (results.length === 2) completed();
+      return 'ok';
+    } catch (error) { failed(error); return 'halt'; }
+  }, 1000); // Accelerate only the test clock policy; production defaults to 60 s.
+  let deadline;
+  try {
+    automatic.setVisible(true); automatic.setEnabled(automaticStore.monitoringEnabled());
+    await Promise.race([finished, new Promise((_, reject) => { deadline = setTimeout(() => reject(new Error('Automatic cycles did not complete')), 15000); })]);
+  } finally { automatic.setEnabled(false); synchronizer.suspend(); clearTimeout(deadline); }
+  assert.deepEqual(results.map(item => item.sampled), [1, 2]);
+  assert.ok(results.every(item => item.queued === 0 && !item.offline));
+  assert.equal(automaticStore.batch(), undefined); assert.equal(dialogs, 0);
+  const automaticChanges = await request('/api/v1/health/changes', { oldId: elder.oldId, after: 0, limit: 100 });
+  assert.equal(automaticChanges.changes.filter(item => item.sample.source === 'suining-harmonyos').length, 5);
+  checks.push('production AutoMonitor and WatchSynchronizer ran two automatic controlled-sensor cycles through real HTTP/Go/MySQL without per-cycle clicks or permission dialogs; SDK/crypto adapters are test boundaries');
   console.log(JSON.stringify({ passed: checks.length, checks }, null, 2));
 }
 main().catch(error => { console.error(error.message); process.exitCode = 1; });
