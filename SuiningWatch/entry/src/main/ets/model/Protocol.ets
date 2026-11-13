@@ -25,6 +25,7 @@ export interface DeviceReply {
   bindingVersion?: number;
   accepted?: number;
   duplicates?: number;
+  duplicate?: boolean;
   incidentId?: number;
   incidentState?: string;
   notificationState?: string;

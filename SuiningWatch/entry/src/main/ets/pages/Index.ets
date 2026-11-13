@@ -1,4 +1,6 @@
 import { common } from '@kit.AbilityKit';
+import { DEBUG } from 'BuildProfile';
+import { requireDebugSampling } from '../services/DebugSampling';
 import { WatchApi } from '../services/WatchApi';
 import { WatchStore } from '../services/WatchStore';
 import { HealthSensors } from '../services/HealthSensors';
@@ -188,6 +190,7 @@ struct Index {
     await this.connect();
   }
   private async sample(): Promise<void> {
+    requireDebugSampling();
     const day = new Date().toISOString().slice(0, 10);
     if (day !== this.counterDay) { this.steps = 0; this.counterDay = day; }
     this.heart = 68 + Math.floor(Math.random() * 13);
@@ -363,7 +366,9 @@ struct Index {
       this.status = '心跳成功 · 当前绑定已校验';
     }); })
     this.action('丢弃本机记录', () => { this.confirmDiscard(); }, '#373B35')
-    this.action('生成模拟采样（调试）', () => { this.act(async () => { await this.sample(); }); }, '#373B35')
+    if (DEBUG) {
+      this.action('生成模拟采样（调试）', () => { this.act(async () => { await this.sample(); }); }, '#373B35')
+    }
     this.caption('失败不清除队列；重试复用记录 ID，后台去重。绑定变化时禁止补传。')
   }
   @Builder

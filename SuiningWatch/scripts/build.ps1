@@ -3,6 +3,7 @@ param(
   [string]$CommandLineHome = $env:HARMONY_COMMANDLINE_HOME,
   [string]$SdkHome = $env:DEVECO_SDK_HOME,
   [ValidateSet('default', 'ohosTest')][string]$BuildTarget = 'default',
+  [ValidateSet('debug', 'release')][string]$BuildMode = 'debug',
   [string]$ReportPath = ''
 )
 $ErrorActionPreference = 'Stop'
@@ -10,7 +11,7 @@ $projectRoot = Split-Path $PSScriptRoot -Parent
 if (!$ReportPath) { $ReportPath = Join-Path $projectRoot 'artifacts\native-build.json' }
 $ReportPath = [IO.Path]::GetFullPath($ReportPath)
 New-Item -ItemType Directory -Path (Split-Path $ReportPath -Parent) -Force | Out-Null
-$report = [ordered]@{ status = 'blocked'; source = ''; dirty = $false; target = $BuildTarget; toolchain = ''; sdk = ''; versions = $null; artifact = $null; error = ''; startedAt = [DateTime]::UtcNow.ToString('o') }
+$report = [ordered]@{ status = 'blocked'; source = ''; dirty = $false; target = $BuildTarget; buildMode = $BuildMode; toolchain = ''; sdk = ''; versions = $null; artifact = $null; error = ''; startedAt = [DateTime]::UtcNow.ToString('o') }
 $savedEnvironment = @{}
 foreach ($name in @('NODE_PATH', 'NODE_HOME', 'DEVECO_NODE_HOME', 'DEVECO_SDK_HOME', 'JAVA_HOME', 'PATH')) {
   $savedEnvironment[$name] = [Environment]::GetEnvironmentVariable($name, 'Process')
@@ -84,14 +85,14 @@ try {
   }
   # A clean SDK build prevents an old HAP from satisfying this run's gate.
   foreach ($task in @('clean', 'assembleHap')) {
-    & $runner @prefix $task --mode module -p "module=entry@$BuildTarget" -p product=default -p buildMode=debug --no-daemon 2>&1 | Tee-Object -FilePath ($ReportPath + '.log') -Append
+    & $runner @prefix $task --mode module -p "module=entry@$BuildTarget" -p product=default -p "buildMode=$BuildMode" --no-daemon 2>&1 | Tee-Object -FilePath ($ReportPath + '.log') -Append
     if ($LASTEXITCODE -ne 0) { throw "Hvigor $task 失败（$LASTEXITCODE）" }
   }
   $hap = Join-Path $projectRoot "entry/build/default/outputs/$BuildTarget/entry-$BuildTarget-unsigned.hap"
   if (!(Test-Path -LiteralPath $hap)) { throw '编译未生成预期 HAP' }
   $report.artifact = @{ path = $hap; sha256 = (Get-FileHash -LiteralPath $hap -Algorithm SHA256).Hash; bytes = (Get-Item -LiteralPath $hap).Length; signed = $false }
   $report.status = 'passed'
-  Write-Output "原生未签名调试包：$hap（不代表已安装或通过传感器验证）"
+  Write-Output "原生未签名 $BuildMode 包：$hap（不代表已安装或通过传感器验证）"
 } catch {
   $report.error = $_.Exception.Message
   throw

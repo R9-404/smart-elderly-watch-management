@@ -94,9 +94,10 @@ jobs:
           python SuiningWatch/scripts/extract-toolchain.py $archive $toolDirectory
           if ($LASTEXITCODE -ne 0) { throw 'SDK extraction or CRC verification failed; native compilation has not run' }
           $toolRoot = Join-Path $toolDirectory 'command-line-tools'
-          & SuiningWatch/scripts/build.ps1 -CommandLineHome $toolRoot -ReportPath (Join-Path $evidence 'native-build.json')
+          & SuiningWatch/scripts/build.ps1 -CommandLineHome $toolRoot -BuildMode release -ReportPath (Join-Path $evidence 'native-build.json')
           # Preserve the completed product before the test target's clean task.
           $product = Get-Content -LiteralPath (Join-Path $evidence 'native-build.json') -Raw | ConvertFrom-Json
+          if ($product.buildMode -ne 'release') { throw '原生产品必须使用 release 模式' }
           Copy-Item -LiteralPath $product.artifact.path -Destination (Join-Path $evidence 'entry-default-unsigned.hap')
           & SuiningWatch/scripts/build.ps1 -CommandLineHome $toolRoot -BuildTarget ohosTest -ReportPath (Join-Path $evidence 'native-test-build.json')
           $test = Get-Content -LiteralPath (Join-Path $evidence 'native-test-build.json') -Raw | ConvertFrom-Json

@@ -44,6 +44,8 @@ cd '<仓库目录>\SuiningWatch'
 
 该脚本直接调用 DevEco Studio 自带的构建工具链（若 IDE 安装在非默认路径，可通过 `-DevEcoHome` 参数指定）。构建完成后会生成未签名的调试包 `entry/build/default/outputs/default/entry-default-unsigned.hap`；如需安装至物理手表真机，需先配置个人或企业开发者签名证书。
 
+本机开发默认 `-BuildMode debug`；发布产品使用 `-BuildMode release`，原生 CI 也按 release 编译产品、按 debug 编译测试模块。构建报告分别记录 target 和 buildMode。调试采样按钮只在 SDK 生成的 DEBUG=true 时显示，采样操作本身也先检查该值；release 拒绝生成模拟采样，不受本机配置影响。模式依据见[官方 BuildProfile 参数说明](https://developer.huawei.com/consumer/en/doc/harmonyos-guides-V13/ide-hvigor-get-build-profile-para-guide-V13/)。
+
 在 DevEco Studio 的 Device Manager 中启动 Wearable 模拟器后，运行以下命令安装并启动应用：
 
 ```powershell
@@ -83,6 +85,8 @@ npm test
 ```
 
 正式运行要求源码干净、HAP 摘要与报告一致、指定目标已连接；无目标时不会新建/重置模拟器。三个必需用例必须全部通过且无 skip，主机还会独立验证原生签名结果。调试可显式使用 `-AllowDirty`，报告仍保留 dirty 标记，不作为正式源码交付证据。目标切换的 `clean` 可能清除另一个目标产物，请分别保存产品及测试包。详见[原生系统验收](../docs/reliability/watch-native-tests.md)。
+
+真实原生网络与 Go/MySQL 联调使用 `npm run test:native-backend`，需独立空库、严格设备签名、已连接模拟器及私有证据目录。配置变量、受控传感器和生命周期验证边界见上述验收说明；这套运行结果与三个系统密码/存储用例分别记录，不以编译结果替代。
 
 ## 当前已知限制
 

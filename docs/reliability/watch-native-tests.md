@@ -10,6 +10,26 @@
 - native_vault_authentication：生产 WatchVault 调用真实 HUKS，多段 UTF-8 加密解密、篡改密文拒绝，失败后原密文仍可解密。不删除、导出或替换已有 HUKS AES 密钥。
 - native_store_disk_reload：生产 WatchStore 以独立名称 suining_watch_native_test_v1 保存 200 条合成采样、公开测试凭据、已验证归属、策略和 SOS，移除 Preferences 缓存后从系统持久化文件重载。移除凭据后采样与 SOS 仍保留。这是磁盘重载，不是操作系统重启。
 
+## 原生网络与真实后端联调
+
+`NativeBackendRunner` 是独立的 Hypium 入口，使用生产 AutoMonitor、WatchSynchronizer、WatchApi、系统 HMAC/HTTP、HUKS 和 Preferences；仅物理传感器边界提供受控读数。测试按顺序核对自动周期、隐藏暂停与恢复、断网队列及磁盘重载、丢 ACK 后原 ID 重试、重绑后的归属隔离和 SOS 幂等。测试间隔缩短为 1 秒，生产仍为 60 秒；重绑测试等待生产网络退避到期。这里主动调用服务的可见性方法，不能代替 ArkUI/系统真实前后台事件验收。
+
+先构建 ohosTest，再为测试进程提供下列环境变量，执行 `npm run test:native-backend`：
+
+| 变量 | 要求 |
+| --- | --- |
+| WATCH_TEST_URL | 全新空库的独立 Go/MySQL 后端，地址仅允许 `http://127.0.0.1:<端口>` |
+| WATCH_TEST_SETUP_TOKEN | 该测试实例的桌面初始化令牌；实例必须开启 `SUINING_REQUIRE_SIGNED_DEVICE=1` |
+| WATCH_NATIVE_COMMANDLINE_HOME | 已校验的官方 CLI 根目录 |
+| WATCH_NATIVE_BUILD_REPORT | 当前 SHA 的 ohosTest 成功构建报告 |
+| WATCH_NATIVE_REPORT_DIR | 本机私有证据目录 |
+| WATCH_NATIVE_PWSH | PowerShell 7 可执行文件完整路径 |
+| WATCH_NATIVE_TARGET | 已连接的 HDC 目标，默认 `127.0.0.1:5555` |
+
+脚本在写测试数据库前检查目标连接，拒绝已有业务库；生成独立测试账号、设备、两名长者和随机 Preferences 名称，不配置真实通知接收人。主机独立校验原始请求的 HMAC、时间与 nonce，实际转发到 Go，按 14 个阶段查询健康增量和 SOS 响应。503 与提交后断开 ACK 由本机代理注入；后者必须通过真实后端去重。测试占用模拟器回环端口 18797/18798，已有映射时拒绝，结束只清理自己创建的映射。
+
+正式运行要求相关源码干净；`WATCH_NATIVE_ALLOW_DIRTY=1` 仅用于调试，报告保留 dirty 标记。单独执行 `run-native-tests.ps1 -Suite backend` 的 Hypium 成功日志不足以证明联调通过，还必须有主机全部阶段、独立签名校验和真实数据断言的成功摘要。未实际执行不得把编译成功记为本套运行成功。
+
 ## 存储隔离
 
 API 24 实测 createModuleContext 不保证独立 Preferences 路径。初版测试因此触发隔离断言，在打开存储前停止；不能移除断言后直接使用生产文件。现通过显式 Preferences 名称隔离，生产默认名称 suining_watch_sim_v1 和调用方式保持原值；名称仅允许 1–64 个字母、数字、下划线或连字符。测试不得将真实数据写入测试名称，也不得清除生产文件以使测试通过。

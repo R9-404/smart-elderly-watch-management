@@ -3,6 +3,8 @@ param(
   [Parameter(Mandatory)][string]$BuildReport,
   [Parameter(Mandatory)][string]$CommandLineHome,
   [string]$Target = '127.0.0.1:5555',
+  [ValidateSet('system', 'backend')][string]$Suite = 'system',
+  [string]$FixtureToken = '',
   [string]$ReportPath = '',
   [switch]$AllowDirty
 )
@@ -10,8 +12,9 @@ $ErrorActionPreference = 'Stop'
 if (!$ReportPath) { $ReportPath = Join-Path (Split-Path $PSScriptRoot -Parent) 'artifacts/native-tests.json' }
 $ReportPath = [IO.Path]::GetFullPath($ReportPath)
 New-Item -ItemType Directory -Path (Split-Path $ReportPath -Parent) -Force | Out-Null
-$report = [ordered]@{ status = 'blocked'; source = ''; dirty = $false; target = $Target; artifactSha256 = ''; passed = 0; signatureVerified = $false; error = '' }
+$report = [ordered]@{ status = 'blocked'; source = ''; dirty = $false; target = $Target; suite = $Suite; artifactSha256 = ''; passed = 0; signatureVerified = $false; error = '' }
 try {
+  if ($Suite -eq 'backend' -and $FixtureToken -notmatch '^[a-f0-9]{64}$') { throw '后端原生测试需要独立夹具令牌' }
   $build = Get-Content -LiteralPath $BuildReport -Raw | ConvertFrom-Json
   $report.source = $build.source; $report.dirty = $build.dirty
   if ($build.status -ne 'passed' -or $build.target -ne 'ohosTest' -or !$build.artifact.path) { throw '需要成功的 ohosTest 构建报告' }
@@ -38,12 +41,23 @@ try {
   $install = (& $hdc -t $Target install $hap 2>&1) -join "`n"
   $install | Set-Content -LiteralPath ($ReportPath + '.install.log') -Encoding utf8
   if ($LASTEXITCODE -ne 0 -or $install -notmatch 'install bundle successfully') { throw '独立测试模块安装失败' }
-  & $hdc -t $Target shell aa test -b com.suining.watch -m entry_test -s unittest OpenHarmonyTestRunner -s timeout 30000 -w 120 2>&1 | Tee-Object -FilePath ($ReportPath + '.log')
+  $arguments = @('-t', $Target, 'shell', 'aa', 'test', '-b', 'com.suining.watch', '-m', 'entry_test', '-s', 'unittest')
+  if ($Suite -eq 'backend') {
+    $arguments += @('NativeBackendRunner', '-s', 'fixtureToken', $FixtureToken, '-s', 'timeout', '90000', '-w', '180')
+  } else { $arguments += @('OpenHarmonyTestRunner', '-s', 'timeout', '30000', '-w', '120') }
+  & $hdc @arguments 2>&1 | Tee-Object -FilePath ($ReportPath + '.log')
   if ($LASTEXITCODE -ne 0) { throw '原生测试命令失败' }
   $output = Get-Content -LiteralPath ($ReportPath + '.log') -Raw
-  if ($output -notmatch 'Tests run:\s*3,\s*Failure:\s*0,\s*Error:\s*0,\s*Pass:\s*3,\s*Ignore:\s*0') { throw '原生测试必须完整通过 3 项且无错误/跳过' }
-  foreach ($name in @('native_signing', 'native_vault_authentication', 'native_store_disk_reload')) {
+  $expectedCount = if ($Suite -eq 'backend') { 1 } else { 3 }
+  $expectedNames = if ($Suite -eq 'backend') { @('native_backend_pipeline') } else { @('native_signing', 'native_vault_authentication', 'native_store_disk_reload') }
+  if ($output -notmatch "Tests run:\s*$expectedCount,\s*Failure:\s*0,\s*Error:\s*0,\s*Pass:\s*$expectedCount,\s*Ignore:\s*0") { throw '原生测试必须完整通过且无错误/跳过' }
+  foreach ($name in $expectedNames) {
     if ($output -notmatch ('test=' + [regex]::Escape($name) + '(?:\r?\n|\s)')) { throw "原生测试缺失：$name" }
+  }
+  if ($Suite -eq 'backend') {
+    # The Node host additionally requires every phase's real database oracle.
+    $report.passed = 1; $report.status = 'passed'
+    return
   }
   # Public fixed test input only; no real device credential enters evidence.
   $proofs = [regex]::Matches($output, 'SIGNATURE_PROOF:(\{[^\r\n]+\})')
