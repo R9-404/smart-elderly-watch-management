@@ -53,6 +53,37 @@ test('migration encrypts old health and SOS only after a durable copy and restor
   assert.equal(fixture.boundary.calls.filter(x => x === 'generate').length, 1);
 });
 
+test('changing an authenticated credential invalidates the old offline binding atomically', async () => {
+  const fixture = storeFixture();
+  const store = await fixture.open();
+  await store.saveCredential(config, secret);
+  await store.rememberBinding(binding);
+  await store.saveBatch(batch);
+  await store.saveSOS(pending);
+
+  // A process may stop after the credential flush and before the new login
+  // response's binding is persisted. The previous epoch must not be trusted.
+  await store.saveCredential(config, 'rotated-device-secret-1234567890');
+  const recovered = await fixture.open();
+  assert.equal(recovered.credential(config), 'rotated-device-secret-1234567890');
+  assert.equal(recovered.verifiedBinding(config), undefined);
+  assert.deepEqual(recovered.batch(), batch);
+  assert.deepEqual(recovered.pendingSOS(), pending);
+});
+
+test('forgetting the device secret removes offline trust but retains emergency records', async () => {
+  const fixture = storeFixture();
+  const store = await fixture.open();
+  await store.saveCredential(config, secret);
+  await store.rememberBinding(binding);
+  await store.saveSOS(pending);
+  await store.forgetCredential();
+  const recovered = await fixture.open();
+  assert.equal(recovered.credential(config), '');
+  assert.equal(recovered.verifiedBinding(config), undefined);
+  assert.deepEqual(recovered.pendingSOS(), pending);
+});
+
 test('each encryption uses fresh random nonce and authenticates multi-chunk UTF-8 data', async () => {
   const boundary = cryptoBoundary();
   const { WatchVault } = load('services/WatchVault', boundary.mocks);
