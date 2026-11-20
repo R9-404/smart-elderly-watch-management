@@ -25,10 +25,14 @@ export class WatchStore {
     this.prefs.putSync('credentialServer', config.server);
     this.prefs.putSync('credentialDevice', config.deviceNo);
     this.prefs.putSync('credential', secret);
+    // A changed secret cannot inherit an offline binding from the old credential.
+    // Commit the invalidation with the replacement secret, before authentication resumes.
+    this.prefs.putSync('verifiedBinding', '');
     await this.prefs.flush();
   }
   async forgetCredential(): Promise<void> {
     this.prefs.putSync('credential', '');
+    this.prefs.putSync('verifiedBinding', '');
     await this.prefs.flush();
   }
   monitoringEnabled(): boolean { return this.prefs.getSync('monitoringEnabled', '0') === '1'; }
