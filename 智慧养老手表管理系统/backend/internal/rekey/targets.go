@@ -43,6 +43,9 @@ func (t target) fieldScope(keys []any) string {
 	if t.table == "oldperson" && t.column == "care_profile_cipher" {
 		return "resident-care-profile:" + fmt.Sprint(keys[0])
 	}
+	if t.table == "customer" && t.column == "contact_cipher" {
+		return "guardian-contact:" + fmt.Sprint(keys[0])
+	}
 	return t.scope
 }
 
@@ -74,5 +77,7 @@ func targets() []target {
 		{"family", "family_phone_cipher", []string{"family_id"}, "", directEnvelope},
 		{"said", "said_phone_cipher", []string{"said_id"}, "", directEnvelope},
 		{"oldperson", "care_profile_cipher", []string{"old_id"}, "", directEnvelope},
+		{"customer", "contact_cipher", []string{"customer_id"}, "", directEnvelope},
+		{"guardian_contact_key_state", "key_verifier", []string{"singleton"}, "guardian-contact-key-state", directEnvelope},
 	}
 }
