@@ -50,9 +50,8 @@ func ImportLegacy(ctx context.Context, database *sql.DB, box *securestore.Box, k
 	if !needsCatalog && (state != "ready" || recordedDigest != digest || recordedSize != int64(len(plain))) {
 		return false, fmt.Errorf("%w: existing image catalog differs for %q", ErrIntegrity, key)
 	}
-	var existing []byte
-	err = tx.QueryRowContext(ctx, "SELECT payload FROM image_payload WHERE name=? FOR UPDATE", key).Scan(&existing)
-	if err != nil && !errors.Is(err, sql.ErrNoRows) {
+	existing, err := getPayload(ctx, tx, key)
+	if err != nil && !errors.Is(err, ErrNotFound) {
 		return false, err
 	}
 	if err == nil {
@@ -80,13 +79,13 @@ func ImportLegacy(ctx context.Context, database *sql.DB, box *securestore.Box, k
 	if len(sealed) > MaxStoredBytes {
 		return false, ErrIntegrity
 	}
-	if _, err = tx.ExecContext(ctx, "INSERT INTO image_payload(name,payload) VALUES(?,?)", key, []byte(sealed)); err != nil {
-		return false, err
-	}
 	if needsCatalog {
 		if _, err = tx.ExecContext(ctx, "INSERT INTO image_blob(name,content_sha256,size_bytes,state) VALUES(?,?,?,'ready')", key, digest, len(plain)); err != nil {
 			return false, err
 		}
+	}
+	if _, err = tx.ExecContext(ctx, "INSERT INTO image_payload(name,payload) VALUES(?,?)", key, []byte(sealed)); err != nil {
+		return false, err
 	}
 	return true, tx.Commit()
 }
@@ -101,8 +100,9 @@ func MissingMySQLReferences(ctx context.Context, database *sql.DB) (int64, error
 		" UNION SELECT pic_name FROM pic_show WHERE pic_name IS NOT NULL AND pic_name<>''" +
 		" UNION SELECT name FROM image_blob WHERE state='ready'" +
 		" ) refs LEFT JOIN image_payload p ON p.name=refs.name" +
+		activeGenerationJoin +
 		" LEFT JOIN image_blob c ON c.name=refs.name AND c.state='ready'" +
-		" WHERE (refs.name<>'kai.jpg' OR c.name IS NOT NULL) AND (p.name IS NULL OR c.name IS NULL)"
+		" WHERE (refs.name<>'kai.jpg' OR c.name IS NOT NULL) AND (" + activePayload + " IS NULL OR c.name IS NULL)"
 	var missing int64
 	err := database.QueryRowContext(ctx, query).Scan(&missing)
 	return missing, err
