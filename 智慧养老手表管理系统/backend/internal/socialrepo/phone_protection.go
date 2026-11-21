@@ -77,9 +77,6 @@ func socialPhoneIndex(ctx context.Context, q userphone.Queryer, box *securestore
 	if err := verifySocialPhoneKey(ctx, q, box); err != nil {
 		return "", err
 	}
-	if !auth.ValidPhone(phone) {
-		return "", errors.New("invalid social phone")
-	}
 	if box == nil {
 		return "", nil
 	}
@@ -87,6 +84,9 @@ func socialPhoneIndex(ctx context.Context, q userphone.Queryer, box *securestore
 }
 
 func bindSocialPhoneKey(ctx context.Context, tx *sql.Tx, box *securestore.Box, phone string) (string, error) {
+	if !auth.ValidPhone(phone) {
+		return "", errors.New("invalid social phone")
+	}
 	lookup, err := socialPhoneIndex(ctx, tx, box, phone)
 	if err != nil || box == nil {
 		return lookup, err

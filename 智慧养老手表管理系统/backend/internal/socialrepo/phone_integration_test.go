@@ -312,3 +312,31 @@ func TestSocialPhoneBackfillLocksMySQL(t *testing.T) {
 		t.Fatal("canceled backfill could not safely resume", err)
 	}
 }
+
+func TestSocialCommentViewerWithoutPhoneMySQL(t *testing.T) {
+	pool := dbtest.MySQL(t)
+	ctx := context.Background()
+	socialExec(t, pool, "INSERT INTO said(said_id,text_id,said_phone) VALUES(1,1,?)", socialTestPhone)
+	items, err := ListComments(ctx, pool, nil, "", 1)
+	if err != nil || len(items) != 1 || items[0].Good == nil || *items[0].Good != "0" {
+		t.Fatal("authorized legacy viewer without a phone could not read comments", err)
+	}
+	box := socialTestBox(t, "A", "B")
+	seedProtectedSocialComment(t, pool, box)
+	items, err = ListComments(ctx, pool, box, "", 1)
+	if err != nil || len(items) != 2 {
+		t.Fatal("authorized viewer without a phone could not read protected comments", err)
+	}
+	for _, item := range items {
+		if item.SaidPhone == nil || *item.SaidPhone != "138****0001" || item.Good == nil || *item.Good != "0" {
+			t.Fatal("phone-less viewer changed author masking or acquired another identity's vote")
+		}
+	}
+	if _, err := ToggleLike(ctx, pool, box, 1, ""); err == nil {
+		t.Fatal("read compatibility permitted a vote with an empty identity")
+	}
+	var votes int
+	if err := pool.QueryRowContext(ctx, "SELECT COUNT(*) FROM nice_count").Scan(&votes); err != nil || votes != 0 {
+		t.Fatal("invalid viewer left a durable vote", err)
+	}
+}
