@@ -1,8 +1,10 @@
 package handlers
 
 import (
+	"bytes"
 	"context"
 	"database/sql"
+	"encoding/base64"
 	"encoding/json"
 	"fmt"
 	"net/http"
@@ -56,7 +58,7 @@ func testHandler(t testing.TB, pool *dbstore.Database) *Handler {
 	t.Helper()
 	store := session.NewStore(time.Hour)
 	t.Cleanup(store.Close)
-	return New(pool, store, config.Config{ImageDir: t.TempDir()})
+	return New(pool, store, config.Config{DataKey: base64.StdEncoding.EncodeToString(bytes.Repeat([]byte{7}, 32))})
 }
 
 func mustExec(t *testing.T, pool *dbstore.Database, sql string, args ...any) {
@@ -197,9 +199,44 @@ func TestIntegrationCoordinatesAndSOS(t *testing.T) {
 			t.Fatal(out)
 		}
 	}
+	// Production coordinates are authenticated ciphertext in MySQL, while
+	// the existing device API continues to accept numeric JSON values.
+	rows, err := pool.QueryContext(context.Background(), "SELECT lng,lat FROM device_location WHERE device_id=1 ORDER BY id")
+	if err != nil {
+		t.Fatal(err)
+	}
 	var count int
-	if err := pool.QueryRowContext(context.Background(), "SELECT count(*) FROM device_location WHERE lng='121.4737' AND lat='31.2304'").Scan(&count); err != nil || count != 2 {
-		t.Fatalf("numeric coordinates persisted=%d err=%v", count, err)
+	for rows.Next() {
+		var rawLng, rawLat string
+		if err = rows.Scan(&rawLng, &rawLat); err != nil {
+			break
+		}
+		if rawLng == "121.4737" || rawLat == "31.2304" {
+			err = fmt.Errorf("coordinate persisted as plaintext")
+			break
+		}
+		plainLng, openErr := h.Box.Open(rawLng, coordinateScope)
+		if openErr != nil {
+			err = openErr
+			break
+		}
+		plainLat, openErr := h.Box.Open(rawLat, coordinateScope)
+		if openErr != nil {
+			err = openErr
+			break
+		}
+		if plainLng != "121.4737" || plainLat != "31.2304" {
+			err = fmt.Errorf("numeric coordinate changed after encrypted persistence")
+			break
+		}
+		count++
+	}
+	if err == nil {
+		err = rows.Err()
+	}
+	rows.Close()
+	if err != nil || count != 2 {
+		t.Fatalf("encrypted numeric coordinates persisted=%d err=%v", count, err)
 	}
 	bad := callAPI(h.deviceReport, map[string]any{"deviceNo": "WATCH001", "secret": testSecret, "lng": 181, "lat": 31.2})
 	if bad.Code != 400 {
