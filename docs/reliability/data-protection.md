@@ -4,8 +4,9 @@
 `information_schema`。字段分类与迁移设计可从 Git 历史查阅；当前盘点应以实际部署 schema 为准。S2 为内部元数据，S3 为人员与
 联系方式，S4 为健康、位置、凭据及可关联的敏感载荷。此分级是工程设计，不是合规认证。
 表的其他列也可能通过 ID 关联到自然人，不能当作匿名数据发布。
-PG 的 7 个基表字段、12 个视图输出及非字段资产另列于
-[projection-and-assets.csv](projection-and-assets.csv)，依据 migrations/analytics/0001_projection.sql。
+历史 PG 的 7 个基表字段、12 个视图输出及非字段资产另列于
+[projection-and-assets.csv](projection-and-assets.csv)，原 analytics schema 可从 Git 历史查阅。
+最新运行架构以 [单 MySQL 迁移](../MYSQL_ONLY_MIGRATION.md) 为准；历史资产仍需恢复验收。
 
 ## 当前边界
 
@@ -18,11 +19,12 @@ session、TOTP、照护备注、复核理由、规则证据。新增私有图片
 姓名、生日等身份资料、家属地址、原始健康样本、生成列、围栏/事件、社交文本及未回填的字段/历史副本仍需纳入迁移盘点。
 不宣称全库加密。AEAD 只在配置正确密钥的新写路径生效；兼容旧明文读取不是迁移完成。
 
-MySQL 是业务真相源。PG 分析投影是额外敏感副本，其 JSON/健康数值、备份、WAL、导出与
-死信数据至少采用源数据同级控制。生产环境需要分别配置 MySQL/PG 加密卷、受控快照及 TLS；
+MySQL 是唯一在线持久化业务存储，图片密文在 `image_payload`，目录及引用继续由 MySQL 管理。
+旧 PG 分析投影的 JSON/健康数值、备份、WAL、导出与死信数据仍至少采用源数据同级控制。
+生产环境需要配置 MySQL 加密卷、受控快照及 TLS，并保留历史 PG 资产的访问及加密控制；
 本机隔离测试的数据库文件没有据此宣称已加密。AEAD 不能防止持有应用密钥的在线攻击者。
 
-另有非字段资产：私有对象 bucket、本地 IMAGE_DIR、SQL dump、备份对象、访问日志、故障日志、
+另有历史私有对象 bucket、本地 IMAGE_DIR，以及 SQL dump、备份对象、访问日志、故障日志、
 CI artifacts、配置 secret、会话 cookie 和密钥备份。备份应独立 AEAD 加密、独立访问控制，
 密钥放在外部受控密钥库；不得与备份同包。日志禁止手机号、设备密钥、session、明文健康载荷、
 网关凭据。配置只通过受限文件/secret 注入；生产密钥不进入仓库或验收证据。

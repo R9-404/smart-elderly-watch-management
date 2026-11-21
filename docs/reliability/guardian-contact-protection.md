@@ -2,7 +2,7 @@
 
 ## 数据与接口边界
 
-`0035_guardian_contact_protection.sql` 扩展 `customer`，不自动回填原数据。
+`0037_guardian_contact_protection.sql` 扩展 `customer`，不自动回填原数据。
 配置有效数据密钥后，新建/编辑将电话和地址按 `guardian-contact:<customer_id>` scope
 封装为随机 AEAD，原 `customer_phone` / `customer_address` 为 NULL。
 保护标记、密文列及 CHECK 阻止受保护行混入明文。v1 载荷固定 phone/address 两字段，
