@@ -41,6 +41,7 @@ def audit(path, mode):
     required = {"TestCareSOSOutboxAuditAndState", "TestCareAdminTransitionsAndFamilyIsolation", "TestCareReceiptRequiresTrustedGatewaySignature"}
     if mode == "mysql":
         required.add("TestSocialCommentViewerWithoutPhoneMySQL")
+        required |= {"TestResidentCareProfileProtectedMySQL", "TestResidentProfileAtomicFailureMySQL", "TestResidentProfilePhoneAmbiguityMySQL", "TestResidentProfileRotationMySQL", "TestResidentProfileBackfillMySQL", "TestResidentProfilePreflightMySQL", "TestResidentProfileBackfillLocksMySQL", "TestResidentProfileCommandMySQL"}
         required |= {"TestSocialPhonesAreProtectedMySQL", "TestSocialPhoneBackfillMySQL", "TestSocialPhoneBackfillLocksMySQL", "TestSocialPhonePreflightMySQL", "TestSocialPhoneFailClosedMySQL", "TestSocialPhoneConcurrentVotesMySQL", "TestSocialPhoneCommandMySQL", "TestSocialPhoneImageRollbackMySQL", "TestSocialPhoneRekeyMySQL"}
         required |= {"TestCapabilitiesRollbackAndReapply", "TestHighCardinalityHardCaps256Clients", "TestKeyRotationAndRetirementFailClosed", "TestRekeyMySQL", "TestAdministratorPhoneRekeyMySQL", "TestFamilyPhoneBackfillMySQL", "TestFamilyPhoneCommandMySQL", "TestFamilyPhoneRecipientsLegacyAndProtectedMySQL", "TestProtectedFamilyLifecycleMySQL", "TestProjectionRekeyCommandUsesMySQLSource", "TestImageS3TwoInstancesAndRealRestore", "TestCareFullHTTPChainAfterRealGatewayTimeout"}
     else:
