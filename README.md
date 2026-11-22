@@ -10,7 +10,16 @@
   <a href="README.md">简体中文</a> · <a href="README.en.md">English</a>
 </p>
 
-[![Preview CI](https://github.com/WatchTestCs/smart-elderly-watch-management/actions/workflows/ci.yml/badge.svg?branch=preview)](https://github.com/WatchTestCs/smart-elderly-watch-management/actions/workflows/ci.yml)
+[![Preview CI](https://github.com/WatchTestCs/smart-elderly-watch-management/actions/workflows/ci.yml/badge.svg?branch=preview)](https://github.com/WatchTestCs/smart-elderly-watch-management/actions/workflows/ci.yml?query=branch%3Apreview)
+[![CodeQL](https://github.com/WatchTestCs/smart-elderly-watch-management/actions/workflows/security.yml/badge.svg?branch=preview)](https://github.com/WatchTestCs/smart-elderly-watch-management/actions/workflows/security.yml?query=branch%3Apreview)
+[![Release](https://img.shields.io/github/v/release/WatchTestCs/smart-elderly-watch-management?label=Release)](https://github.com/WatchTestCs/smart-elderly-watch-management/releases/latest)
+[![License](https://img.shields.io/github/license/WatchTestCs/smart-elderly-watch-management)](LICENSE)
+[![Open issues](https://img.shields.io/github/issues/WatchTestCs/smart-elderly-watch-management)](https://github.com/WatchTestCs/smart-elderly-watch-management/issues)
+[![Open PRs](https://img.shields.io/github/issues-pr/WatchTestCs/smart-elderly-watch-management)](https://github.com/WatchTestCs/smart-elderly-watch-management/pulls)
+[![Accessibility](https://img.shields.io/badge/Accessibility-report%20a%20barrier-blue)](https://github.com/WatchTestCs/smart-elderly-watch-management/issues/new?template=accessibility_barrier.yml)
+
+社区入口：[反馈缺陷或建议](https://github.com/WatchTestCs/smart-elderly-watch-management/issues/new/choose) · [参与贡献](CONTRIBUTING.md) · [无障碍反馈](ACCESSIBILITY.md) · [私密安全报告](.github/SECURITY.md) · [行为准则](CODE_OF_CONDUCT.md)
+
 
 [下载](#下载) · [主要功能](#主要功能) · [开始使用](#开始使用) · [系统架构](#系统架构) · [源码与构建](#源码与构建) · [验证与性能](#验证与性能) · [文档导航](#文档导航)
 
