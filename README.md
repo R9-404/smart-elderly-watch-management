@@ -34,24 +34,24 @@
 
 ## 分支与发布
 
-`preview` 用于日常开发和预发布验证，`main` 用于稳定候选验收；普通功能和文档 PR 均以 `preview` 为目标。2026-11-12 已将通过预览候选门禁的提交 `e1e268f` 晋升到 `main`，旧主线保存在 `history/main-before-preview-20261112-ac5f2d5`。**进入 `main` 不等于已经发布新版本**。正式交付须以 [Stable release candidate](https://github.com/WatchTestCs/smart-elderly-watch-management/actions/workflows/stable-candidate.yml) 的成功运行、同 SHA 的正式标签及 [GitHub Releases](https://github.com/WatchTestCs/smart-elderly-watch-management/releases) 为准。完整流程见 [晋升手册](docs/reliability/main-promotion.md)。
+正式版发布时，`main` 与 `preview` 同步为同一源码提交。后续功能与文档仍先提交到 `preview`，`main` 用于稳定版。此轮经维护者授权使用本机编译与打包验收，未重新执行新 SHA 的完整 GitHub CI；发布清单记录实际证据。
+
+2026-10-22 的 `v2.1.0` 预览标签固定在旧提交 `e3cf064`，不会改写。正式版仍使用产品版本 **2.1.0**，以独立的 [`v2.1.0+20261122`](https://github.com/WatchTestCs/smart-elderly-watch-management/releases/tag/v2.1.0+20261122) 标签区分，避免破坏旧版可追溯性。
 
 ## 下载
 
-以下是已发布的 2.1.0 · Windows x64（预览版）附件，不代表当前 `main` 的最新构建。
+**2.1.0 正式版 · Windows x64**，安装包与完整源码来自同一发行提交，MySQL 8.4 须单独部署。
 
-| 版本类型 | 下载链接 | 适用场景 |
+| 发布文件 | 下载 | 适用场景 |
 | --- | --- | --- |
-| 安装版 | [Windows Setup](https://github.com/WatchTestCs/smart-elderly-watch-management/releases/download/v2.1.0/Suining-Setup-2.1.0-win-x64.exe) | 独立安装程序，适合首次部署 |
-| 免安装版 | [Portable ZIP](https://github.com/WatchTestCs/smart-elderly-watch-management/releases/download/v2.1.0/Suining-Portable-2.1.0-win-x64.zip) | 解压即用，完整解压后运行，需已有 WebView2 |
-| 发布源码 | [Source ZIP](https://github.com/WatchTestCs/smart-elderly-watch-management/releases/download/v2.1.0/Suining-Source-2.1.0.zip) | 与标签版本完全一致，包含数据库迁移脚本 |
+| Windows 安装版 | [Setup EXE](https://github.com/WatchTestCs/smart-elderly-watch-management/releases/download/v2.1.0+20261122/Suining-Setup-2.1.0-win-x64.exe) | Windows 10/11 x64 安装及卸载 |
+| 免安装版 | [Portable ZIP](https://github.com/WatchTestCs/smart-elderly-watch-management/releases/download/v2.1.0+20261122/Suining-Portable-2.1.0-win-x64.zip) | 完整解压，运行 `suining.exe`，保留配套 Go 服务端 |
+| 完整源码 | [Source ZIP](https://github.com/WatchTestCs/smart-elderly-watch-management/releases/download/v2.1.0+20261122/Suining-Source-2.1.0.zip) | 对应本次固定提交和数据库迁移 |
+| 原生独立服务端 | [Windows x64 EXE](https://github.com/WatchTestCs/smart-elderly-watch-management/releases/download/v2.1.0+20261122/Suining-Native-NoFonts-2.1.0-win-x64.exe) | 不含桌面界面，浏览器访问 |
 
-校验与发布信息：[SHA-256](https://github.com/WatchTestCs/smart-elderly-watch-management/releases/download/v2.1.0/SHA256SUMS.txt) · [完整发布记录](https://github.com/WatchTestCs/smart-elderly-watch-management/releases/tag/v2.1.0)
+[SHA-256 校验](https://github.com/WatchTestCs/smart-elderly-watch-management/releases/download/v2.1.0+20261122/SHA256SUMS.txt) · [发布清单](https://github.com/WatchTestCs/smart-elderly-watch-management/releases/download/v2.1.0+20261122/release-manifest.json) · [正式版说明](https://github.com/WatchTestCs/smart-elderly-watch-management/releases/tag/v2.1.0+20261122)
 
-安装包不含数据库服务，运行客户端无需安装 Go、Rust 或 Node.js。当前 Windows 安装包与执行文件未做数字签名。复现发行构建使用 Release 的命名源码附件与校验清单，GitHub 自动生成的源码 ZIP 目录结构可能不同；安装包不自动迁移旧数据库与本地图片。
-
-> [!NOTE]
-> v2.1.0 发行附件基于固定提交 [e3cf064](https://github.com/WatchTestCs/smart-elderly-watch-management/commit/e3cf064) 构建。如需体验后续提交的改动，请按下文说明从源码构建。
+> 原 [`v2.1.0` 预览包](https://github.com/WatchTestCs/smart-elderly-watch-management/releases/tag/v2.1.0) 保留。正式版安装包不包含 MySQL，不自动迁移历史 PostgreSQL 数据或图片；升级前先备份，并按 [MySQL 单库迁移](docs/MYSQL_ONLY_MIGRATION.md) 操作。Windows 可执行文件默认未签名。
 
 ## 主要功能
 
@@ -104,14 +104,20 @@ python scripts/bootstrap-admin.py
 
 ```mermaid
 flowchart LR
-    W["HarmonyOS 手表"] -->|"签名遥测与 SOS"| G["Go API 与后台任务"]
-    V["Vue 3 / WebView2"] -->|"同源 HTTP"| G
-    V -->|"受限初始化 IPC"| R["Tauri / Rust 桌面壳"]
-    R -->|"管理本地服务进程"| G
-    G -->|"事务、会话、遥测、加密图片"| M[("MySQL 8.4")]
+  subgraph Desktop["Windows 桌面客户端"]
+    T["Tauri 2 / Rust"] -->|"SHA-256 校验与进程管理"| L["Go 本机子进程"]
+    V["Vue 3 / WebView2"] -->|"同源 HTTP / 会话"| L
+    V -->|"受限初始化 IPC"| T
+  end
+  W["HarmonyOS 手表 / Rust 模拟器"] -->|"受控网络：签名遥测与 SOS"| S["常驻 Go API"]
+  B["浏览器工作台"] -->|"HTTPS /api/v1/"| S
+  L -->|"业务、会话、图片 BLOB"| M[("MySQL 8.4")]
+  S -->|"授权事务与设备上报"| M
 ```
 
-MySQL 是唯一权威业务数据存储。部分历史分析表名和旧状态响应字段为兼容接口而保留，但不再运行 PostgreSQL 分析投影。MySQL 不可用或历史图片迁移未完成时，业务 API 保持不可用，避免返回不一致数据。`/healthz` 用于存活检测，`/api/v1/service/status` 用于就绪检查。详见 [工作区说明](docs/WORKSPACE.md)、[接口约定](docs/API_CONTRACTS.md) 和 [MySQL 单库迁移](docs/MYSQL_ONLY_MIGRATION.md)。
+MySQL 8.4 是唯一生产业务数据库。桌面程序校验 Go 子进程的文件哈希，启动令牌仅经环境变量传递，`runtime/server.json` 只包含端口与进程 ID。桌面服务仅监听本机回环地址；外部手表全天候接入须独立部署常驻 Go API、TLS 和人工照护流程。PostgreSQL/S3 仅作为历史迁移来源，当前不做双写。
+
+`/healthz` 仅表示进程存活，`/api/v1/service/status` 反映数据库就绪。参见 [架构说明](docs/ARCHITECTURE.md) 和 [迁移手册](docs/MYSQL_ONLY_MIGRATION.md)。
 
 ## 源码与构建
 
@@ -144,7 +150,7 @@ evidence/        自动化测试与故障演练留档数据
 ./desktop/build.ps1
 ```
 
-构建脚本依次编译 Vue 静态资源、内嵌静态资源的 Go 服务端、sidecar SHA-256 校验文件、Tauri 原生壳以及 NSIS 安装包，最终产物输出到 `outputs/v2.1.0-preview`。
+构建脚本依次编译 Vue 静态资源、内嵌静态资源的 Go 服务端、sidecar SHA-256 校验文件、Tauri 原生壳以及 NSIS 安装包，最终产物输出到 `outputs/v2.1.0-stable`。
 
 ### 手表模拟器与本地模拟
 

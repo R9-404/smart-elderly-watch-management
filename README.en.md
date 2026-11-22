@@ -34,26 +34,24 @@ This branch also includes [SuiningWatch](SuiningWatch/README.md), a native Harmo
 
 ## Branches and releases
 
-`preview` is the development and prerelease-validation branch; `main` is the stable-candidate branch. Feature and documentation pull requests target `preview`. On 2026-11-12 the validated commit `e1e268f` was promoted to `main`, while the previous main head was preserved under `history/main-before-preview-20261112-ac5f2d5`. **Promotion to `main` is not a published release.** Check the [Stable release candidate workflow](https://github.com/WatchTestCs/smart-elderly-watch-management/actions/workflows/stable-candidate.yml), an official tag for the same commit, and [GitHub Releases](https://github.com/WatchTestCs/smart-elderly-watch-management/releases) for release status. See the [promotion runbook](docs/reliability/main-promotion.md).
+For this official release, `main` and `preview` point to the same source commit. New work still targets `preview`, and `main` tracks stable releases. With maintainer approval, this release uses local build and packaging verification rather than another full GitHub CI run; see the release manifest for evidence.
+
+The 2026-10-22 `v2.1.0` preview tag stays at its original source `e3cf064`. The official product version remains **2.1.0** and uses a distinct immutable [`v2.1.0+20261122`](https://github.com/WatchTestCs/smart-elderly-watch-management/releases/tag/v2.1.0+20261122) tag for source traceability.
 
 ## Download
 
-The following files belong to the previously published 2.1.0 · Windows x64 preview release, not necessarily the current `main` head.
+**Official 2.1.0 · Windows x64**, built from one exact source commit. MySQL 8.4 must be installed separately.
 
-| Package | Download | Best for |
+| Package | Download | Purpose |
 | --- | --- | --- |
-| Installer | [Windows Setup](https://github.com/WatchTestCs/smart-elderly-watch-management/releases/download/v2.1.0/Suining-Setup-2.1.0-win-x64.exe) | Standard standalone installation on a new machine |
-| Portable | [Portable ZIP](https://github.com/WatchTestCs/smart-elderly-watch-management/releases/download/v2.1.0/Suining-Portable-2.1.0-win-x64.zip) | Running from an extracted folder with WebView2 already installed |
-| Release source | [Source ZIP](https://github.com/WatchTestCs/smart-elderly-watch-management/releases/download/v2.1.0/Suining-Source-2.1.0.zip) | Reproducing the exact v2.1.0 tag including database migration scripts |
+| Windows installer | [Setup EXE](https://github.com/WatchTestCs/smart-elderly-watch-management/releases/download/v2.1.0+20261122/Suining-Setup-2.1.0-win-x64.exe) | Install and uninstall on Windows 10/11 x64 |
+| Portable edition | [Portable ZIP](https://github.com/WatchTestCs/smart-elderly-watch-management/releases/download/v2.1.0+20261122/Suining-Portable-2.1.0-win-x64.zip) | Fully extract and run `suining.exe` alongside the Go service |
+| Complete source | [Source ZIP](https://github.com/WatchTestCs/smart-elderly-watch-management/releases/download/v2.1.0+20261122/Suining-Source-2.1.0.zip) | Exact release source and database migrations |
+| Standalone native server | [Windows x64 EXE](https://github.com/WatchTestCs/smart-elderly-watch-management/releases/download/v2.1.0+20261122/Suining-Native-NoFonts-2.1.0-win-x64.exe) | Headless Go service; not a desktop installer |
 
-Verification: [SHA-256 checksums](https://github.com/WatchTestCs/smart-elderly-watch-management/releases/download/v2.1.0/SHA256SUMS.txt) · [Release notes](https://github.com/WatchTestCs/smart-elderly-watch-management/releases/tag/v2.1.0)
+[SHA-256 checksums](https://github.com/WatchTestCs/smart-elderly-watch-management/releases/download/v2.1.0+20261122/SHA256SUMS.txt) · [Build manifest](https://github.com/WatchTestCs/smart-elderly-watch-management/releases/download/v2.1.0+20261122/release-manifest.json) · [Release notes](https://github.com/WatchTestCs/smart-elderly-watch-management/releases/tag/v2.1.0+20261122)
 
-The packages do not bundle a database server. End users do not need Go, Rust, or Node.js installed. The Windows binaries are currently unsigned.
-
-> [!NOTE]
-> The v2.1.0 release assets were built from commit [e3cf064](https://github.com/WatchTestCs/smart-elderly-watch-management/commit/e3cf064). To test newer changes on `preview`, build from source using the instructions below.
-
-Use the named source archive and checksums from the Release to reproduce its build; GitHub-generated source ZIPs may have a different layout. Installers do not migrate legacy databases or local images.
+> The original [`v2.1.0` preview](https://github.com/WatchTestCs/smart-elderly-watch-management/releases/tag/v2.1.0) remains intact. Packages do not bundle MySQL or migrate legacy PostgreSQL records/images; back up first and follow the [MySQL-only migration guide](docs/MYSQL_ONLY_MIGRATION.md). Windows binaries are unsigned by default.
 
 ## Features
 
@@ -106,14 +104,20 @@ python scripts/bootstrap-admin.py
 
 ```mermaid
 flowchart LR
-    W["HarmonyOS watch"] -->|"Signed telemetry and SOS"| G["Go API and workers"]
-    V["Vue 3 / WebView2"] -->|"Same-origin HTTP"| G
-    V -->|"Restricted setup IPC"| R["Tauri / Rust shell"]
-    R -->|"Manage local process"| G
-    G -->|"Transactions, sessions, telemetry, encrypted images"| M[("MySQL 8.4")]
+  subgraph Desktop["Windows desktop"]
+    T["Tauri 2 / Rust"] -->|"SHA-256 verification and lifecycle"| L["Local Go child process"]
+    V["Vue 3 / WebView2"] -->|"Same-origin HTTP and sessions"| L
+    V -->|"Restricted setup IPC"| T
+  end
+  W["HarmonyOS watch / Rust simulator"] -->|"Controlled signed telemetry and SOS"| S["Standalone Go API"]
+  B["Browser workspace"] -->|"HTTPS /api/v1/"| S
+  L -->|"Business, sessions, image BLOBs"| M[("MySQL 8.4")]
+  S -->|"Authorized transactions and devices"| M
 ```
 
-MySQL is the only authoritative application datastore. Historical analytics table names and legacy status fields may remain to preserve contracts, but there is no live PostgreSQL analytics worker. When MySQL is down or the image migration is incomplete, business APIs stay unavailable rather than serving an inconsistent dataset. `/healthz` reports process liveness and `/api/v1/service/status` reports readiness. See [Workspace](docs/WORKSPACE.md), [API contracts](docs/API_CONTRACTS.md), and [MySQL migration](docs/MYSQL_ONLY_MIGRATION.md).
+MySQL 8.4 is the sole production datastore. The desktop validates the Go child process hash and passes its bootstrap token only via environment variables; `runtime/server.json` contains process-discovery information. Local desktop API binds to loopback. Remote watch and SOS reception requires a separately deployed, secured Go service with TLS and human response arrangements. PostgreSQL/S3 are historical migration inputs only.
+
+`/healthz` reports liveness, while `/api/v1/service/status` reports database readiness. See [architecture](docs/ARCHITECTURE.md) and [migration](docs/MYSQL_ONLY_MIGRATION.md).
 
 ## Source and builds
 
@@ -146,7 +150,7 @@ Building the Windows desktop package requires PowerShell 7, Node.js (`^20.19.0 |
 ./desktop/build.ps1
 ```
 
-The build script compiles the Vue frontend, embeds the assets into the Go binary, generates the sidecar SHA-256 manifest, builds the Tauri shell, and packages the NSIS installer into `outputs/v2.1.0-preview`.
+The build script compiles the Vue frontend, embeds the assets into the Go binary, generates the sidecar SHA-256 manifest, builds the Tauri shell, and packages the NSIS installer into `outputs/v2.1.0-stable`.
 
 ### Watch simulator and offline runs
 

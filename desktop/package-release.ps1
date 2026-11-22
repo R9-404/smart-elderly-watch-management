@@ -30,8 +30,11 @@ git -C $repo archive --format=zip --prefix="Suining-$version/" --output=$sourceZ
 if ($LASTEXITCODE -ne 0) { throw 'Source archive failed' }
 $notes = Get-Content -LiteralPath (Join-Path $repo "docs/releases/$version.md") -Raw
 if ($channel -eq 'stable') {
-    if (!$notes.Contains('这是预览渠道发布。')) { throw 'Stable release notes marker missing' }
-    $notes = $notes.Replace('这是预览渠道发布。', '这是稳定渠道发布。')
+    if ($notes.Contains('这是预览渠道发布。')) {
+        $notes = $notes.Replace('这是预览渠道发布。', '这是稳定渠道发布。')
+    } elseif (!$notes.Contains('这是稳定渠道发布。')) {
+        throw 'Stable release notes marker missing'
+    }
 }
 [IO.File]::WriteAllText((Join-Path $release 'Release-Notes-zh-CN.md'), $notes, [Text.UTF8Encoding]::new($false))
 
