@@ -6,6 +6,7 @@ import (
 	"fmt"
 
 	"suining-care/internal/familyaddress"
+	"suining-care/internal/health"
 	"suining-care/internal/residentprofile"
 )
 
@@ -33,6 +34,14 @@ func (t target) condition() string {
 
 func (t target) name() string { return t.table + "." + t.column }
 func (t target) fieldScope(keys []any) string {
+	switch t.table {
+	case "health_change":
+		return health.ChangePayloadScope(fmt.Sprint(keys[0]), fmt.Sprint(keys[1]), fmt.Sprint(keys[2]))
+	case "health_sample_latest":
+		return health.LatestPayloadScope(fmt.Sprint(keys[0]), fmt.Sprint(keys[1]), fmt.Sprint(keys[2]))
+	case "metric_daily":
+		return health.DailyResultScope(fmt.Sprint(keys[0]), fmt.Sprint(keys[1]))
+	}
 	if t.table == "auth_factor" {
 		return "totp:" + fmt.Sprint(keys[0]) + ":" + fmt.Sprint(keys[1])
 	}
@@ -92,5 +101,8 @@ func targets() []target {
 		{"guardian_contact_key_state", "key_verifier", []string{"singleton"}, "guardian-contact-key-state", directEnvelope},
 		{"family", "family_address_cipher", []string{"family_id"}, "", directEnvelope},
 		{"oldperson", "birthdate_cipher", []string{"old_id"}, "", directEnvelope},
+		{"health_change", "payload_cipher", []string{"revision", "old_id", "sample_id"}, "", directEnvelope},
+		{"health_sample_latest", "payload_cipher", []string{"old_id", "series_key", "revision"}, "", directEnvelope},
+		{"metric_daily", "result_cipher", []string{"cache_key", "computed_revision"}, "", directEnvelope},
 	}
 }

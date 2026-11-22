@@ -54,7 +54,7 @@ func TestContinuousDailySubmicrosecondInterval(t *testing.T) {
 	query := map[string]any{"oldId": 1, "source": "watch", "sourceDevice": "WATCH001", "metric": "steps", "semantics": "interval", "day": key.Day, "offsetMinutes": 0, "days": 1}
 	admin := withHealthPrincipal(h, session.Principal{Role: auth.RoleAdmin, ID: 11}, h.healthDaily)
 	api(t, admin, query)
-	if err := health.RefreshDaily(context.Background(), pool, key.ID()); err != nil {
+	if err := health.RefreshDaily(context.Background(), pool, key.ID(), h.Box); err != nil {
 		t.Fatal(err)
 	}
 	item := api(t, admin, query)["items"].([]any)[0].(map[string]any)

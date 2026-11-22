@@ -18,7 +18,7 @@ func TestBatchStatementsMatchOriginalAssembly(t *testing.T) {
 				want := [...]string{
 					expectedLookupSQL(rows),
 					batchUpsertPrefix + valueRows(rows, 14) + batchUpsertSuffix,
-					batchChangesPrefix + valueRows(rows, 4),
+					batchChangesPrefix + valueRows(rows, 5),
 				}
 				for kind := range want {
 					if got := batchSQL(batchSQLKind(kind), rows); got != want[kind] {
@@ -48,7 +48,7 @@ func BenchmarkCompleteBatchSQL(b *testing.B) {
 				for range b.N {
 					batchSQLSink = expectedLookupSQL(rows)
 					batchSQLSink = batchUpsertPrefix + valueRows(rows, 14) + batchUpsertSuffix
-					batchSQLSink = batchChangesPrefix + valueRows(rows, 4)
+					batchSQLSink = batchChangesPrefix + valueRows(rows, 5)
 				}
 			})
 			b.Run("statements", func(b *testing.B) {

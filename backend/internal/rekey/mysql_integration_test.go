@@ -10,6 +10,7 @@ import (
 	"suining-care/internal/db/dbtest"
 	"suining-care/internal/familyaddress"
 	"suining-care/internal/guardiancontact"
+	"suining-care/internal/health"
 	"suining-care/internal/residentprofile"
 	"suining-care/internal/userphone"
 )
@@ -99,6 +100,15 @@ func TestRekeyMySQL(t *testing.T) {
 	exec("UPDATE family SET family_address_cipher=?,family_address_protected=true WHERE family_id=7", address)
 	birthdate := sealed(t, old, "1956-02-29", residentprofile.BirthdateScope("7"))
 	exec("UPDATE oldperson SET birthdate_cipher=?,birthdate_protected=true WHERE old_id=7", birthdate)
+	sampleID := strings.Repeat("a", 64)
+	seriesKey := strings.Repeat("\x00\xff", 16)
+	dailyKey := strings.Repeat("b", 64)
+	exec("INSERT INTO health_change(revision,old_id,sample_id,payload_cipher) VALUES(8,7,?,?)",
+		sampleID, sealed(t, old, "{}", health.ChangePayloadScope("8", "7", sampleID)))
+	exec("INSERT INTO health_sample_latest(old_id,series_key,sample_id,epoch,revision,payload_cipher) VALUES(7,?,?,1,8,?)",
+		[]byte(seriesKey), sampleID, sealed(t, old, "{}", health.LatestPayloadScope("7", seriesKey, "8")))
+	exec("INSERT INTO metric_daily(cache_key,old_id,source,source_device,metric,semantics,record_day,offset_minutes,computed_revision,result_cipher) VALUES(?,7,'watch','device','heart_rate','instant','1956-02-29',0,8,?)",
+		dailyKey, sealed(t, old, "{}", health.DailyResultScope(dailyKey, "8")))
 	exec("INSERT INTO device(device_id,device_no,secret,old_id,last_lng,last_lat) VALUES(1,'REKEY-LAB',?,1,?,?)", strings.Repeat("x", 48), s("location"), s("location"))
 	exec("INSERT INTO care_incident(id,old_id,device_id,resolution_note) VALUES(1,1,1,?)", s("care-text"))
 	for _, id := range []int{1, 2, 10, 100} {
@@ -141,7 +151,7 @@ func TestRekeyMySQL(t *testing.T) {
 
 	t.Run("scan is readonly and covers all actual columns", func(t *testing.T) {
 		report, err := Run(ctx, database, current, old, options)
-		if err != nil || len(report.Before) != 28 || report.Stage != "complete" || report.EncryptedColumnsClean || report.RetirementAuthorized {
+		if err != nil || len(report.Before) != 31 || report.Stage != "complete" || report.EncryptedColumnsClean || report.RetirementAuthorized {
 			t.Fatalf("unexpected report: %+v err=%v", report, err)
 		}
 		for _, column := range report.Before {
@@ -166,7 +176,7 @@ func TestRekeyMySQL(t *testing.T) {
 				t.Fatal("incomplete apply")
 			}
 		}
-		if rewrites != 37 {
+		if rewrites != 40 {
 			t.Fatalf("pagination lost rows: rewrites=%d", rewrites)
 		}
 		options.Apply = false

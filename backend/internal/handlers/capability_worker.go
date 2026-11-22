@@ -37,7 +37,7 @@ func (h *Handler) CapabilityTick(ctx context.Context) error {
 		return err
 	}
 	for _, id := range ids {
-		if err = health.RefreshDaily(ctx, h.DB, id); err != nil {
+		if err = health.RefreshDaily(ctx, h.DB, id, h.Box); err != nil {
 			return err
 		}
 	}

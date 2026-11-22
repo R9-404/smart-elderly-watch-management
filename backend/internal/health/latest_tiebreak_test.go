@@ -36,7 +36,7 @@ func TestLatestBackfillMatchesIncrementalTieBreak(t *testing.T) {
 	}
 	check := func() {
 		t.Helper()
-		items, err := Latest(ctx, database, 1)
+		items, err := Latest(ctx, database, 1, nil)
 		if err != nil {
 			t.Fatal(err)
 		}

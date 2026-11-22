@@ -9,6 +9,8 @@ import (
 	"errors"
 	"fmt"
 	"strconv"
+
+	"suining-care/internal/securestore"
 )
 
 var ErrConflict = errors.New("same source record version has different content")
@@ -96,6 +98,12 @@ func prepareBatch(samples []Sample, device *string) (PreparedBatch, error) {
 // Save derives identity from the caller's locked owner and preserves the same
 // version/conflict/history transaction as SaveBatch.
 func (batch *PreparedBatch) Save(ctx context.Context, tx *sql.Tx, o Owner) (int64, int, error) {
+	return batch.SaveProtected(ctx, tx, o, nil)
+}
+
+// SaveProtected also seals the change feed and latest-series projection when
+// the service data key is configured.
+func (batch *PreparedBatch) SaveProtected(ctx context.Context, tx *sql.Tx, o Owner, box *securestore.Box) (int64, int, error) {
 	if batch == nil || len(batch.input) < 1 || len(batch.input) > 200 {
 		return 0, 0, fmt.Errorf("batch must contain 1..200 samples")
 	}
@@ -134,7 +142,7 @@ func (batch *PreparedBatch) Save(ctx context.Context, tx *sql.Tx, o Owner) (int6
 		input[index].revision = revision
 	}
 	cursor := max(selection.cursor, revision)
-	scratch := borrowBatchArgs(max(len(selection.final)*14, len(selection.events)*4))
+	scratch := borrowBatchArgs(max(len(selection.final)*14, len(selection.events)*5))
 	defer releaseBatchArgs(scratch)
 	args := scratch.values[:0]
 	ownerID, epoch := any(o.OldID), any(o.Epoch)
@@ -151,14 +159,16 @@ func (batch *PreparedBatch) Save(ctx context.Context, tx *sql.Tx, o Owner) (int6
 	// Exec consumes arguments synchronously; reuse the transaction-private backing
 	// array for history instead of allocating another large pointer slice.
 	args = args[:0]
-	var history *historyBuffer
-	args, history = appendChangeRows(args, o, input, selection.events)
+	args, history, err := appendChangeRows(args, o, input, selection.events, box)
 	defer releaseHistoryBuffer(history)
+	if err != nil {
+		return 0, 0, err
+	}
 	_, err = tx.ExecContext(ctx, batchSQL(batchChanges, len(selection.events)), args...)
 	if err != nil {
 		return 0, 0, fmt.Errorf("save health change: %w", err)
 	}
-	if err = refreshLatest(ctx, tx, o, input, selection.final); err != nil {
+	if err = refreshLatest(ctx, tx, o, input, selection.final, box); err != nil {
 		return 0, 0, err
 	}
 	// Invalidate all cached days for this owner, including the OLD date of a
@@ -172,7 +182,7 @@ func (batch *PreparedBatch) Save(ctx context.Context, tx *sql.Tx, o Owner) (int6
 
 // Each history event views its own span in one transaction-private buffer.
 // Exec consumes these bytes before the argument buffer is reused.
-func appendChangeRows(args []any, o Owner, input []preparedSample, events []uint8) ([]any, *historyBuffer) {
+func appendChangeRows(args []any, o Owner, input []preparedSample, events []uint8, box *securestore.Box) ([]any, *historyBuffer, error) {
 	var header [128]byte
 	ownerTail := append(header[:0], `","oldId":`...)
 	ownerTail = strconv.AppendInt(ownerTail, o.OldID, 10)
@@ -210,9 +220,13 @@ func appendChangeRows(args []any, o Owner, input []preparedSample, events []uint
 		payloads = append(payloads, event.payload...)
 		payloads = append(payloads, '}')
 		raw := json.RawMessage(payloads[start:len(payloads):len(payloads)])
-		args = append(args, event.revision, ownerID, event.id, raw)
+		stored, err := protectProjection(box, raw, changePayloadScope(event.revision, o.OldID, event.id))
+		if err != nil {
+			return nil, history, err
+		}
+		args = append(args, event.revision, ownerID, event.id, stored.JSON, stored.Cipher)
 	}
-	return args, history
+	return args, history, nil
 }
 
 func loadStoredSamples(ctx context.Context, tx *sql.Tx, ids []any, minimumVersion int64) (map[string]storedSample, error) {

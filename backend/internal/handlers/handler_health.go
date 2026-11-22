@@ -92,7 +92,7 @@ func (h *Handler) healthBatchWithLockOrder(w http.ResponseWriter, r *http.Reques
 	}
 	expectedOwner := *d.OldID
 	owner := health.Owner{OldID: expectedOwner, DeviceID: &d.ID, Epoch: d.HealthEpoch}
-	cursor, duplicates, err := batch.Save(ctx, tx, owner)
+	cursor, duplicates, err := batch.SaveProtected(ctx, tx, owner, h.Box)
 	if err != nil {
 		if errors.Is(err, health.ErrConflict) {
 			conflict409(w, err.Error())
@@ -158,7 +158,7 @@ func (h *Handler) healthChanges(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	defer tx.Rollback()
-	changes, err := health.ListChanges(r.Context(), tx, oldID, req.After, req.Limit)
+	changes, err := health.ListChanges(r.Context(), tx, oldID, req.After, req.Limit, h.Box)
 	if internalError(w, err) || internalError(w, tx.Commit()) {
 		return
 	}
