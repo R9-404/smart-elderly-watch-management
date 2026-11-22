@@ -19,14 +19,15 @@ import (
 func main() {
 	apply := flag.Bool("apply", false, "apply after stopping projection writers and verifying the backup and reader inventory")
 	limit := flag.Int("limit", 100, "maximum total rows per run, 1..1000")
+	samples := flag.Bool("samples", false, "migrate original samples")
 	flag.Parse()
-	if err := run(*limit, *apply); err != nil {
+	if err := run(*limit, *apply, *samples); err != nil {
 		fmt.Fprintln(os.Stderr, err)
 		os.Exit(1)
 	}
 }
 
-func run(limit int, apply bool) error {
+func run(limit int, apply, samples bool) error {
 	if flag.NArg() != 0 || limit < 1 || limit > 1000 {
 		return errors.New("provide a limit between 1 and 1000 without extra arguments")
 	}
@@ -41,7 +42,11 @@ func run(limit int, apply bool) error {
 		return errors.New("cannot open explicitly configured MySQL")
 	}
 	defer pool.Close()
-	columns, operationErr := health.BackfillProjections(ctx, pool.DB, box, limit, apply)
+	backfill := health.BackfillProjections
+	if samples {
+		backfill = health.BackfillHealthSamples
+	}
+	columns, operationErr := backfill(ctx, pool.DB, box, limit, apply)
 	mode := "scan"
 	if apply {
 		mode = "apply"

@@ -41,12 +41,16 @@ func TestHealthLatestPreservesSourcesPrecisionAndVersions(t *testing.T) {
 	deviceID := int64(1)
 	save := func(samples ...health.Sample) {
 		t.Helper()
+		batch, err := health.PrepareBatch(samples)
+		if err != nil {
+			t.Fatal(err)
+		}
 		tx, err := pool.BeginTx(context.Background(), &sql.TxOptions{Isolation: sql.LevelReadCommitted})
 		if err != nil {
 			t.Fatal(err)
 		}
 		defer tx.Rollback()
-		if _, _, err = health.SaveBatch(context.Background(), tx, health.Owner{OldID: 1, DeviceID: &deviceID, Epoch: 1}, samples); err != nil {
+		if _, _, err = batch.SaveProtected(context.Background(), tx, health.Owner{OldID: 1, DeviceID: &deviceID, Epoch: 1}, h.Box); err != nil {
 			t.Fatal(err)
 		}
 		if err = tx.Commit(); err != nil {

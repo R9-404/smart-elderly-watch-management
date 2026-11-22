@@ -9,7 +9,7 @@ type batchArgs struct {
 	tier   int
 }
 
-var batchArgLimits = [...]int{32, 128, 512, 1024, 2800}
+var batchArgLimits = [...]int{32, 128, 512, 1024, 3000}
 var batchArgPools [len(batchArgLimits)]sync.Pool
 
 func borrowBatchArgs(n int) *batchArgs {

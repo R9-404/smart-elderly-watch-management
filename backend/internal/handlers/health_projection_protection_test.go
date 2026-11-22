@@ -23,7 +23,7 @@ func TestHealthProjectionProtectionMySQL(t *testing.T) {
 	seedCareAdminDuty(t, pool, 11, "supervisor")
 	h.Box = nil
 	admin := session.Principal{Role: auth.RoleAdmin, ID: 11}
-	at := time.Date(2026, 10, 20, 9, 0, 0, 0, time.UTC)
+	at := time.Now().UTC().Truncate(24 * time.Hour).Add(-15 * time.Hour)
 	sample := health.Sample{RecordID: "health-legacy", Source: "watch", SourceDevice: "WATCH001",
 		Metric: "heart_rate", Unit: "count/min", Semantics: "instant", Value: health.Number(70), Start: at, End: at, Version: 1}
 	other := sample
@@ -32,7 +32,7 @@ func TestHealthProjectionProtectionMySQL(t *testing.T) {
 		t.Helper()
 		api(t, h.healthBatch, map[string]any{"deviceNo": "WATCH001", "secret": testSecret, "bindingVersion": 1, "samples": samples})
 	}
-	dailyKey := health.DailyKey{OldID: 1, Source: "watch", SourceDevice: "WATCH001", Metric: "heart_rate", Semantics: "instant", Day: "2026-10-20"}
+	dailyKey := health.DailyKey{OldID: 1, Source: "watch", SourceDevice: "WATCH001", Metric: "heart_rate", Semantics: "instant", Day: at.Format(time.DateOnly)}
 	dailyQuery := map[string]any{"oldId": 1, "source": "watch", "sourceDevice": "WATCH001", "metric": "heart_rate",
 		"semantics": "instant", "day": dailyKey.Day, "offsetMinutes": 0, "days": 1}
 	owner := map[string]any{"oldId": 1}
@@ -51,6 +51,7 @@ func TestHealthProjectionProtectionMySQL(t *testing.T) {
 		t.Fatal(err)
 	}
 	h.Box = old
+	h.healthCache = nil
 	sample.Value, sample.Version = health.Number(80), 2
 	upload(sample)
 	pending := func() []int {
@@ -78,14 +79,31 @@ func TestHealthProjectionProtectionMySQL(t *testing.T) {
 	if got := pending(); !reflect.DeepEqual(got, []int{0, 0, 0}) {
 		t.Fatalf("legacy projection plaintext remains: %v", got)
 	}
+	rawBackfill, err := health.BackfillHealthSamples(ctx, pool.DB, old, 1, true)
+	if err != nil || len(rawBackfill) != 1 || rawBackfill[0].Before != 1 || rawBackfill[0].Migrated != 1 ||
+		rawBackfill[0].Remaining == nil || *rawBackfill[0].Remaining != 0 {
+		t.Fatalf("legacy sample backfill: %v %v", rawBackfill, err)
+	}
+	var rawSamples, indexedValues int
+	if err := pool.QueryRowContext(ctx, "SELECT COUNT(payload),COUNT(rule_value) FROM health_sample").
+		Scan(&rawSamples, &indexedValues); err != nil || rawSamples != 0 || indexedValues != 0 {
+		t.Fatalf("sample or rule covering index still exposes values: %d/%d %v", rawSamples, indexedValues, err)
+	}
 	if err := health.RefreshDaily(ctx, pool, dailyKey.ID(), old); err != nil {
 		t.Fatal(err)
 	}
 	beforeChanges := api(t, changeRead, owner)
 	beforeLatest := api(t, latestRead, owner)
 	beforeDaily := api(t, dailyRead, dailyQuery)
+	statsRead := withHealthPrincipal(h, admin, h.healthStatistics)
+	statsQuery := map[string]any{"oldId": 1, "source": "watch", "sourceDevice": "WATCH001", "metric": "heart_rate",
+		"semantics": "instant", "from": at.Add(-time.Hour), "to": at.Add(time.Hour)}
+	beforeStats := api(t, statsRead, statsQuery)
+	baselineRead := withHealthPrincipal(h, admin, h.healthBaseline)
+	beforeBaseline := api(t, baselineRead, owner)
 	if len(beforeChanges["changes"].([]any)) != 3 || len(beforeLatest["items"].([]any)) != 2 ||
-		beforeDaily["items"].([]any)[0].(map[string]any)["statistics"].(map[string]any)["mean"] != float64(80) {
+		beforeDaily["items"].([]any)[0].(map[string]any)["statistics"].(map[string]any)["mean"] != float64(80) ||
+		beforeStats["statistics"].(map[string]any)["mean"] != float64(80) || beforeBaseline["value"] != float64(80) {
 		t.Fatal("protected health reads lost original values")
 	}
 
@@ -97,17 +115,25 @@ func TestHealthProjectionProtectionMySQL(t *testing.T) {
 	h.Box = retired
 	if !reflect.DeepEqual(api(t, changeRead, owner), beforeChanges) ||
 		!reflect.DeepEqual(api(t, latestRead, owner), beforeLatest) ||
-		!reflect.DeepEqual(api(t, dailyRead, dailyQuery), beforeDaily) {
+		!reflect.DeepEqual(api(t, dailyRead, dailyQuery), beforeDaily) ||
+		!reflect.DeepEqual(api(t, statsRead, statsQuery), beforeStats) ||
+		!reflect.DeepEqual(api(t, baselineRead, owner), beforeBaseline) {
 		t.Fatal("retired-reader configuration changed authorized projection responses")
 	}
 	h.Box = old
 	for _, endpoint := range []struct {
 		read  http.HandlerFunc
 		query map[string]any
-	}{{changeRead, owner}, {latestRead, owner}, {dailyRead, dailyQuery}} {
+	}{{changeRead, owner}, {latestRead, owner}, {dailyRead, dailyQuery}, {statsRead, statsQuery}, {baselineRead, owner}} {
 		if got := callAPI(endpoint.read, endpoint.query); got.Code != http.StatusInternalServerError {
 			t.Fatal("old-only reader received protected payloads after rotation")
 		}
+	}
+	sample.Version++
+	badUpdate := callAPI(h.healthBatch, map[string]any{"deviceNo": "WATCH001", "secret": testSecret,
+		"bindingVersion": 1, "samples": []health.Sample{sample}})
+	if badUpdate.Code != http.StatusInternalServerError {
+		t.Fatal("old-only writer replaced a protected sample")
 	}
 	h.Box = retired
 	var revision int64

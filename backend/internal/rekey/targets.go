@@ -35,6 +35,8 @@ func (t target) condition() string {
 func (t target) name() string { return t.table + "." + t.column }
 func (t target) fieldScope(keys []any) string {
 	switch t.table {
+	case "health_sample":
+		return health.SamplePayloadScope(fmt.Sprint(keys[0]), fmt.Sprint(keys[1]), fmt.Sprint(keys[2]))
 	case "health_change":
 		return health.ChangePayloadScope(fmt.Sprint(keys[0]), fmt.Sprint(keys[1]), fmt.Sprint(keys[2]))
 	case "health_sample_latest":
@@ -104,5 +106,6 @@ func targets() []target {
 		{"health_change", "payload_cipher", []string{"revision", "old_id", "sample_id"}, "", directEnvelope},
 		{"health_sample_latest", "payload_cipher", []string{"old_id", "series_key", "revision"}, "", directEnvelope},
 		{"metric_daily", "result_cipher", []string{"cache_key", "computed_revision"}, "", directEnvelope},
+		{"health_sample", "payload_cipher", []string{"sample_id", "old_id", "revision"}, "", directEnvelope},
 	}
 }

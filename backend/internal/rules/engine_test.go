@@ -127,9 +127,9 @@ func TestBaselineCoverUsesIndexWithoutPayloadLookups(t *testing.T) {
 		save(t, p, health.Sample{RecordID: fmt.Sprint(i), Source: "watch", SourceDevice: "RULE001", Metric: "heart_rate", Unit: "count/min", Value: health.Number(70), Start: at, End: at, Version: 1})
 	}
 	args := []any{int64(1), int64(1), "heart_rate", "watch", "RULE001", "watch", "RULE001", now.AddDate(0, 0, -7).UnixMicro(), now.Add(-15 * time.Minute).UnixMicro()}
-	var count int
+	var count, values int
 	var mean, deviation float64
-	if err := p.QueryRowContext(context.Background(), baselineCoverSQL, args...).Scan(&count, &mean, &deviation); err != nil || count != 20 || mean != 70 || deviation != 0 {
+	if err := p.QueryRowContext(context.Background(), baselineCoverSQL, args...).Scan(&count, &values, &mean, &deviation); err != nil || count != 20 || values != 20 || mean != 70 || deviation != 0 {
 		t.Fatalf("cover changed baseline: count=%d mean=%g deviation=%g err=%v", count, mean, deviation, err)
 	}
 	var raw string

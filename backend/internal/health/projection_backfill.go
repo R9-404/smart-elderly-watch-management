@@ -22,17 +22,18 @@ type ProjectionBackfillReport struct {
 
 type projectionTarget struct {
 	table, plaintext, ciphertext string
+	legacy, protected            string
 	keys                         []string
 	scope                        func([]string) string
 }
 
 func projectionTargets() []projectionTarget {
 	return []projectionTarget{
-		{"health_change", "payload", "payload_cipher", []string{"revision", "old_id", "sample_id"},
+		{"health_change", "payload", "payload_cipher", "payload IS NOT NULL", "payload_cipher IS NOT NULL", []string{"revision", "old_id", "sample_id"},
 			func(k []string) string { return ChangePayloadScope(k[0], k[1], k[2]) }},
-		{"health_sample_latest", "payload", "payload_cipher", []string{"old_id", "series_key", "revision"},
+		{"health_sample_latest", "payload", "payload_cipher", "payload IS NOT NULL", "payload_cipher IS NOT NULL", []string{"old_id", "series_key", "revision"},
 			func(k []string) string { return LatestPayloadScope(k[0], k[1], k[2]) }},
-		{"metric_daily", "result", "result_cipher", []string{"cache_key", "computed_revision"},
+		{"metric_daily", "result", "result_cipher", "result IS NOT NULL", "result_cipher IS NOT NULL", []string{"cache_key", "computed_revision"},
 			func(k []string) string { return DailyResultScope(k[0], k[1]) }},
 	}
 }
@@ -40,10 +41,21 @@ func projectionTargets() []projectionTarget {
 // BackfillProjections migrates bounded rows after an independent full reader
 // inventory. Stop projection writers and verify the backup before applying.
 func BackfillProjections(ctx context.Context, database *sql.DB, box *securestore.Box, limit int, apply bool) ([]ProjectionBackfillReport, error) {
+	return backfillHealthPayloads(ctx, database, box, projectionTargets(), limit, apply)
+}
+
+// BackfillHealthSamples uses the storage-mode index so each invocation can
+// resume from existing plaintext without rereading protected payloads.
+func BackfillHealthSamples(ctx context.Context, database *sql.DB, box *securestore.Box, limit int, apply bool) ([]ProjectionBackfillReport, error) {
+	target := projectionTarget{"health_sample", "payload", "payload_cipher", "payload_encrypted=false", "payload_encrypted=true",
+		[]string{"sample_id", "old_id", "revision"}, func(k []string) string { return SamplePayloadScope(k[0], k[1], k[2]) }}
+	return backfillHealthPayloads(ctx, database, box, []projectionTarget{target}, limit, apply)
+}
+
+func backfillHealthPayloads(ctx context.Context, database *sql.DB, box *securestore.Box, targets []projectionTarget, limit int, apply bool) ([]ProjectionBackfillReport, error) {
 	if database == nil || box == nil || limit < 1 || limit > 1000 {
 		return nil, errors.New("valid database, key and bounded health projection backfill required")
 	}
-	targets := projectionTargets()
 	reports := make([]ProjectionBackfillReport, len(targets))
 	for i, target := range targets {
 		reports[i].Table = target.table
@@ -93,7 +105,7 @@ func BackfillProjections(ctx context.Context, database *sql.DB, box *securestore
 
 func (t projectionTarget) pendingCount(ctx context.Context, database *sql.DB) (int64, error) {
 	var count int64
-	query := "SELECT COUNT(*) FROM " + t.table + " WHERE " + t.plaintext + " IS NOT NULL"
+	query := "SELECT COUNT(*) FROM " + t.table + " WHERE " + t.legacy
 	if err := database.QueryRowContext(ctx, query).Scan(&count); err != nil {
 		return 0, errors.New("cannot count pending health projection payloads")
 	}
@@ -104,7 +116,7 @@ func (t projectionTarget) verifyReader(ctx context.Context, database *sql.DB, bo
 	keys := strings.Join(t.keys, ",")
 	var stored ProjectionPayload
 	row := database.QueryRowContext(ctx, "SELECT "+keys+","+t.ciphertext+" FROM "+t.table+
-		" WHERE "+t.ciphertext+" IS NOT NULL ORDER BY "+keys+" LIMIT 1")
+		" WHERE "+t.protected+" ORDER BY "+keys+" LIMIT 1")
 	_, scope, err := t.scan(row, &stored.Cipher)
 	if errors.Is(err, sql.ErrNoRows) {
 		return nil
@@ -124,7 +136,7 @@ func (t projectionTarget) backfillRow(ctx context.Context, database *sql.DB, box
 	defer tx.Rollback()
 	keys := strings.Join(t.keys, ",")
 	params := strings.TrimSuffix(strings.Repeat("?,", len(t.keys)), ",")
-	query := "SELECT " + keys + "," + t.plaintext + " FROM " + t.table + " WHERE " + t.plaintext + " IS NOT NULL"
+	query := "SELECT " + keys + "," + t.plaintext + " FROM " + t.table + " WHERE " + t.legacy
 	if cursor != nil {
 		query += " AND (" + keys + ") > (" + params + ")"
 	}

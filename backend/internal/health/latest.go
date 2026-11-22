@@ -60,7 +60,7 @@ func Latest(ctx context.Context, store *db.Database, oldID int64, box *securesto
 		}
 		return items, nil
 	}
-	items, err := buildLatest(ctx, tx, oldID)
+	items, err := buildLatest(ctx, tx, oldID, box)
 	if err != nil {
 		return nil, err
 	}
@@ -115,9 +115,9 @@ func readLatest(ctx context.Context, q latestQuerier, oldID int64, box *securest
 	return items, nil
 }
 
-func buildLatest(ctx context.Context, q *sql.Tx, oldID int64) ([]Record, error) {
+func buildLatest(ctx context.Context, q *sql.Tx, oldID int64, box *securestore.Box) ([]Record, error) {
 	partition := "BINARY source,BINARY source_device,BINARY metric,BINARY semantics"
-	sql := "SELECT s.sample_id,s.device_id,s.epoch,s.revision,s.payload FROM health_sample s INNER JOIN (" +
+	sql := "SELECT s.sample_id,s.device_id,s.epoch,s.revision,s.payload,s.payload_cipher FROM health_sample s INNER JOIN (" +
 		"SELECT sample_id,RANK() OVER (PARTITION BY " + partition + " ORDER BY sample_start DESC) AS latest_rank " +
 		"FROM health_sample WHERE old_id=? AND NOT deleted) ranked ON ranked.sample_id=s.sample_id " +
 		"WHERE ranked.latest_rank=1 ORDER BY s.sample_id DESC LIMIT 10001"
@@ -135,8 +135,12 @@ func buildLatest(ctx context.Context, q *sql.Tx, oldID int64) ([]Record, error) 
 			return nil, ErrLatestTooManySeries
 		}
 		rec := Record{OldID: oldID}
-		var payload []byte
-		if err = rows.Scan(&rec.SampleID, &rec.DeviceID, &rec.Epoch, &rec.Revision, &payload); err != nil {
+		var stored ProjectionPayload
+		if err = rows.Scan(&rec.SampleID, &rec.DeviceID, &rec.Epoch, &rec.Revision, &stored.JSON, &stored.Cipher); err != nil {
+			return nil, err
+		}
+		payload, err := stored.OpenSample(box, rec.SampleID, oldID, rec.Revision)
+		if err != nil {
 			return nil, err
 		}
 		if err = json.Unmarshal(payload, &rec.Sample); err != nil {
@@ -219,7 +223,7 @@ func refreshLatestSeries(ctx context.Context, tx *sql.Tx, oldID int64, s Sample,
 		return err
 	}
 	filter := "BINARY source=BINARY ? AND BINARY source_device=BINARY ? AND BINARY metric=BINARY ? AND BINARY semantics=BINARY ?"
-	sql := "SELECT sample_id,device_id,epoch,revision,sample_start,payload FROM health_sample WHERE old_id=? AND " +
+	sql := "SELECT sample_id,device_id,epoch,revision,sample_start,payload,payload_cipher FROM health_sample WHERE old_id=? AND " +
 		filter + " AND NOT deleted ORDER BY sample_start DESC,revision DESC,sample_id DESC"
 	rows, err := tx.QueryContext(ctx, sql, oldID, s.Source, s.SourceDevice, s.Metric, s.Semantics)
 	if err != nil {
@@ -231,11 +235,16 @@ func refreshLatestSeries(ctx context.Context, tx *sql.Tx, oldID int64, s Sample,
 	for rows.Next() {
 		rec := Record{OldID: oldID}
 		var micro int64
-		var payload []byte
-		if err = rows.Scan(&rec.SampleID, &rec.DeviceID, &rec.Epoch, &rec.Revision, &micro, &payload); err != nil {
+		var stored ProjectionPayload
+		if err = rows.Scan(&rec.SampleID, &rec.DeviceID, &rec.Epoch, &rec.Revision, &micro, &stored.JSON, &stored.Cipher); err != nil {
 			break
 		}
 		if winner != nil && micro < maxMicro {
+			break
+		}
+		var payload []byte
+		payload, err = stored.OpenSample(box, rec.SampleID, oldID, rec.Revision)
+		if err != nil {
 			break
 		}
 		if err = json.Unmarshal(payload, &rec.Sample); err != nil {

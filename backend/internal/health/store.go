@@ -101,7 +101,7 @@ func (batch *PreparedBatch) Save(ctx context.Context, tx *sql.Tx, o Owner) (int6
 	return batch.SaveProtected(ctx, tx, o, nil)
 }
 
-// SaveProtected also seals the change feed and latest-series projection when
+// SaveProtected also seals samples, change events and latest-series payloads when
 // the service data key is configured.
 func (batch *PreparedBatch) SaveProtected(ctx context.Context, tx *sql.Tx, o Owner, box *securestore.Box) (int64, int, error) {
 	if batch == nil || len(batch.input) < 1 || len(batch.input) > 200 {
@@ -122,7 +122,7 @@ func (batch *PreparedBatch) SaveProtected(ctx context.Context, tx *sql.Tx, o Own
 	if err != nil {
 		return 0, 0, err
 	}
-	previous, err := loadStoredSamples(ctx, tx, ids, batch.minimumVersion)
+	previous, err := loadStoredSamples(ctx, tx, ids, batch.minimumVersion, o.OldID, box)
 	if err != nil {
 		return 0, 0, err
 	}
@@ -142,7 +142,7 @@ func (batch *PreparedBatch) SaveProtected(ctx context.Context, tx *sql.Tx, o Own
 		input[index].revision = revision
 	}
 	cursor := max(selection.cursor, revision)
-	scratch := borrowBatchArgs(max(len(selection.final)*14, len(selection.events)*5))
+	scratch := borrowBatchArgs(max(len(selection.final)*15, len(selection.events)*5))
 	defer releaseBatchArgs(scratch)
 	args := scratch.values[:0]
 	ownerID, epoch := any(o.OldID), any(o.Epoch)
@@ -150,7 +150,12 @@ func (batch *PreparedBatch) SaveProtected(ctx context.Context, tx *sql.Tx, o Own
 		item := &input[index]
 		id := item.id
 		s := &item.sample
-		args = append(args, id, ownerID, o.DeviceID, epoch, s.Version, item.revision, json.RawMessage(item.payload), s.Source, s.SourceDevice, s.Metric, s.Semantics, s.Start.UnixMicro(), s.End.UnixMicro(), s.Deleted)
+		stored, err := protectProjection(box, item.payload, samplePayloadScope(id, o.OldID, item.revision))
+		if err != nil {
+			return 0, 0, err
+		}
+		args = append(args, id, ownerID, o.DeviceID, epoch, s.Version, item.revision, stored.JSON, stored.Cipher,
+			s.Source, s.SourceDevice, s.Metric, s.Semantics, s.Start.UnixMicro(), s.End.UnixMicro(), s.Deleted)
 	}
 	_, err = tx.ExecContext(ctx, batchSQL(batchUpsert, len(selection.final)), args...)
 	if err != nil {
@@ -229,7 +234,7 @@ func appendChangeRows(args []any, o Owner, input []preparedSample, events []uint
 	return args, history, nil
 }
 
-func loadStoredSamples(ctx context.Context, tx *sql.Tx, ids []any, minimumVersion int64) (map[string]storedSample, error) {
+func loadStoredSamples(ctx context.Context, tx *sql.Tx, ids []any, minimumVersion, owner int64, box *securestore.Box) (map[string]storedSample, error) {
 	// Older stored versions cannot require equality/conflict comparison against
 	// any input in this batch. Keep their metadata but avoid serializing and
 	// transferring the JSON under the owner lock. Equal/newer versions retain
@@ -243,8 +248,17 @@ func loadStoredSamples(ctx context.Context, tx *sql.Tx, ids []any, minimumVersio
 	for rows.Next() {
 		var id string
 		var item storedSample
-		if err = rows.Scan(&id, &item.version, &item.revision, &item.payload); err != nil {
+		var stored ProjectionPayload
+		if err = rows.Scan(&id, &item.version, &item.revision, &stored.JSON, &stored.Cipher); err != nil {
 			break
+		}
+		if item.version >= minimumVersion || stored.Cipher != nil {
+			// Authenticate protected rows even when a newer version will replace
+			// them. Missing keys or corrupt ciphertext must not allow a rewrite.
+			item.payload, err = stored.OpenSample(box, id, owner, item.revision)
+			if err != nil {
+				break
+			}
 		}
 		previous[id] = item
 	}

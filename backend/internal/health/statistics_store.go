@@ -8,6 +8,7 @@ import (
 	fastjson "github.com/goccy/go-json"
 
 	"suining-care/internal/db"
+	"suining-care/internal/securestore"
 )
 
 type StatisticsQuery struct {
@@ -30,7 +31,7 @@ func StatisticsRevision(ctx context.Context, store db.RowQuerier, residentID int
 
 // LoadStatisticsSamples returns only samples inside the requested window,
 // retaining exact-byte matching under MySQL's trailing-space-insensitive collations.
-func LoadStatisticsSamples(ctx context.Context, store db.RowsQuerier, residentID int64, query StatisticsQuery) ([]Sample, int, error) {
+func LoadStatisticsSamples(ctx context.Context, store db.RowsQuerier, residentID int64, query StatisticsQuery, box *securestore.Box) ([]Sample, int, error) {
 	sourceFilter := "BINARY source=BINARY ? AND BINARY source_device=BINARY ? AND BINARY metric=BINARY ? AND BINARY semantics=BINARY ?"
 	upper := query.To.UnixMicro()
 	if query.To.Nanosecond()%1000 != 0 {
@@ -40,9 +41,15 @@ func LoadStatisticsSamples(ctx context.Context, store db.RowsQuerier, residentID
 	candidates := 0
 	err := db.QueryEach(ctx, store, func(rows *sql.Rows) error {
 		candidates++
-		var payload []byte
+		var id string
+		var revision int64
+		var stored ProjectionPayload
 		var sample Sample
-		if err := rows.Scan(&payload); err != nil {
+		if err := rows.Scan(&id, &revision, &stored.JSON, &stored.Cipher); err != nil {
+			return err
+		}
+		payload, err := stored.OpenSample(box, id, residentID, revision)
+		if err != nil {
 			return err
 		}
 		if err := fastjson.Unmarshal(payload, &sample); err != nil {
@@ -52,7 +59,7 @@ func LoadStatisticsSamples(ctx context.Context, store db.RowsQuerier, residentID
 			samples = append(samples, sample)
 		}
 		return nil
-	}, `SELECT payload FROM health_sample
+	}, `SELECT sample_id,revision,payload,payload_cipher FROM health_sample
 		 WHERE old_id=? AND `+sourceFilter+` AND NOT deleted
 		 AND sample_start<?
 		 AND (sample_start>=? OR (?='interval' AND sample_end>=?))

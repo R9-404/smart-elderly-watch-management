@@ -75,7 +75,7 @@ func (k DailyKey) Bounds() (time.Time, time.Time, error) {
 const dailyCacheSelectSQL = `SELECT old_id,source,source_device,metric,semantics,CAST(record_day AS CHAR),offset_minutes,dirty,
  computed_revision,result_cipher FROM metric_daily WHERE cache_key=? FOR UPDATE`
 
-const dailySamplesSQL = `SELECT payload FROM health_sample WHERE old_id=? AND BINARY source=BINARY ? AND BINARY source_device=BINARY ? AND BINARY metric=BINARY ? AND BINARY semantics=BINARY ? AND NOT deleted
+const dailySamplesSQL = `SELECT sample_id,revision,payload,payload_cipher FROM health_sample WHERE old_id=? AND BINARY source=BINARY ? AND BINARY source_device=BINARY ? AND BINARY metric=BINARY ? AND BINARY semantics=BINARY ? AND NOT deleted
  AND sample_start<? AND (sample_start>=? OR (?='interval' AND sample_end>=?)) ORDER BY revision LIMIT 100001`
 
 // RefreshDaily is serialized with Save's owner clock, so a completed result
@@ -128,10 +128,16 @@ func RefreshDaily(ctx context.Context, pool *db.Database, id string, box *secure
 	candidates := 0
 	for rows.Next() {
 		candidates++
-		var b []byte
+		var id string
+		var revision int64
+		var stored ProjectionPayload
 		var s Sample
-		if err = rows.Scan(&b); err == nil {
-			err = json.Unmarshal(b, &s)
+		if err = rows.Scan(&id, &revision, &stored.JSON, &stored.Cipher); err == nil {
+			var payload []byte
+			payload, err = stored.OpenSample(box, id, oldID, revision)
+			if err == nil {
+				err = json.Unmarshal(payload, &s)
+			}
 		}
 		if err != nil {
 			rows.Close()
