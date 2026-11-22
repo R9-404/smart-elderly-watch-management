@@ -59,7 +59,7 @@ func TestMySQLTwentyMinuteSoak(t *testing.T) {
 		defer bg.Done()
 		ticker := time.NewTicker(5 * time.Second)
 		defer ticker.Stop()
-		engine := &rules.Engine{DB: pool, Workers: 2}
+		engine := &rules.Engine{DB: pool, Box: handler.Box, Workers: 2}
 		for {
 			select {
 			case <-stop:

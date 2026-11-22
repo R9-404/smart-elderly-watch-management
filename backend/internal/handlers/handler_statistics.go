@@ -61,7 +61,7 @@ func (h *Handler) healthStatistics(w http.ResponseWriter, r *http.Request) {
 	samples, candidates, err := health.LoadStatisticsSamples(r.Context(), tx, oldID, health.StatisticsQuery{
 		Source: req.Source, SourceDevice: req.SourceDevice, Metric: req.Metric,
 		Semantics: req.Semantics, From: req.From, To: req.To,
-	})
+	}, h.Box)
 	if internalError(w, err) {
 		return
 	}

@@ -11,6 +11,7 @@ import (
 	"sort"
 
 	"suining-care/internal/db"
+	"suining-care/internal/securestore"
 )
 
 var ErrLatestTooManySeries = errors.New("health latest candidates exceed 10000")
@@ -29,13 +30,13 @@ func latestReady(ctx context.Context, q latestQuerier, oldID int64) (bool, error
 	return err == nil, err
 }
 
-func Latest(ctx context.Context, store *db.Database, oldID int64) ([]Record, error) {
+func Latest(ctx context.Context, store *db.Database, oldID int64, box *securestore.Box) ([]Record, error) {
 	ready, err := latestReady(ctx, store, oldID)
 	if err != nil {
 		return nil, err
 	}
 	if ready {
-		return readLatest(ctx, store, oldID)
+		return readLatest(ctx, store, oldID, box)
 	}
 	tx, err := store.BeginTx(ctx, &sql.TxOptions{Isolation: sql.LevelReadCommitted})
 	if err != nil {
@@ -50,7 +51,7 @@ func Latest(ctx context.Context, store *db.Database, oldID int64) ([]Record, err
 		return nil, err
 	}
 	if ready {
-		items, readErr := readLatest(ctx, tx, oldID)
+		items, readErr := readLatest(ctx, tx, oldID, box)
 		if readErr != nil {
 			return nil, readErr
 		}
@@ -59,7 +60,7 @@ func Latest(ctx context.Context, store *db.Database, oldID int64) ([]Record, err
 		}
 		return items, nil
 	}
-	items, err := buildLatest(ctx, tx, oldID)
+	items, err := buildLatest(ctx, tx, oldID, box)
 	if err != nil {
 		return nil, err
 	}
@@ -68,7 +69,7 @@ func Latest(ctx context.Context, store *db.Database, oldID int64) ([]Record, err
 		if marshalErr != nil {
 			return nil, marshalErr
 		}
-		if err = insertLatest(ctx, tx, item, payload); err != nil {
+		if err = insertLatest(ctx, tx, item, payload, box); err != nil {
 			return nil, err
 		}
 	}
@@ -81,8 +82,8 @@ func Latest(ctx context.Context, store *db.Database, oldID int64) ([]Record, err
 	return items, nil
 }
 
-func readLatest(ctx context.Context, q latestQuerier, oldID int64) ([]Record, error) {
-	rows, err := q.QueryContext(ctx, "SELECT sample_id,device_id,epoch,revision,payload FROM health_sample_latest WHERE old_id=? LIMIT 10001", oldID)
+func readLatest(ctx context.Context, q latestQuerier, oldID int64, box *securestore.Box) ([]Record, error) {
+	rows, err := q.QueryContext(ctx, "SELECT sample_id,device_id,epoch,revision,series_key,payload,payload_cipher FROM health_sample_latest WHERE old_id=? LIMIT 10001", oldID)
 	if err != nil {
 		return nil, err
 	}
@@ -93,8 +94,13 @@ func readLatest(ctx context.Context, q latestQuerier, oldID int64) ([]Record, er
 			return nil, ErrLatestTooManySeries
 		}
 		rec := Record{OldID: oldID}
-		var payload []byte
-		if err = rows.Scan(&rec.SampleID, &rec.DeviceID, &rec.Epoch, &rec.Revision, &payload); err != nil {
+		var series []byte
+		var stored ProjectionPayload
+		if err = rows.Scan(&rec.SampleID, &rec.DeviceID, &rec.Epoch, &rec.Revision, &series, &stored.JSON, &stored.Cipher); err != nil {
+			return nil, err
+		}
+		payload, err := stored.Open(box, latestPayloadScope(oldID, series, rec.Revision))
+		if err != nil {
 			return nil, err
 		}
 		if err = json.Unmarshal(payload, &rec.Sample); err != nil {
@@ -109,9 +115,9 @@ func readLatest(ctx context.Context, q latestQuerier, oldID int64) ([]Record, er
 	return items, nil
 }
 
-func buildLatest(ctx context.Context, q *sql.Tx, oldID int64) ([]Record, error) {
+func buildLatest(ctx context.Context, q *sql.Tx, oldID int64, box *securestore.Box) ([]Record, error) {
 	partition := "BINARY source,BINARY source_device,BINARY metric,BINARY semantics"
-	sql := "SELECT s.sample_id,s.device_id,s.epoch,s.revision,s.payload FROM health_sample s INNER JOIN (" +
+	sql := "SELECT s.sample_id,s.device_id,s.epoch,s.revision,s.payload,s.payload_cipher FROM health_sample s INNER JOIN (" +
 		"SELECT sample_id,RANK() OVER (PARTITION BY " + partition + " ORDER BY sample_start DESC) AS latest_rank " +
 		"FROM health_sample WHERE old_id=? AND NOT deleted) ranked ON ranked.sample_id=s.sample_id " +
 		"WHERE ranked.latest_rank=1 ORDER BY s.sample_id DESC LIMIT 10001"
@@ -129,8 +135,12 @@ func buildLatest(ctx context.Context, q *sql.Tx, oldID int64) ([]Record, error) 
 			return nil, ErrLatestTooManySeries
 		}
 		rec := Record{OldID: oldID}
-		var payload []byte
-		if err = rows.Scan(&rec.SampleID, &rec.DeviceID, &rec.Epoch, &rec.Revision, &payload); err != nil {
+		var stored ProjectionPayload
+		if err = rows.Scan(&rec.SampleID, &rec.DeviceID, &rec.Epoch, &rec.Revision, &stored.JSON, &stored.Cipher); err != nil {
+			return nil, err
+		}
+		payload, err := stored.OpenSample(box, rec.SampleID, oldID, rec.Revision)
+		if err != nil {
 			return nil, err
 		}
 		if err = json.Unmarshal(payload, &rec.Sample); err != nil {
@@ -170,14 +180,18 @@ func latestKey(s Sample) [32]byte {
 	return sha256.Sum256(buf)
 }
 
-func insertLatest(ctx context.Context, tx *sql.Tx, rec Record, payload []byte) error {
+func insertLatest(ctx context.Context, tx *sql.Tx, rec Record, payload []byte, box *securestore.Box) error {
 	key := latestKey(rec.Sample)
-	_, err := tx.ExecContext(ctx, "INSERT INTO health_sample_latest(old_id,series_key,sample_id,device_id,epoch,revision,payload) VALUES(?,?,?,?,?,?,?)",
-		rec.OldID, key[:], rec.SampleID, rec.DeviceID, rec.Epoch, rec.Revision, payload)
+	stored, err := protectProjection(box, payload, latestPayloadScope(rec.OldID, key[:], rec.Revision))
+	if err != nil {
+		return err
+	}
+	_, err = tx.ExecContext(ctx, "INSERT INTO health_sample_latest(old_id,series_key,sample_id,device_id,epoch,revision,payload,payload_cipher) VALUES(?,?,?,?,?,?,?,?)",
+		rec.OldID, key[:], rec.SampleID, rec.DeviceID, rec.Epoch, rec.Revision, stored.JSON, stored.Cipher)
 	return err
 }
 
-func refreshLatest(ctx context.Context, tx *sql.Tx, o Owner, input []preparedSample, final []uint8) error {
+func refreshLatest(ctx context.Context, tx *sql.Tx, o Owner, input []preparedSample, final []uint8, box *securestore.Box) error {
 	ready, err := latestReady(ctx, tx, o.OldID)
 	if err != nil || !ready {
 		return err
@@ -190,16 +204,26 @@ func refreshLatest(ctx context.Context, tx *sql.Tx, o Owner, input []preparedSam
 			continue
 		}
 		seen[key] = struct{}{}
-		if err = refreshLatestSeries(ctx, tx, o.OldID, sample, key); err != nil {
+		if err = refreshLatestSeries(ctx, tx, o.OldID, sample, key, box); err != nil {
 			return err
 		}
 	}
 	return nil
 }
 
-func refreshLatestSeries(ctx context.Context, tx *sql.Tx, oldID int64, s Sample, key [32]byte) error {
+func refreshLatestSeries(ctx context.Context, tx *sql.Tx, oldID int64, s Sample, key [32]byte, box *securestore.Box) error {
+	var oldRevision int64
+	var old ProjectionPayload
+	err := tx.QueryRowContext(ctx, "SELECT revision,payload_cipher FROM health_sample_latest WHERE old_id=? AND series_key=? FOR UPDATE", oldID, key[:]).
+		Scan(&oldRevision, &old.Cipher)
+	if err != nil && !errors.Is(err, sql.ErrNoRows) {
+		return err
+	}
+	if _, err := old.Open(box, latestPayloadScope(oldID, key[:], oldRevision)); err != nil {
+		return err
+	}
 	filter := "BINARY source=BINARY ? AND BINARY source_device=BINARY ? AND BINARY metric=BINARY ? AND BINARY semantics=BINARY ?"
-	sql := "SELECT sample_id,device_id,epoch,revision,sample_start,payload FROM health_sample WHERE old_id=? AND " +
+	sql := "SELECT sample_id,device_id,epoch,revision,sample_start,payload,payload_cipher FROM health_sample WHERE old_id=? AND " +
 		filter + " AND NOT deleted ORDER BY sample_start DESC,revision DESC,sample_id DESC"
 	rows, err := tx.QueryContext(ctx, sql, oldID, s.Source, s.SourceDevice, s.Metric, s.Semantics)
 	if err != nil {
@@ -211,11 +235,16 @@ func refreshLatestSeries(ctx context.Context, tx *sql.Tx, oldID int64, s Sample,
 	for rows.Next() {
 		rec := Record{OldID: oldID}
 		var micro int64
-		var payload []byte
-		if err = rows.Scan(&rec.SampleID, &rec.DeviceID, &rec.Epoch, &rec.Revision, &micro, &payload); err != nil {
+		var stored ProjectionPayload
+		if err = rows.Scan(&rec.SampleID, &rec.DeviceID, &rec.Epoch, &rec.Revision, &micro, &stored.JSON, &stored.Cipher); err != nil {
 			break
 		}
 		if winner != nil && micro < maxMicro {
+			break
+		}
+		var payload []byte
+		payload, err = stored.OpenSample(box, rec.SampleID, oldID, rec.Revision)
+		if err != nil {
 			break
 		}
 		if err = json.Unmarshal(payload, &rec.Sample); err != nil {
@@ -239,7 +268,7 @@ func refreshLatestSeries(ctx context.Context, tx *sql.Tx, oldID int64, s Sample,
 		return err
 	}
 	if winner != nil {
-		return insertLatest(ctx, tx, *winner, winnerPayload)
+		return insertLatest(ctx, tx, *winner, winnerPayload, box)
 	}
 	return nil
 }

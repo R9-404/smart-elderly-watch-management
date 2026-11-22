@@ -38,19 +38,26 @@ type payloadReader interface {
 	QueryRowContext(context.Context, string, ...any) *sql.Row
 }
 
+// The logical name remains the AAD scope. Older rows carry their original
+// ciphertext inline. Rotated rows reference a separately inserted generation.
+const activePayload = "COALESCE(p.payload,g.payload)"
+const activeGenerationJoin = " LEFT JOIN image_payload_generation g ON g.name=p.name AND g.generation=p.active_generation"
+const boundedActivePayload = "CASE WHEN OCTET_LENGTH(" + activePayload + ")<=? THEN " + activePayload + " END"
+
 func getPayload(ctx context.Context, reader payloadReader, key string) ([]byte, error) {
 	if !ValidKey(key) {
 		return nil, ErrNotFound
 	}
 	var data []byte
-	err := reader.QueryRowContext(ctx, "SELECT payload FROM image_payload WHERE name=?", key).Scan(&data)
+	err := reader.QueryRowContext(ctx, "SELECT "+boundedActivePayload+" FROM image_payload p"+activeGenerationJoin+" WHERE p.name=?",
+		MaxStoredBytes, key).Scan(&data)
 	if errors.Is(err, sql.ErrNoRows) {
 		return nil, ErrNotFound
 	}
 	if err != nil {
 		return nil, err
 	}
-	if len(data) > MaxStoredBytes {
+	if len(data) == 0 {
 		return nil, ErrIntegrity
 	}
 	return data, nil
@@ -77,9 +84,15 @@ func (s *MySQL) Delete(ctx context.Context, key string) error {
 // Walk paginates without keeping a database connection while the callback
 // makes its own MySQL queries, including transactional GC/catalog operations.
 func (s *MySQL) Walk(ctx context.Context, visit func(Entry) error) error {
-	var after string
+	var after *string
 	for {
-		rows, err := s.db.QueryContext(ctx, "SELECT name,OCTET_LENGTH(payload),created_at FROM image_payload WHERE name>? ORDER BY name LIMIT 128", after)
+		query := "SELECT p.name,COALESCE(OCTET_LENGTH(" + activePayload + "),0),p.created_at FROM image_payload p" + activeGenerationJoin
+		var args []any
+		if after != nil {
+			query += " WHERE p.name>?"
+			args = append(args, *after)
+		}
+		rows, err := s.db.QueryContext(ctx, query+" ORDER BY p.name LIMIT 128", args...)
 		if err != nil {
 			return err
 		}
@@ -107,7 +120,7 @@ func (s *MySQL) Walk(ctx context.Context, visit func(Entry) error) error {
 			if err := visit(item); err != nil {
 				return err
 			}
-			after = item.Key
+			after = &item.Key
 		}
 		if len(batch) < 128 {
 			return nil
@@ -150,8 +163,8 @@ func (s *Encrypted) putMySQLCatalog(ctx context.Context, database *sql.DB, key s
 		return err
 	}
 	defer tx.Rollback()
-	if _, err = tx.ExecContext(ctx, "INSERT INTO image_payload(name,payload) VALUES(?,?)", key, []byte(ciphertext)); err == nil {
-		_, err = tx.ExecContext(ctx, "INSERT INTO image_blob(name,content_sha256,size_bytes,state) VALUES(?,?,?,'ready')", key, Digest(data), len(data))
+	if _, err = tx.ExecContext(ctx, "INSERT INTO image_blob(name,content_sha256,size_bytes,state) VALUES(?,?,?,'ready')", key, Digest(data), len(data)); err == nil {
+		_, err = tx.ExecContext(ctx, "INSERT INTO image_payload(name,payload) VALUES(?,?)", key, []byte(ciphertext))
 	}
 	if err != nil {
 		var duplicate *mysql.MySQLError

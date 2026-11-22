@@ -15,22 +15,28 @@ import (
 )
 
 const oldPersonCols = `old_id, name, age, sex, phone, room, illness, warn, food_like,
-	food_hate, drag, family_id, customer_id, be_time, bothdate, device_id,care_profile_cipher,phone_lookup,care_profile_protected`
+	food_hate, drag, family_id, customer_id, be_time, device_id,care_profile_cipher,phone_lookup,care_profile_protected,
+	bothdate,birthdate_cipher,birthdate_protected`
 
 func scanOldPersonRow(row *sql.Rows, box *securestore.Box) (map[string]any, error) {
 	var id int64
 	var name, sex, phone, room, illness, warn, drag, foodLike, foodHate *string
 	var profile residentprofile.Record
+	var birthday residentprofile.BirthdateRecord
 	var age *int
 	var familyID, customerID, deviceID *int64
-	var beTime, bothdate *time.Time
+	var beTime *time.Time
 	if err := row.Scan(&id, &name, &age, &sex, &phone, &room, &illness, &warn,
-		&foodLike, &foodHate, &drag, &familyID, &customerID, &beTime, &bothdate, &deviceID,
-		&profile.Cipher, &profile.Lookup, &profile.Protected); err != nil {
+		&foodLike, &foodHate, &drag, &familyID, &customerID, &beTime, &deviceID,
+		&profile.Cipher, &profile.Lookup, &profile.Protected, &birthday.Legacy, &birthday.Cipher, &birthday.Protected); err != nil {
 		return nil, err
 	}
 	profile.Legacy = residentprofile.Values{Phone: phone, Room: room, Illness: illness, Warn: warn, FoodLike: foodLike, FoodHate: foodHate, Drag: drag}
 	values, err := profile.Open(box, id)
+	if err != nil {
+		return nil, err
+	}
+	bothdate, err := birthday.Open(box, id)
 	if err != nil {
 		return nil, err
 	}
@@ -90,11 +96,11 @@ func (h *Handler) getResidentDetails(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	base := `SELECT o.old_id, o.name, o.age, o.sex, o.phone, o.room, o.illness, o.warn,
-		o.food_like, o.food_hate, o.drag, o.family_id, o.customer_id, o.be_time, o.bothdate,
+		o.food_like, o.food_hate, o.drag, o.family_id, o.customer_id, o.be_time,
 		o.device_id, f.family_name, f.family_relation, f.family_phone, f.family_sex,
 		f.family_address,f.family_address_cipher,f.family_address_protected,c.customer_name,
 		f.family_phone_cipher,f.family_phone_lookup,f.family_phone_protected,
-		o.care_profile_cipher,o.phone_lookup,o.care_profile_protected
+		o.care_profile_cipher,o.phone_lookup,o.care_profile_protected,o.bothdate,o.birthdate_cipher,o.birthdate_protected
 		FROM oldperson o LEFT JOIN family f ON f.family_id=o.family_id
 		LEFT JOIN customer c ON c.customer_id=o.customer_id
 		WHERE (?='' OR o.name LIKE CONCAT('%',?,'%')) ORDER BY o.old_id`
@@ -107,21 +113,26 @@ func (h *Handler) getResidentDetails(w http.ResponseWriter, r *http.Request) {
 		var name, sex, phone, room, illness, warn, drag, foodLike, foodHate *string
 		var age *int
 		var familyID, customerID, deviceID *int64
-		var beTime, bothdate *time.Time
+		var beTime *time.Time
 		var familyName, familyRelation, familyPhone, familySex, familyAddress, customerName *string
 		var record userphone.Record
 		var address familyaddress.Record
 		var profile residentprofile.Record
+		var birthday residentprofile.BirthdateRecord
 		var protected, addressProtected sql.NullBool
 		if err := rows.Scan(&id, &name, &age, &sex, &phone, &room, &illness, &warn,
-			&foodLike, &foodHate, &drag, &familyID, &customerID, &beTime, &bothdate, &deviceID,
+			&foodLike, &foodHate, &drag, &familyID, &customerID, &beTime, &deviceID,
 			&familyName, &familyRelation, &familyPhone, &familySex, &address.Legacy, &address.Cipher, &addressProtected,
 			&customerName, &record.Cipher, &record.Lookup, &protected,
-			&profile.Cipher, &profile.Lookup, &profile.Protected); err != nil {
+			&profile.Cipher, &profile.Lookup, &profile.Protected, &birthday.Legacy, &birthday.Cipher, &birthday.Protected); err != nil {
 			return nil, err
 		}
 		profile.Legacy = residentprofile.Values{Phone: phone, Room: room, Illness: illness, Warn: warn, FoodLike: foodLike, FoodHate: foodHate, Drag: drag}
 		values, err := profile.Open(h.Box, id)
+		if err != nil {
+			return nil, err
+		}
+		bothdate, err := birthday.Open(h.Box, id)
 		if err != nil {
 			return nil, err
 		}

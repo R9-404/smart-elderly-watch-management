@@ -6,6 +6,8 @@ import (
 	"fmt"
 
 	"suining-care/internal/familyaddress"
+	"suining-care/internal/health"
+	"suining-care/internal/residentprofile"
 )
 
 type target struct {
@@ -32,6 +34,16 @@ func (t target) condition() string {
 
 func (t target) name() string { return t.table + "." + t.column }
 func (t target) fieldScope(keys []any) string {
+	switch t.table {
+	case "health_sample":
+		return health.SamplePayloadScope(fmt.Sprint(keys[0]), fmt.Sprint(keys[1]), fmt.Sprint(keys[2]))
+	case "health_change":
+		return health.ChangePayloadScope(fmt.Sprint(keys[0]), fmt.Sprint(keys[1]), fmt.Sprint(keys[2]))
+	case "health_sample_latest":
+		return health.LatestPayloadScope(fmt.Sprint(keys[0]), fmt.Sprint(keys[1]), fmt.Sprint(keys[2]))
+	case "metric_daily":
+		return health.DailyResultScope(fmt.Sprint(keys[0]), fmt.Sprint(keys[1]))
+	}
 	if t.table == "auth_factor" {
 		return "totp:" + fmt.Sprint(keys[0]) + ":" + fmt.Sprint(keys[1])
 	}
@@ -49,6 +61,9 @@ func (t target) fieldScope(keys []any) string {
 	}
 	if t.table == "oldperson" && t.column == "care_profile_cipher" {
 		return "resident-care-profile:" + fmt.Sprint(keys[0])
+	}
+	if t.table == "oldperson" && t.column == "birthdate_cipher" {
+		return residentprofile.BirthdateScope(fmt.Sprint(keys[0]))
 	}
 	if t.table == "customer" && t.column == "contact_cipher" {
 		return "guardian-contact:" + fmt.Sprint(keys[0])
@@ -87,5 +102,10 @@ func targets() []target {
 		{"customer", "contact_cipher", []string{"customer_id"}, "", directEnvelope},
 		{"guardian_contact_key_state", "key_verifier", []string{"singleton"}, "guardian-contact-key-state", directEnvelope},
 		{"family", "family_address_cipher", []string{"family_id"}, "", directEnvelope},
+		{"oldperson", "birthdate_cipher", []string{"old_id"}, "", directEnvelope},
+		{"health_change", "payload_cipher", []string{"revision", "old_id", "sample_id"}, "", directEnvelope},
+		{"health_sample_latest", "payload_cipher", []string{"old_id", "series_key", "revision"}, "", directEnvelope},
+		{"metric_daily", "result_cipher", []string{"cache_key", "computed_revision"}, "", directEnvelope},
+		{"health_sample", "payload_cipher", []string{"sample_id", "old_id", "revision"}, "", directEnvelope},
 	}
 }

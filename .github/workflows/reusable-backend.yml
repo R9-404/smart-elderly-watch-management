@@ -52,6 +52,7 @@ jobs:
         working-directory: backend
         env:
           TEST_MYSQL_DSN: root:ci_root_only@tcp(localhost:3306)/suining_test
+          TEST_MYSQL_CONTAINER_ID: ${{ job.services.mysql.id }}
         run: |
           set -euo pipefail
           mkdir -p ../evidence/ci/backend-${{ matrix.go-version }}

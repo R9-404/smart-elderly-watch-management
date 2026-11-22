@@ -8,6 +8,7 @@ import (
 	"fmt"
 
 	"suining-care/internal/health"
+	"suining-care/internal/securestore"
 	"time"
 )
 
@@ -49,7 +50,7 @@ func readRulePolicy(ctx context.Context, tx *sql.Tx, id int64) (Policy, error) {
 
 }
 
-func collectRuleInput(ctx context.Context, tx *sql.Tx, device ruleDevice, p Policy, now time.Time) (Input, error) {
+func collectRuleInput(ctx context.Context, tx *sql.Tx, device ruleDevice, p Policy, now time.Time, box *securestore.Box) (Input, error) {
 	last, bound, battery := device.last, device.bound, device.battery
 	in := Input{Now: now, Baselines: map[string]Baseline{}}
 	if last != nil {
@@ -60,23 +61,23 @@ func collectRuleInput(ctx context.Context, tx *sql.Tx, device ruleDevice, p Poli
 	if battery != nil && last != nil {
 		in.Battery = &Value{Value: *battery, Key: last.Format(time.RFC3339Nano), At: *last}
 	}
-	if err := readLatestRuleObservations(ctx, tx, device, p, &in); err != nil {
+	if err := readLatestRuleObservations(ctx, tx, device, p, &in, box); err != nil {
 		return Input{}, err
 	}
 	if err := readLegacyRuleVitals(ctx, tx, device, p, &in); err != nil {
 		return Input{}, err
 	}
-	if err := readRuleBaselines(ctx, tx, device, p, &in); err != nil {
+	if err := readRuleBaselines(ctx, tx, device, p, &in, box); err != nil {
 		return Input{}, err
 	}
-	if err := readRuleActivity(ctx, tx, device, p, &in); err != nil {
+	if err := readRuleActivity(ctx, tx, device, p, &in, box); err != nil {
 		return Input{}, err
 	}
 	return in, nil
 
 }
 
-func readLatestRuleObservations(ctx context.Context, tx *sql.Tx, device ruleDevice, p Policy, in *Input) error {
+func readLatestRuleObservations(ctx context.Context, tx *sql.Tx, device ruleDevice, p Policy, in *Input, box *securestore.Box) error {
 	id, oldID, epoch := device.id, device.oldID, device.epoch
 	now := in.Now
 	var err error
@@ -89,16 +90,21 @@ func readLatestRuleObservations(ctx context.Context, tx *sql.Tx, device ruleDevi
 		}
 		var sampleID string
 		var revision int64
-		var b []byte
-		err = tx.QueryRowContext(ctx, latestSampleSQL, oldID, id, epoch, metric, now.Add(-window).UnixMicro(), now.UnixMicro()).Scan(&sampleID, &revision, &b)
+		var stored health.ProjectionPayload
+		err = tx.QueryRowContext(ctx, latestSampleSQL, oldID, id, epoch, metric, now.Add(-window).UnixMicro(), now.UnixMicro()).
+			Scan(&sampleID, &revision, &stored.JSON, &stored.Cipher)
 		if errors.Is(err, sql.ErrNoRows) {
 			continue
 		}
 		if err != nil {
 			return err
 		}
+		payload, err := stored.OpenSample(box, sampleID, oldID, revision)
+		if err != nil {
+			return err
+		}
 		var sample health.Sample
-		if err = json.Unmarshal(b, &sample); err != nil {
+		if err = json.Unmarshal(payload, &sample); err != nil {
 			return err
 		}
 		if sample.Value == nil || sample.TimeBasis == "legacy-unzoned" {
@@ -145,10 +151,7 @@ func readLegacyRuleVitals(ctx context.Context, tx *sql.Tx, device ruleDevice, p 
 
 }
 
-func readRuleBaselines(ctx context.Context, tx *sql.Tx, device ruleDevice, p Policy, in *Input) error {
-	id, oldID := device.id, device.oldID
-	now := in.Now
-	var err error
+func readRuleBaselines(ctx context.Context, tx *sql.Tx, device ruleDevice, p Policy, in *Input, box *securestore.Box) error {
 	for _, item := range []struct {
 		kind, metric string
 		v            *Value
@@ -156,17 +159,7 @@ func readRuleBaselines(ctx context.Context, tx *sql.Tx, device ruleDevice, p Pol
 		if item.v == nil || item.v.Source == "legacy" {
 			continue
 		}
-		var base Baseline
-		query := `SELECT count(*),COALESCE(avg(CAST(JSON_UNQUOTE(JSON_EXTRACT(payload,'$.value')) AS DOUBLE)),0),COALESCE(stddev_pop(CAST(JSON_UNQUOTE(JSON_EXTRACT(payload,'$.value')) AS DOUBLE)),0)
- FROM health_sample WHERE old_id=? AND device_id=? AND metric=? AND deleted=false
- AND source=? AND source_device=? AND BINARY source=BINARY ? AND BINARY source_device=BINARY ?
- AND sample_start>=? AND sample_start<? AND (JSON_UNQUOTE(JSON_EXTRACT(payload,'$.timeBasis')) IS NULL OR JSON_UNQUOTE(JSON_EXTRACT(payload,'$.timeBasis'))<>'legacy-unzoned')`
-		if len(item.v.Device) <= 64 {
-			// All predicates and values are present in this index. Avoid random
-			// payload reads while holding the device lock as history grows.
-			query = baselineCoverSQL
-		}
-		err = tx.QueryRowContext(ctx, query, oldID, id, item.metric, item.v.Source, item.v.Device, item.v.Source, item.v.Device, now.AddDate(0, 0, -p.BaselineDays).UnixMicro(), now.Add(-15*time.Minute).UnixMicro()).Scan(&base.Count, &base.Mean, &base.Deviation)
+		base, err := readRuleBaseline(ctx, tx, device, item.metric, *item.v, in.Now, p.BaselineDays, box)
 		if err != nil {
 			return err
 		}
@@ -176,24 +169,30 @@ func readRuleBaselines(ctx context.Context, tx *sql.Tx, device ruleDevice, p Pol
 
 }
 
-func readRuleActivity(ctx context.Context, tx *sql.Tx, device ruleDevice, p Policy, in *Input) error {
+func readRuleActivity(ctx context.Context, tx *sql.Tx, device ruleDevice, p Policy, in *Input, box *securestore.Box) error {
 	id, oldID, epoch := device.id, device.oldID, device.epoch
 	now := in.Now
 	if in.Activity != nil {
 		v := in.Activity
 		start := now.Add(-time.Duration(p.ActivityMinutes) * time.Minute)
-		rows, err := tx.QueryContext(ctx, `SELECT payload FROM health_sample WHERE old_id=? AND device_id=? AND epoch=? AND metric='steps' AND NOT deleted AND BINARY source=BINARY ? AND BINARY source_device=BINARY ? AND sample_start<=? AND (sample_start>=? OR sample_end>?) ORDER BY sample_start,revision LIMIT 1001`, oldID, id, epoch, v.Source, v.Device, now.UnixMicro(), start.UnixMicro(), start.UnixMicro())
+		rows, err := tx.QueryContext(ctx, `SELECT sample_id,revision,payload,payload_cipher FROM health_sample WHERE old_id=? AND device_id=? AND epoch=? AND metric='steps' AND NOT deleted AND BINARY source=BINARY ? AND BINARY source_device=BINARY ? AND sample_start<=? AND (sample_start>=? OR sample_end>?) ORDER BY sample_start,revision LIMIT 1001`, oldID, id, epoch, v.Source, v.Device, now.UnixMicro(), start.UnixMicro(), start.UnixMicro())
 		if err != nil {
 			return err
 		}
 		var window activityWindow
 		for rows.Next() {
-			var b []byte
+			var sampleID string
+			var revision int64
+			var stored health.ProjectionPayload
 			var sample health.Sample
-			if err = rows.Scan(&b); err != nil {
+			if err = rows.Scan(&sampleID, &revision, &stored.JSON, &stored.Cipher); err != nil {
 				break
 			}
-			if err = json.Unmarshal(b, &sample); err != nil {
+			var payload []byte
+			if payload, err = stored.OpenSample(box, sampleID, oldID, revision); err != nil {
+				break
+			}
+			if err = json.Unmarshal(payload, &sample); err != nil {
 				break
 			}
 			window.add(p, sample, start, now)

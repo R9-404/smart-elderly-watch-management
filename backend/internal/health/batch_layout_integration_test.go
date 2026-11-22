@@ -142,8 +142,12 @@ func TestConditionalPreviousPayloadPreservesMixedVersionsAndConflicts(t *testing
 	for rows.Next() {
 		var id string
 		var prior storedSample
-		if err := rows.Scan(&id, &prior.version, &prior.revision, &prior.payload); err != nil {
+		var ciphertext *string
+		if err := rows.Scan(&id, &prior.version, &prior.revision, &prior.payload, &ciphertext); err != nil {
 			t.Fatal(err)
+		}
+		if ciphertext != nil {
+			t.Fatal("legacy writer unexpectedly added ciphertext")
 		}
 		if prior.version == 4 && prior.payload != nil {
 			t.Fatal("obsolete JSON was transferred")

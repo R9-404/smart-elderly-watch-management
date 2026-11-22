@@ -33,7 +33,7 @@ func (h *Handler) healthLatest(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	defer tx.Rollback()
-	items, err := health.Latest(r.Context(), h.DB, oldID)
+	items, err := health.Latest(r.Context(), h.DB, oldID, h.Box)
 	if errors.Is(err, health.ErrLatestTooManySeries) {
 		response.JSON(w, http.StatusRequestEntityTooLarge, map[string]any{"message": "最新采样候选超过 10000 条，请通过增量接口读取"})
 		return

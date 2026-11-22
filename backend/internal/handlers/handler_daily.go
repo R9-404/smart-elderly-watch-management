@@ -54,10 +54,11 @@ func (h *Handler) healthDaily(w http.ResponseWriter, r *http.Request) {
 		}
 		var dirty bool
 		var rev int64
-		var b []byte
+		var stored health.ProjectionPayload
 		var message string
 		var updated time.Time
-		err = tx.QueryRowContext(ctx, "SELECT dirty,computed_revision,result,error_text,updated_at FROM metric_daily WHERE cache_key=?", id).Scan(&dirty, &rev, &b, &message, &updated)
+		err = tx.QueryRowContext(ctx, "SELECT dirty,computed_revision,result,result_cipher,error_text,updated_at FROM metric_daily WHERE cache_key=?", id).
+			Scan(&dirty, &rev, &stored.JSON, &stored.Cipher, &message, &updated)
 		if internalError(w, err) {
 			return
 		}
@@ -67,8 +68,11 @@ func (h *Handler) healthDaily(w http.ResponseWriter, r *http.Request) {
 			status = "pending"
 		} else if message != "" {
 			status = "conflict"
-		} else if internalError(w, json.Unmarshal(b, &result)) {
-			return
+		} else {
+			payload, err := stored.OpenDailyResult(h.Box, id, rev)
+			if internalError(w, err) || internalError(w, json.Unmarshal(payload, &result)) {
+				return
+			}
 		}
 		items = append(items, map[string]any{"day": k.Day, "status": status, "statistics": result, "message": message, "computedRevision": rev, "updatedAt": updated})
 	}

@@ -14,11 +14,11 @@ const (
 )
 
 const batchLookupPrefix = `SELECT sample_id,version,revision,CASE WHEN version >= `
-const batchLookupSuffix = ` THEN payload ELSE NULL END FROM health_sample WHERE sample_id IN `
-const batchUpsertPrefix = `INSERT INTO health_sample(sample_id,old_id,device_id,epoch,version,revision,payload,source,source_device,metric,semantics,sample_start,sample_end,deleted) VALUES `
+const batchLookupSuffix = ` THEN payload ELSE NULL END,payload_cipher FROM health_sample WHERE sample_id IN `
+const batchUpsertPrefix = `INSERT INTO health_sample(sample_id,old_id,device_id,epoch,version,revision,payload,payload_cipher,source,source_device,metric,semantics,sample_start,sample_end,deleted) VALUES `
 const batchUpsertSuffix = `
-	 AS new ON DUPLICATE KEY UPDATE version=new.version,revision=new.revision,payload=new.payload,source=new.source,source_device=new.source_device,metric=new.metric,semantics=new.semantics,sample_start=new.sample_start,sample_end=new.sample_end,deleted=new.deleted`
-const batchChangesPrefix = `INSERT INTO health_change(revision,old_id,sample_id,payload) VALUES `
+	 AS new ON DUPLICATE KEY UPDATE version=new.version,revision=new.revision,payload=new.payload,payload_cipher=new.payload_cipher,source=new.source,source_device=new.source_device,metric=new.metric,semantics=new.semantics,sample_start=new.sample_start,sample_end=new.sample_end,deleted=new.deleted`
+const batchChangesPrefix = `INSERT INTO health_change(revision,old_id,sample_id,payload,payload_cipher) VALUES `
 
 // Cache complete immutable statements, not just VALUES fragments. This avoids
 // rebuilding/re-hashing multi-kilobyte SQL on every batch. The bounded cache
@@ -41,9 +41,9 @@ func buildBatchSQL(kind batchSQLKind, rows int) string {
 		out.WriteByte(')')
 		return out.String()
 	case batchUpsert:
-		return batchUpsertPrefix + buildValueRows(rows, 14) + batchUpsertSuffix
+		return batchUpsertPrefix + buildValueRows(rows, 15) + batchUpsertSuffix
 	case batchChanges:
-		return batchChangesPrefix + buildValueRows(rows, 4)
+		return batchChangesPrefix + buildValueRows(rows, 5)
 	default:
 		panic("invalid internal batch statement kind")
 	}

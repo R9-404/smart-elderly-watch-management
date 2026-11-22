@@ -35,7 +35,7 @@ func TestResidentCareProfileProtectedMySQL(t *testing.T) {
 	if out := api(t, withHealthPrincipal(h, admin, h.createResident), body); out["returnCode"] != "1111" {
 		t.Fatal("resident creation failed")
 	}
-	columns := []string{"phone", "room", "illness", "warn", "food_like", "food_hate", "drag"}
+	columns := []string{"phone", "room", "illness", "warn", "food_like", "food_hate", "drag", "bothdate"}
 	for _, column := range columns {
 		var raw sql.NullString
 		if err := pool.QueryRowContext(context.Background(), "SELECT "+column+" FROM oldperson WHERE old_id=1").Scan(&raw); err != nil {
@@ -55,7 +55,7 @@ func TestResidentCareProfileProtectedMySQL(t *testing.T) {
 			t.Fatal("profile read model changed")
 		}
 		item := items[0].(map[string]any)
-		for _, field := range []string{"phone", "room", "illness", "warn", "foodLike", "foodHate", "drag"} {
+		for _, field := range []string{"phone", "room", "illness", "warn", "foodLike", "foodHate", "drag", "bothdate"} {
 			if item[field] != body[field] {
 				t.Errorf("authorized profile field changed: %s", field)
 			}
@@ -210,7 +210,8 @@ func TestResidentProfileRotationMySQL(t *testing.T) {
 	}{{h.listResidents, "oldPeople"}, {h.getResidentDetails, "oldPersonDetails"}} {
 		out := api(t, withHealthPrincipal(h, admin, endpoint.fn), map[string]any{"name": ""})
 		items, ok := out[endpoint.key].([]any)
-		if !ok || len(items) != 1 || items[0].(map[string]any)["phone"] != body["phone"] || items[0].(map[string]any)["drag"] != body["drag"] {
+		if !ok || len(items) != 1 || items[0].(map[string]any)["phone"] != body["phone"] ||
+			items[0].(map[string]any)["drag"] != body["drag"] || items[0].(map[string]any)["bothdate"] != body["bothdate"] {
 			t.Fatal("production profile reader still needs the old key")
 		}
 	}
@@ -222,9 +223,13 @@ func TestResidentProfileRotationMySQL(t *testing.T) {
 	if out := api(t, withHealthPrincipal(h, admin, h.familyAdd), residentFamilyInput()); out["returnCode"] != "1111" {
 		t.Fatal("rotated phone no longer supports family association")
 	}
-	body["oldId"], body["phone"], body["illness"] = 1, "010-12345678", "updated condition"
+	body["oldId"], body["phone"], body["illness"], body["bothdate"] = 1, "010-12345678", "updated condition", "1956-02-29"
 	if out := api(t, withHealthPrincipal(h, admin, h.updateResident), body); out["returnCode"] != "1111" {
 		t.Fatal("rotated profile could not be edited")
+	}
+	edited := api(t, withHealthPrincipal(h, admin, h.listResidents), map[string]any{"name": ""})
+	if edited["oldPeople"].([]any)[0].(map[string]any)["bothdate"] != body["bothdate"] {
+		t.Fatal("the edited birthdate was not restored")
 	}
 	mustExec(t, h.DB, "INSERT INTO device(device_id,device_no,secret,old_id) VALUES(1,'PROFILE-ROTATED','unused',1)")
 	out := api(t, withHealthPrincipal(h, admin, h.deviceList), map[string]any{"query": "", "state": "all"})

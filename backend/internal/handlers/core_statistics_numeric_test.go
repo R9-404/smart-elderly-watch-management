@@ -44,7 +44,7 @@ func TestContinuousDailyConflictSurvivesLaterSnapshot(t *testing.T) {
 	if initial["algorithmVersion"] != float64(2) || initial["items"].([]any)[0].(map[string]any)["status"] != "pending" {
 		t.Fatalf("previous algorithm's cached result was reused: %v", initial)
 	}
-	if err := health.RefreshDaily(context.Background(), pool, key.ID()); err != nil {
+	if err := health.RefreshDaily(context.Background(), pool, key.ID(), h.Box); err != nil {
 		t.Fatal(err)
 	}
 	item := api(t, read, daily)["items"].([]any)[0].(map[string]any)

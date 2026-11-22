@@ -17,8 +17,8 @@ func TestBatchStatementsMatchOriginalAssembly(t *testing.T) {
 			for rows := 1; rows <= 200; rows++ {
 				want := [...]string{
 					expectedLookupSQL(rows),
-					batchUpsertPrefix + valueRows(rows, 14) + batchUpsertSuffix,
-					batchChangesPrefix + valueRows(rows, 4),
+					batchUpsertPrefix + valueRows(rows, 15) + batchUpsertSuffix,
+					batchChangesPrefix + valueRows(rows, 5),
 				}
 				for kind := range want {
 					if got := batchSQL(batchSQLKind(kind), rows); got != want[kind] {
@@ -37,8 +37,8 @@ var batchSQLSink string
 func BenchmarkCompleteBatchSQL(b *testing.B) {
 	for _, rows := range []int{1, 50, 200} {
 		b.Run(fmt.Sprint(rows), func(b *testing.B) {
-			valueRows(rows, 14)
-			valueRows(rows, 4)
+			valueRows(rows, 15)
+			valueRows(rows, 5)
 			valueRows(1, rows)
 			for kind := batchLookup; kind <= batchChanges; kind++ {
 				batchSQL(kind, rows)
@@ -47,8 +47,8 @@ func BenchmarkCompleteBatchSQL(b *testing.B) {
 				b.ReportAllocs()
 				for range b.N {
 					batchSQLSink = expectedLookupSQL(rows)
-					batchSQLSink = batchUpsertPrefix + valueRows(rows, 14) + batchUpsertSuffix
-					batchSQLSink = batchChangesPrefix + valueRows(rows, 4)
+					batchSQLSink = batchUpsertPrefix + valueRows(rows, 15) + batchUpsertSuffix
+					batchSQLSink = batchChangesPrefix + valueRows(rows, 5)
 				}
 			})
 			b.Run("statements", func(b *testing.B) {
@@ -82,9 +82,9 @@ func valueRows(rows, columns int) string {
 		switch columns {
 		case 1:
 			slot = &batchValueTemplates[0][rows]
-		case 4:
+		case 5:
 			slot = &batchValueTemplates[1][rows]
-		case 14:
+		case 15:
 			slot = &batchValueTemplates[2][rows]
 		}
 	}

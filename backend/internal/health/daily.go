@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"suining-care/internal/db"
+	"suining-care/internal/securestore"
 )
 
 // Fixed reporting offsets match the existing statistics API. No implicit local
@@ -71,14 +72,15 @@ func (k DailyKey) Bounds() (time.Time, time.Time, error) {
 	return from, from.AddDate(0, 0, 1), nil
 }
 
-const dailyCacheSelectSQL = `SELECT old_id,source,source_device,metric,semantics,CAST(record_day AS CHAR),offset_minutes,dirty FROM metric_daily WHERE cache_key=? FOR UPDATE`
+const dailyCacheSelectSQL = `SELECT old_id,source,source_device,metric,semantics,CAST(record_day AS CHAR),offset_minutes,dirty,
+ computed_revision,result_cipher FROM metric_daily WHERE cache_key=? FOR UPDATE`
 
-const dailySamplesSQL = `SELECT payload FROM health_sample WHERE old_id=? AND BINARY source=BINARY ? AND BINARY source_device=BINARY ? AND BINARY metric=BINARY ? AND BINARY semantics=BINARY ? AND NOT deleted
+const dailySamplesSQL = `SELECT sample_id,revision,payload,payload_cipher FROM health_sample WHERE old_id=? AND BINARY source=BINARY ? AND BINARY source_device=BINARY ? AND BINARY metric=BINARY ? AND BINARY semantics=BINARY ? AND NOT deleted
  AND sample_start<? AND (sample_start>=? OR (?='interval' AND sample_end>=?)) ORDER BY revision LIMIT 100001`
 
 // RefreshDaily is serialized with Save's owner clock, so a completed result
 // cannot overwrite a concurrent invalidation. Error results are explicit, never 0.
-func RefreshDaily(ctx context.Context, pool *db.Database, id string) error {
+func RefreshDaily(ctx context.Context, pool *db.Database, id string, box *securestore.Box) error {
 	tx, err := pool.BeginTx(ctx, &sql.TxOptions{Isolation: sql.LevelReadCommitted})
 	if err != nil {
 		return err
@@ -98,7 +100,10 @@ func RefreshDaily(ctx context.Context, pool *db.Database, id string) error {
 	}
 	var k DailyKey
 	var dirty bool
-	err = tx.QueryRowContext(ctx, dailyCacheSelectSQL, id).Scan(&k.OldID, &k.Source, &k.SourceDevice, &k.Metric, &k.Semantics, &k.Day, &k.OffsetMinutes, &dirty)
+	var previous ProjectionPayload
+	var previousRevision int64
+	err = tx.QueryRowContext(ctx, dailyCacheSelectSQL, id).Scan(&k.OldID, &k.Source, &k.SourceDevice, &k.Metric, &k.Semantics, &k.Day, &k.OffsetMinutes, &dirty,
+		&previousRevision, &previous.Cipher)
 	if errors.Is(err, sql.ErrNoRows) {
 		return nil
 	}
@@ -107,6 +112,9 @@ func RefreshDaily(ctx context.Context, pool *db.Database, id string) error {
 	}
 	if !dirty {
 		return nil
+	}
+	if _, err := previous.OpenDailyResult(box, id, previousRevision); err != nil {
+		return err
 	}
 	from, to, err := k.Bounds()
 	if err != nil {
@@ -120,10 +128,16 @@ func RefreshDaily(ctx context.Context, pool *db.Database, id string) error {
 	candidates := 0
 	for rows.Next() {
 		candidates++
-		var b []byte
+		var id string
+		var revision int64
+		var stored ProjectionPayload
 		var s Sample
-		if err = rows.Scan(&b); err == nil {
-			err = json.Unmarshal(b, &s)
+		if err = rows.Scan(&id, &revision, &stored.JSON, &stored.Cipher); err == nil {
+			var payload []byte
+			payload, err = stored.OpenSample(box, id, oldID, revision)
+			if err == nil {
+				err = json.Unmarshal(payload, &s)
+			}
 		}
 		if err != nil {
 			rows.Close()
@@ -151,7 +165,12 @@ func RefreshDaily(ctx context.Context, pool *db.Database, id string) error {
 		message = computation.Error()
 		b = []byte("null")
 	}
-	_, err = tx.ExecContext(ctx, "UPDATE metric_daily SET result=?,error_text=?,computed_revision=?,dirty=false,updated_at=CURRENT_TIMESTAMP(6) WHERE cache_key=?", json.RawMessage(b), message, revision, id)
+	stored, err := protectProjection(box, b, dailyResultScope(id, revision))
+	if err != nil {
+		return err
+	}
+	_, err = tx.ExecContext(ctx, "UPDATE metric_daily SET result=?,result_cipher=?,error_text=?,computed_revision=?,dirty=false,updated_at=CURRENT_TIMESTAMP(6) WHERE cache_key=?",
+		stored.JSON, stored.Cipher, message, revision, id)
 	if err != nil {
 		return err
 	}

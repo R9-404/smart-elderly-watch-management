@@ -42,8 +42,8 @@ func (h *Handler) healthBaseline(w http.ResponseWriter, r *http.Request) {
 	// Downsample to one actual observation per source/device/hour before
 	// decoding JSON. This keeps high-frequency wearable feeds bounded while
 	// retaining representative hourly history across the full 28-day window.
-	rows, err := tx.QueryContext(r.Context(), `SELECT device_id,epoch,payload FROM (
- SELECT s.device_id,s.epoch,s.payload,s.sample_start,s.revision,
+	rows, err := tx.QueryContext(r.Context(), `SELECT sample_id,device_id,epoch,revision,payload,payload_cipher FROM (
+ SELECT s.sample_id,s.device_id,s.epoch,s.payload,s.payload_cipher,s.sample_start,s.revision,
  ROW_NUMBER() OVER (PARTITION BY s.device_id,s.epoch,s.source,s.source_device,FLOOR(s.sample_start / 3600000000)
  ORDER BY s.sample_start DESC,s.revision DESC) AS hour_rank
  FROM health_sample s JOIN device d ON d.device_id=s.device_id
@@ -62,9 +62,14 @@ func (h *Handler) healthBaseline(w http.ResponseWriter, r *http.Request) {
 			response.JSON(w, http.StatusRequestEntityTooLarge, map[string]any{"message": "健康采样超过单次分析上限"})
 			return
 		}
-		var deviceID, epoch int64
-		var payload []byte
-		if err = rows.Scan(&deviceID, &epoch, &payload); internalError(w, err) {
+		var id string
+		var deviceID, epoch, revision int64
+		var stored health.ProjectionPayload
+		if err = rows.Scan(&id, &deviceID, &epoch, &revision, &stored.JSON, &stored.Cipher); internalError(w, err) {
+			return
+		}
+		payload, err := stored.OpenSample(h.Box, id, oldID, revision)
+		if internalError(w, err) {
 			return
 		}
 		var sample health.Sample

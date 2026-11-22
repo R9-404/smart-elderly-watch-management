@@ -38,7 +38,7 @@ func TestLatestSnapshotTracksOutOfOrderAndTombstones(t *testing.T) {
 	}
 	assertLatest := func(want string) {
 		t.Helper()
-		got, err := Latest(ctx, database, 1)
+		got, err := Latest(ctx, database, 1, nil)
 		if err != nil {
 			t.Fatal(err)
 		}
