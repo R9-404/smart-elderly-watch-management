@@ -58,4 +58,4 @@ MySQL 是否就绪：
 对已有数据 / 会话的影响：
 ```
 
-代码贡献流程见 [CONTRIBUTING.md](../CONTRIBUTING.md)，当前版本的发布记录见 [CHANGELOG.md](../CHANGELOG.md)。
+代码贡献流程见 [CONTRIBUTING.md](CONTRIBUTING.md)，当前版本的发布记录见 [CHANGELOG.md](CHANGELOG.md)。

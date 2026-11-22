@@ -6,7 +6,7 @@
 
 <h1 align="center">岁宁 · 智慧养老管理</h1>
 
-<p align="center">面向养老照护场景的设备管理、健康监测和协作工作台。</p>
+<p align="center">岁月有伴，日常安宁。<br>面向养老照护场景的设备管理、健康监测和协作工作台。</p>
 
 <p align="center">
   <a href="README.md">简体中文</a> · <a href="README.en.md">English</a>
@@ -20,7 +20,7 @@
 [![Open PRs](https://img.shields.io/github/issues-pr/WatchTestCs/smart-elderly-watch-management)](https://github.com/WatchTestCs/smart-elderly-watch-management/pulls)
 [![Accessibility](https://img.shields.io/badge/Accessibility-report%20a%20barrier-blue)](https://github.com/WatchTestCs/smart-elderly-watch-management/issues/new?template=accessibility_barrier.yml)
 
-社区入口：[反馈缺陷或建议](https://github.com/WatchTestCs/smart-elderly-watch-management/issues/new/choose) · [参与贡献](CONTRIBUTING.md) · [无障碍反馈](ACCESSIBILITY.md) · [私密安全报告](.github/SECURITY.md) · [行为准则](CODE_OF_CONDUCT.md)
+社区入口：[反馈缺陷或建议](https://github.com/WatchTestCs/smart-elderly-watch-management/issues/new/choose) · [参与贡献](docs/CONTRIBUTING.md) · [无障碍反馈](docs/ACCESSIBILITY.md) · [私密安全报告](.github/SECURITY.md) · [行为准则](docs/CODE_OF_CONDUCT.md)
 
 
 [功能与使用场景](#功能与使用场景) · [下载安装](#下载安装) · [首次启动](#首次启动) · [系统架构](#系统架构) · [开发与构建](#开发与构建) · [常见问题](#常见问题) · [文档与反馈](#文档与反馈)
@@ -165,7 +165,7 @@ Pop-Location
 | 部署、迁移、备份 | [MySQL 迁移](docs/MYSQL_ONLY_MIGRATION.md) · [备份恢复](docs/runbooks/backup-restore.md) |
 | 理解架构和接口 | [实现架构](docs/ARCHITECTURE.md) · [API 契约](docs/API_CONTRACTS.md) |
 | 接入手表和模拟器 | [手表接入](docs/WATCH_INTEGRATION.md) · [Rust 模拟器](watch-sim/README.md) |
-| 遇到问题与参与开发 | [支持与排查](docs/SUPPORT.md) · [贡献指南](CONTRIBUTING.md) · [Issue 模板](https://github.com/WatchTestCs/smart-elderly-watch-management/issues/new/choose) |
+| 遇到问题与参与开发 | [支持与排查](docs/SUPPORT.md) · [贡献指南](docs/CONTRIBUTING.md) · [Issue 模板](https://github.com/WatchTestCs/smart-elderly-watch-management/issues/new/choose) |
 
 提交问题时请说明**版本或 commit SHA、复现步骤、操作系统、部署方式及脱敏日志**；不要公开健康记录、定位、密码和设备密钥。安全问题请使用 [私密报告方式](.github/SECURITY.md)。
 

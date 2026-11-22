@@ -20,7 +20,7 @@
 [![Open PRs](https://img.shields.io/github/issues-pr/WatchTestCs/smart-elderly-watch-management)](https://github.com/WatchTestCs/smart-elderly-watch-management/pulls)
 [![Accessibility](https://img.shields.io/badge/Accessibility-report%20a%20barrier-blue)](https://github.com/WatchTestCs/smart-elderly-watch-management/issues/new?template=accessibility_barrier.yml)
 
-Community: [Report a bug or request a feature](https://github.com/WatchTestCs/smart-elderly-watch-management/issues/new/choose) · [Contribute](CONTRIBUTING.md) · [Accessibility feedback](ACCESSIBILITY.md) · [Private security reporting](.github/SECURITY.md) · [Code of conduct](CODE_OF_CONDUCT.md)
+Community: [Report a bug or request a feature](https://github.com/WatchTestCs/smart-elderly-watch-management/issues/new/choose) · [Contribute](docs/CONTRIBUTING.md) · [Accessibility feedback](docs/ACCESSIBILITY.md) · [Private security reporting](.github/SECURITY.md) · [Code of conduct](docs/CODE_OF_CONDUCT.md)
 
 
 [Capabilities](#capabilities) · [Downloads](#downloads) · [First-time setup](#first-time-setup) · [Architecture](#architecture) · [Development](#development) · [Troubleshooting](#troubleshooting) · [Documentation and support](#documentation-and-support)
@@ -165,7 +165,7 @@ Database integration and race tests need a **disposable test database** configur
 | Deployment, migration, backup | [MySQL migration](docs/MYSQL_ONLY_MIGRATION.md) · [Backup/restore](docs/runbooks/backup-restore.md) |
 | Architecture and APIs | [Implementation guide](docs/ARCHITECTURE.md) · [API contracts](docs/API_CONTRACTS.md) |
 | Watches and simulation | [Watch integration](docs/WATCH_INTEGRATION.md) · [Rust simulator](watch-sim/README.md) |
-| Help and contributions | [Support](docs/SUPPORT.md) · [Contributing](CONTRIBUTING.md) · [Issue templates](https://github.com/WatchTestCs/smart-elderly-watch-management/issues/new/choose) |
+| Help and contributions | [Support](docs/SUPPORT.md) · [Contributing](docs/CONTRIBUTING.md) · [Issue templates](https://github.com/WatchTestCs/smart-elderly-watch-management/issues/new/choose) |
 
 When reporting a bug, include the **version or commit SHA, reproduction steps, OS, deployment mode, and redacted logs**. Never publish resident health records, locations, passwords, or device keys. Use [private security reporting](.github/SECURITY.md) for vulnerabilities.
 
