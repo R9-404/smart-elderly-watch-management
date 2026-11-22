@@ -160,6 +160,8 @@ Database integration and race tests need a **disposable test database** configur
 
 ## Documentation and support
 
+The [documentation index](docs/INDEX.md) groups setup, development, operations and security guides by task.
+
 | Task | References |
 | --- | --- |
 | Deployment, migration, backup | [MySQL migration](docs/MYSQL_ONLY_MIGRATION.md) · [Backup/restore](docs/runbooks/backup-restore.md) |

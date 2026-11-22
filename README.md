@@ -160,6 +160,8 @@ Pop-Location
 
 ## 文档与反馈
 
+[完整项目文档索引](docs/INDEX.md) 按安装、开发、部署、运维和安全场景整理资料，找不到的内容可在 Issue 中提出。
+
 | 需要做什么 | 参考资料 |
 | --- | --- |
 | 部署、迁移、备份 | [MySQL 迁移](docs/MYSQL_ONLY_MIGRATION.md) · [备份恢复](docs/runbooks/backup-restore.md) |

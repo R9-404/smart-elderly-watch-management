@@ -12,6 +12,8 @@ Base your work on `preview` and open pull requests against `preview`. The `main`
 
 日常开发与维护均在 `preview` 分支进行，提交 PR 时请将目标分支选为 `preview`。`main` 是稳定通道，只接收已经完成候选验证的 `preview` 提升，不直接承接日常功能、重构、依赖升级或文档 PR。
 
+Merged head branches are deleted automatically when possible. Keep active PR branches until their changes are integrated or explicitly superseded; see [branch lifecycle](reliability/branch-lifecycle.md). Planned upgrades across Node.js, TypeScript or Vue Router major versions require explicit compatibility checks rather than unreviewed automatic major-version PRs.
+
 ## Before changing code / 开始前准备
 
 1. Read the [architecture](ARCHITECTURE.md), the relevant module README, and the [UI requirements](UI_UX.md) or [release gates](reliability/release-governance.md) for the affected area.
