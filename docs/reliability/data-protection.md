@@ -17,7 +17,8 @@ session、TOTP、照护备注、复核理由、规则证据。新增私有图片
 长者联系方式、房间、病情、注意事项、饮食喜恶和用药七列新增按长者 ID 认证的 v1 AEAD 档案封装，原列在配置密钥的新写入中清空；电话以独立域 HMAC 保留既有家属关联查找，非唯一索引保留重复号码歧义。详见[长者照护档案保护](resident-care-profile-protection.md)，历史迁移使用 protect-resident-profiles，密文列加入 rekey-data。该封装不处理遥测统计 JSON。
 监护人电话/地址新增按监护人 ID 认证的 v1 AEAD 联系人封装及 reader 校验记录，原联系方式在有 key 新写中清空；姓名查询、ID 关联和年龄校验保留。历史值须显式运行 [protect-guardian-contacts](guardian-contact-protection.md)，联系人密文与加密的 reader marker 都纳入轮换。
 家属地址的新写入使用按家属 ID 认证的 AEAD，授权读取保持原字段，历史回填和轮换见[家属地址保护](family-address-protection.md)。
-姓名、生日等身份资料、原始健康样本、生成列、围栏/事件、社交文本及未回填的字段/历史副本仍需纳入迁移盘点。
+长者出生日期在配置数据密钥后按长者 ID 认证加密，仅授权档案查询解密；历史回填和年龄语义见[长者档案保护](resident-care-profile-protection.md#出生日期保护)。
+姓名等其他身份资料、原始健康样本、生成列、围栏/事件、社交文本及未回填的字段/历史副本仍需纳入迁移盘点。
 不宣称全库加密。AEAD 只在配置正确密钥的新写路径生效；兼容旧明文读取不是迁移完成。
 
 MySQL 是唯一在线持久化业务存储，图片密文在 `image_payload`，目录及引用继续由 MySQL 管理。

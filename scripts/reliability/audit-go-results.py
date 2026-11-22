@@ -41,6 +41,7 @@ def audit(path, mode):
     required = {"TestCareSOSOutboxAuditAndState", "TestCareAdminTransitionsAndFamilyIsolation", "TestCareReceiptRequiresTrustedGatewaySignature"}
     if mode == "mysql":
         required.add("TestFamilyAddressBackfillMySQL")
+        required.add("TestResidentBirthdateBackfillMySQL")
         required |= {"TestMySQLImageCiphertextRotation", "TestMySQLImageRotationPreservesHTTPDownload", "TestMySQLCoordinatedBackupRestore"}
         required.add("TestMySQLMigrationRejectsUnknownHistoryBeforeDDL")
         required.add("TestSocialCommentViewerWithoutPhoneMySQL")

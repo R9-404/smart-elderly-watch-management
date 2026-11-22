@@ -93,15 +93,18 @@ func (h *Handler) saveResident(w http.ResponseWriter, r *http.Request, update bo
 	if internalError(w, residentprofile.PrepareWrite(ctx, tx, h.Box)) {
 		return
 	}
-	args := []any{fields["name"], age, fields["sex"], customerID, fields["bothdate"]}
-	query := `INSERT INTO oldperson(name,age,sex,customer_id,bothdate,be_time) VALUES(?,?,?,?,?,?)`
+	args := []any{fields["name"], age, fields["sex"], customerID}
+	query := `INSERT INTO oldperson(name,age,sex,customer_id,be_time) VALUES(?,?,?,?,?)`
 	if update {
 		var device *int64
 		var previous residentprofile.Record
+		var birthday residentprofile.BirthdateRecord
 		err := tx.QueryRowContext(ctx, `SELECT device_id,phone,room,illness,warn,food_like,food_hate,drag,
- care_profile_cipher,phone_lookup,care_profile_protected FROM oldperson WHERE old_id=? FOR UPDATE`, oldID).
+ care_profile_cipher,phone_lookup,care_profile_protected,bothdate,birthdate_cipher,birthdate_protected
+ FROM oldperson WHERE old_id=? FOR UPDATE`, oldID).
 			Scan(&device, &previous.Legacy.Phone, &previous.Legacy.Room, &previous.Legacy.Illness, &previous.Legacy.Warn,
-				&previous.Legacy.FoodLike, &previous.Legacy.FoodHate, &previous.Legacy.Drag, &previous.Cipher, &previous.Lookup, &previous.Protected)
+				&previous.Legacy.FoodLike, &previous.Legacy.FoodHate, &previous.Legacy.Drag, &previous.Cipher, &previous.Lookup, &previous.Protected,
+				&birthday.Legacy, &birthday.Cipher, &birthday.Protected)
 		if errors.Is(err, sql.ErrNoRows) {
 			response.Fail(w, "长者档案不存在")
 			return
@@ -112,6 +115,9 @@ func (h *Handler) saveResident(w http.ResponseWriter, r *http.Request, update bo
 		if _, err := previous.Open(h.Box, oldID); internalError(w, err) {
 			return
 		}
+		if _, err := birthday.Open(h.Box, oldID); internalError(w, err) {
+			return
+		}
 		if rawDevice != "" {
 			deviceID, err := strconv.ParseInt(rawDevice, 10, 64)
 			if err != nil || device == nil || *device != deviceID {
@@ -119,7 +125,7 @@ func (h *Handler) saveResident(w http.ResponseWriter, r *http.Request, update bo
 				return
 			}
 		}
-		query = `UPDATE oldperson SET name=?,age=?,sex=?,customer_id=?,bothdate=? WHERE old_id=?`
+		query = `UPDATE oldperson SET name=?,age=?,sex=?,customer_id=? WHERE old_id=?`
 		args = append(args, oldID)
 	} else {
 		day := siteDay(now)
@@ -144,7 +150,9 @@ func (h *Handler) saveResident(w http.ResponseWriter, r *http.Request, update bo
 		}
 	}
 	values := residentprofile.Strings(fields["phone"], fields["room"], fields["illness"], fields["warn"], fields["foodLike"], fields["foodHate"], fields["drag"])
-	if internalError(w, residentprofile.Store(ctx, tx, h.Box, oldID, values)) || internalError(w, tx.Commit()) {
+	if internalError(w, residentprofile.Store(ctx, tx, h.Box, oldID, values)) ||
+		internalError(w, residentprofile.StoreBirthdate(ctx, tx, h.Box, oldID, birth)) ||
+		internalError(w, tx.Commit()) {
 		return
 	}
 	writeSingleMutation(w, affected)

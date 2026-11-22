@@ -97,6 +97,8 @@ func TestRekeyMySQL(t *testing.T) {
 	contactBinding := get("SELECT lookup_verifier FROM guardian_contact_key_state WHERE singleton=1")
 	address := sealed(t, old, "synthetic family address", familyaddress.Scope("7"))
 	exec("UPDATE family SET family_address_cipher=?,family_address_protected=true WHERE family_id=7", address)
+	birthdate := sealed(t, old, "1956-02-29", residentprofile.BirthdateScope("7"))
+	exec("UPDATE oldperson SET birthdate_cipher=?,birthdate_protected=true WHERE old_id=7", birthdate)
 	exec("INSERT INTO device(device_id,device_no,secret,old_id,last_lng,last_lat) VALUES(1,'REKEY-LAB',?,1,?,?)", strings.Repeat("x", 48), s("location"), s("location"))
 	exec("INSERT INTO care_incident(id,old_id,device_id,resolution_note) VALUES(1,1,1,?)", s("care-text"))
 	for _, id := range []int{1, 2, 10, 100} {
@@ -139,7 +141,7 @@ func TestRekeyMySQL(t *testing.T) {
 
 	t.Run("scan is readonly and covers all actual columns", func(t *testing.T) {
 		report, err := Run(ctx, database, current, old, options)
-		if err != nil || len(report.Before) != 27 || report.Stage != "complete" || report.EncryptedColumnsClean || report.RetirementAuthorized {
+		if err != nil || len(report.Before) != 28 || report.Stage != "complete" || report.EncryptedColumnsClean || report.RetirementAuthorized {
 			t.Fatalf("unexpected report: %+v err=%v", report, err)
 		}
 		for _, column := range report.Before {
@@ -164,7 +166,7 @@ func TestRekeyMySQL(t *testing.T) {
 				t.Fatal("incomplete apply")
 			}
 		}
-		if rewrites != 36 {
+		if rewrites != 37 {
 			t.Fatalf("pagination lost rows: rewrites=%d", rewrites)
 		}
 		options.Apply = false
@@ -194,6 +196,11 @@ func TestRekeyMySQL(t *testing.T) {
 		plain, err := (familyaddress.Record{Cipher: &address, Protected: true}).Open(retired, 7)
 		if err != nil || plain == nil || *plain != "synthetic family address" {
 			t.Fatal("family address could not be read with only the new key", err)
+		}
+		birthdate := get("SELECT birthdate_cipher FROM oldperson WHERE old_id=7")
+		date, err := (residentprofile.BirthdateRecord{Cipher: &birthdate, Protected: true}).Open(retired, 7)
+		if err != nil || date == nil || date.Format("2006-01-02") != "1956-02-29" {
+			t.Fatal("resident birthdate could not be read with only the new key", err)
 		}
 		if get("SELECT CONCAT(health_epoch,':',old_id,':',device_no) FROM device WHERE device_id=1") != beforeBusiness || get("SELECT CONCAT(state,':',updated_at) FROM care_incident WHERE id=1") != beforeIncident {
 			t.Fatal("business state changed")
