@@ -1,12 +1,22 @@
 > **MySQL-only candidate (2026-11-17):** Current preview storage and deployment guidance is in [MySQL 单库存储迁移](../MYSQL_ONLY_MIGRATION.md). Older PostgreSQL/S3/local-image instructions on this page describe previous releases and are not suitable for deploying the new candidate.
 
-# MySQL、对象、密钥与 PG 投影的协调恢复回归
+# 单 MySQL 协调恢复回归
+
+在仓库根目录使用专用测试实例运行 `python scripts/reliability/run-mysql-restore-drill.py --output recovery.jsonl`。
+设置 `TEST_MYSQL_DSN` 后，确保本机安装与实例匹配的 `mysql` 和 `mysqldump`。
+CI 通过同一次作业的 MySQL 服务容器运行这些客户端。测试会校验客户端与 Go 连接使用同一个 MySQL 实例。
+
+演练为合成工单写入待发通知、访问审计、会话及引用已轮换的图片，再执行带十六进制二进制列的事务一致备份。
+测试破坏源库中的一条密文，将 dump 恢复到新建空库，然后逐组比较迁移记录、审计、工单、队列、会话、图片和版本摘要。
+恢复后的 outbox 外键必须拒绝孤立记录，同一 SOS 重试必须返回原工单并保持事件与待发通知队列。
+图片和会话使用匹配的 reader 验证。测试仅使用独立生成的数据库和数据，事件文件不包含 SQL dump。
+
+## 旧版 MySQL、对象、密钥与 PG 投影的协调恢复回归
 
 `TestImageS3TwoInstancesAndRealRestore` 使用真实 MySQL、PostgreSQL 与私有 S3 兼容服务，
-不使用内存数据库、模拟对象服务或直接修改通知队列状态。CI 的 MySQL suite 强制该用例通过；
-缺少连接而 skip 会被 `audit-go-results.py --mode mysql` 拒绝。
+使用旧版代码中的真实三套服务。它是历史切换和恢复证据，当前 CI 要求单 MySQL 恢复用例通过。
 
-## 运行
+### 运行旧版演练
 
 只使用专用测试服务。MySQL 账号需要创建/删除测试数据库，PG 账号需要 CREATEDB；
 S3 bucket 必须专用于合成测试数据。不可提供生产数据库、生产凭据或生产 bucket。
