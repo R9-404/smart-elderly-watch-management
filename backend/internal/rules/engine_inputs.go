@@ -159,6 +159,18 @@ func readRuleBaselines(ctx context.Context, tx *sql.Tx, device ruleDevice, p Pol
 		if item.v == nil || item.v.Source == "legacy" {
 			continue
 		}
+		var previous string
+		err := tx.QueryRowContext(ctx, "SELECT observation_key FROM rule_state WHERE device_id=? AND epoch=? AND kind=?",
+			device.id, device.epoch, "baseline_"+item.kind).Scan(&previous)
+		if err != nil && !errors.Is(err, sql.ErrNoRows) {
+			return err
+		}
+		// Device and policy writes take the same device lock. Once this
+		// version has a baseline state, persistence ignores its replays.
+		// A missing state still allows late history to meet the minimum.
+		if err == nil && previous == item.v.Key {
+			continue
+		}
 		base, err := readRuleBaseline(ctx, tx, device, item.metric, *item.v, in.Now, p.BaselineDays, box)
 		if err != nil {
 			return err
