@@ -11,6 +11,14 @@ updates:
       time: "04:00"
       timezone: "Asia/Singapore"
     open-pull-requests-limit: 5
+    # Node 24 and TypeScript 6 remain the current compiler/runtime line.
+    # Vue Router 5 passed local typecheck, unit tests and production build.
+    # Major upgrades still require explicit compatibility review.
+    ignore:
+      - dependency-name: "@types/node"
+        update-types: ["version-update:semver-major"]
+      - dependency-name: "typescript"
+        update-types: ["version-update:semver-major"]
     groups:
       frontend-minor-patch:
         update-types:
@@ -56,6 +64,11 @@ updates:
       time: "04:45"
       timezone: "Asia/Singapore"
     open-pull-requests-limit: 5
+    groups:
+      actions-minor-patch:
+        update-types:
+          - minor
+          - patch
 
   - package-ecosystem: cargo
     directory: "/desktop"

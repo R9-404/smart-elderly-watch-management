@@ -1,8 +1,8 @@
 <template>
-  <el-dialog v-model="visible" title="常规设置" width="min(520px, 94vw)" append-to-body>
+  <el-dialog v-model="visible" class="general-settings-dialog" title="常规设置" width="min(520px, 94vw)" append-to-body>
     <section class="settings-group">
       <h3>显示与操作</h3>
-      <div class="setting"><label for="setting-large-text">大字模式</label><el-switch id="setting-large-text" :model-value="largeText" @change="setLargeText" /></div>
+      <div class="setting"><label for="setting-large-text">大字模式</label><el-switch id="setting-large-text" :model-value="largeText" @change="updateLargeText" /></div>
       <div class="setting"><label for="setting-reduced-motion">减少界面动画</label><el-switch id="setting-reduced-motion" v-model="mapPreferences.reducedMotion" @change="saveMapPreferences" /></div>
     </section>
     <section class="settings-group">
@@ -36,19 +36,15 @@
 <script setup lang="ts">
 import { ref } from 'vue'
 import { mapPreferences, saveMapPreferences, resetMapPreferences } from '../utils/mapProviders'
+import { useTextSizePreference } from '../composables/useTextSizePreference'
 
-const emit = defineEmits<{ textSizeChanged: [value: boolean] }>()
 const visible = ref(false)
-const largeText = ref(false)
+const { largeText, setLargeText } = useTextSizePreference()
 function open() {
-  largeText.value = document.documentElement.classList.contains('large-text')
   visible.value = true
 }
-function setLargeText(value: string | number | boolean) {
-  largeText.value = Boolean(value)
-  document.documentElement.classList.toggle('large-text', largeText.value)
-  emit('textSizeChanged', largeText.value)
-  try { localStorage.setItem('large_text', String(largeText.value)) } catch { /* Session-only preference. */ }
+function updateLargeText(value: string | number | boolean) {
+  setLargeText(Boolean(value))
 }
 defineExpose({ open })
 </script>
@@ -59,4 +55,34 @@ defineExpose({ open })
 .settings-group h3 { margin: 0; font-size: 18px; }
 .setting { display: flex; justify-content: space-between; align-items: center; gap: 16px; min-height: 42px; }
 .hint { margin: 0; color: var(--care-text-muted); font-size: 13px; line-height: 1.7; }
+</style>
+
+<style>
+.general-settings-dialog {
+  display: flex;
+  flex-direction: column;
+  max-height: calc(100dvh - 32px);
+  margin: 16px auto !important;
+  overflow: hidden;
+}
+.general-settings-dialog .el-dialog__header,
+.general-settings-dialog .el-dialog__footer {
+  flex-shrink: 0;
+}
+.general-settings-dialog .el-dialog__body {
+  min-height: 0;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+@media (max-width: 420px) {
+  .general-settings-dialog .el-dialog__footer {
+    display: flex;
+    justify-content: flex-end;
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+  .general-settings-dialog .el-dialog__footer .el-button {
+    margin-left: 0;
+  }
+}
 </style>
