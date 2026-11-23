@@ -3,6 +3,7 @@
     <section class="settings-group">
       <h3>显示与操作</h3>
       <div class="setting"><label for="setting-large-text">大字模式</label><el-switch id="setting-large-text" :model-value="largeText" @change="updateLargeText" /></div>
+      <div class="setting"><label for="setting-high-contrast">高对比度模式</label><el-switch id="setting-high-contrast" :model-value="highContrast" @change="updateHighContrast" /></div>
       <div class="setting"><label for="setting-reduced-motion">减少界面动画</label><el-switch id="setting-reduced-motion" v-model="mapPreferences.reducedMotion" @change="saveMapPreferences" /></div>
       <div class="setting"><span>当前显示器刷新率</span><strong>{{ hostHz == null ? (probing ? '检测中…' : hostError || '暂不可用') : hostHz + ' Hz' }}</strong></div>
       <div class="setting"><span>WebView 空载帧调度</span><strong>{{ frameHz == null ? (probing ? '采样中…' : '未测得') : '约 ' + frameHz + ' FPS' }}</strong></div>
@@ -45,7 +46,7 @@ import { hostMonitorHz, sampleWebViewHz } from '../utils/displayRefresh'
 import { useTextSizePreference } from '../composables/useTextSizePreference'
 
 const visible = ref(false)
-const { largeText, setLargeText } = useTextSizePreference()
+const { largeText, highContrast, setLargeText, setHighContrast } = useTextSizePreference()
 const hostHz = ref<number | null>(null)
 const frameHz = ref<number | null>(null)
 const probing = ref(false)
@@ -84,6 +85,9 @@ watch(visible, value => {
 onBeforeUnmount(() => activeProbe?.abort())
 function updateLargeText(value: string | number | boolean) {
   setLargeText(Boolean(value))
+}
+function updateHighContrast(value: string | number | boolean) {
+  setHighContrast(Boolean(value))
 }
 defineExpose({ open })
 </script>
