@@ -5,6 +5,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"io"
 	"net/http"
 	"strings"
 	"suining-care/internal/config"
@@ -31,6 +32,7 @@ func (d *Worker) deliver(ctx context.Context, id int64, topic, key, channel, pho
 	if err != nil {
 		return err
 	}
+	_, _ = io.Copy(io.Discard, io.LimitReader(resp.Body, 4096))
 	resp.Body.Close()
 	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
 		return fmt.Errorf("gateway not accepted")

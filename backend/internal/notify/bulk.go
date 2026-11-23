@@ -68,6 +68,7 @@ func (d *Worker) deliverBulk(ctx context.Context, jobs []messageJob) []error {
 	}
 	defer resp.Body.Close()
 	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
+		_, _ = io.Copy(io.Discard, io.LimitReader(resp.Body, 4096))
 		return results
 	}
 	// Bound provider input independently of its declared Content-Length.
