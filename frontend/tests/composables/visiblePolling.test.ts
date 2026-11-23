@@ -68,3 +68,17 @@ it('coalesces rapid visibility changes without firing a request storm', () => {
   } finally { stop() }
   expect(vi.getTimerCount()).toBe(0)
 })
+
+it('refreshes on first foreground return after a hidden mount', () => {
+  vi.useFakeTimers()
+  const hidden = vi.spyOn(document, 'hidden', 'get').mockReturnValue(true)
+  const refresh = vi.fn()
+  const stop = startVisiblePolling(refresh, 15_000, { minGapMs: 2_000 })
+  try {
+    vi.advanceTimersByTime(200)
+    hidden.mockReturnValue(false)
+    document.dispatchEvent(new Event('visibilitychange'))
+    expect(refresh).toHaveBeenCalledTimes(1)
+    expect(vi.getTimerCount()).toBe(1)
+  } finally { stop() }
+})
