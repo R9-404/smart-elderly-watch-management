@@ -31,21 +31,23 @@ func StatisticsRevision(ctx context.Context, store db.RowQuerier, residentID int
 
 // LoadStatisticsSamples returns only samples inside the requested window,
 // retaining exact-byte matching under MySQL's trailing-space-insensitive collations.
-func LoadStatisticsSamples(ctx context.Context, store db.RowsQuerier, residentID int64, query StatisticsQuery, box *securestore.Box) ([]Sample, int, error) {
+func LoadStatisticsSamples(ctx context.Context, store db.RowsQuerier, residentID int64, query StatisticsQuery, box *securestore.Box, collectIDs bool) ([]Sample, []string, int, bool, error) {
 	sourceFilter := "BINARY source=BINARY ? AND BINARY source_device=BINARY ? AND BINARY metric=BINARY ? AND BINARY semantics=BINARY ?"
 	upper := query.To.UnixMicro()
 	if query.To.Nanosecond()%1000 != 0 {
 		upper++
 	}
 	samples := []Sample{}
+	var ids []string
 	candidates := 0
+	projectionEligible := true
 	err := db.QueryEach(ctx, store, func(rows *sql.Rows) error {
 		candidates++
 		var id string
-		var revision int64
+		var revision, indexedStart int64
 		var stored ProjectionPayload
 		var sample Sample
-		if err := rows.Scan(&id, &revision, &stored.JSON, &stored.Cipher); err != nil {
+		if err := rows.Scan(&id, &revision, &stored.JSON, &stored.Cipher, &indexedStart); err != nil {
 			return err
 		}
 		payload, err := stored.OpenSample(box, id, residentID, revision)
@@ -55,18 +57,24 @@ func LoadStatisticsSamples(ctx context.Context, store db.RowsQuerier, residentID
 		if err := fastjson.Unmarshal(payload, &sample); err != nil {
 			return err
 		}
+		if sample.Start.UnixMicro() != indexedStart {
+			projectionEligible = false
+		}
 		if sample.InWindow(query.From, query.To) {
 			samples = append(samples, sample)
+			if collectIDs {
+				ids = append(ids, id)
+			}
 		}
 		return nil
-	}, `SELECT sample_id,revision,payload,payload_cipher FROM health_sample
+	}, `SELECT sample_id,revision,payload,payload_cipher,sample_start FROM health_sample
 		 WHERE old_id=? AND `+sourceFilter+` AND NOT deleted
 		 AND sample_start<?
 		 AND (sample_start>=? OR (?='interval' AND sample_end>=?))
 		 ORDER BY revision LIMIT 10001`,
 		residentID, query.Source, query.SourceDevice, query.Metric, query.Semantics, upper, query.From.UnixMicro(), query.Semantics, query.From.UnixMicro())
 	if err != nil {
-		return nil, 0, err
+		return nil, nil, 0, false, err
 	}
-	return samples, candidates, nil
+	return samples, ids, candidates, projectionEligible, nil
 }
