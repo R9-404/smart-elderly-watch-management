@@ -6,6 +6,7 @@ import (
 	"database/sql"
 	"encoding/json"
 	"errors"
+	"io"
 	"net/http"
 	"strconv"
 	"suining-care/internal/notify"
@@ -99,6 +100,7 @@ func (d *dispatcher) sendCareDelivery(ctx context.Context, job *delivery, openEr
 			if callErr != nil {
 				err = transportFailure(callErr)
 			} else {
+				_, _ = io.Copy(io.Discard, io.LimitReader(resp.Body, 4096))
 				resp.Body.Close()
 				if resp.StatusCode < 200 || resp.StatusCode >= 300 {
 					reason := "http_4xx"
@@ -151,7 +153,10 @@ func (d *dispatcher) finishCareDelivery(ctx context.Context, job *delivery, err 
 	if err != nil {
 		return err
 	}
-	if affected > 0 && job.attempts >= 5 && job.channel == "sms" {
+	// A missing or undecryptable recipient must not be converted into a
+	// permanently undeliverable voice task when SMS retries are exhausted.
+	if affected > 0 && job.attempts >= 5 && job.channel == "sms" && job.recipient != "" &&
+		(failure == nil || failure.reason != "decrypt") {
 		voiceRecipient, voiceKey, sealErr := notify.SealNotificationRecipient(d.box, job.recipient)
 		if sealErr != nil {
 			return sealErr
