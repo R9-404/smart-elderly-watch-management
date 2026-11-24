@@ -40,7 +40,8 @@ func (h *Handler) healthStatistics(w http.ResponseWriter, r *http.Request) {
 		if err == nil {
 			revision, err = health.StatisticsRevision(r.Context(), tx, oldID)
 		}
-		if err == nil {
+		if err == nil && revision > 0 {
+			// Without a committed sample revision, read MySQL directly.
 			cacheable = true
 			key = sha256.Sum256(b)
 			if cached, hit := h.healthCache.get(key, revision, time.Now()); hit {
@@ -52,7 +53,7 @@ func (h *Handler) healthStatistics(w http.ResponseWriter, r *http.Request) {
 				return
 			}
 			observability.Default.Add("suining_health_cache_misses_total", 1)
-		} else {
+		} else if err != nil {
 			// A cache validation failure must never serve an unverified hit.
 			observability.Default.Add("suining_health_cache_validation_errors_total", 1)
 		}
