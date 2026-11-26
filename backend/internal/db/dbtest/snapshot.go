@@ -74,12 +74,22 @@ func mysqlClient(t testing.TB, ctx context.Context, server string) func(string, 
 	return client
 }
 
+// DumpMySQL retains the full coordinated backup/restore format.
 func DumpMySQL(t testing.TB, ctx context.Context, pool *db.Database) []byte {
 	t.Helper()
 	name, server := fixtureIdentity(t, ctx, pool)
-	client := mysqlClient(t, ctx, server)
-	archive := client("mysqldump", []string{"--single-transaction", "--quick", "--routines", "--triggers", "--hex-blob",
-		"--no-tablespaces", "--set-gtid-purged=OFF", "--column-statistics=0", name}, nil)
+	return dumpMySQL(t, ctx, name, server, false)
+}
+
+// Pristine fixtures only restore into empty schemas. InnoDB does not
+// benefit from mysqldump's nonunique-key disable/enable statements.
+func dumpMySQL(t testing.TB, ctx context.Context, name, server string, pristine bool) []byte {
+	t.Helper()
+	args := []string{"--single-transaction", "--quick", "--routines", "--triggers", "--hex-blob", "--no-tablespaces", "--set-gtid-purged=OFF", "--column-statistics=0"}
+	if pristine {
+		args = append(args, "--skip-add-drop-table", "--skip-add-locks", "--skip-disable-keys")
+	}
+	archive := mysqlClient(t, ctx, server)("mysqldump", append(args, name), nil)
 	if len(archive) == 0 {
 		t.Fatal("fixture dump did not capture SQL")
 	}
@@ -101,26 +111,36 @@ func RestoreMySQL(t testing.TB, ctx context.Context, pool *db.Database, archive 
 
 var fixtureSnapshot struct {
 	sync.Mutex
-	dsn, container, server string
-	archive                []byte
+	dsn, container, server, path string
+	archive                      []byte
 }
 
 // Capture only the pristine, migrated database, before returning it to a test.
-// The archive is process-local and is never written to disk or shared across servers.
-func snapshotArchive(t testing.TB, ctx context.Context, pool *db.Database) ([]byte, bool) {
+// Reuse a verified shared archive when explicitly supplied; otherwise retain
+// the process-local capture. Archives are never reused across MySQL servers.
+func snapshotArchive(t testing.TB, ctx context.Context, pool *db.Database, name, server string) ([]byte, bool) {
 	t.Helper()
-	_, server := fixtureIdentity(t, ctx, pool)
 	dsn, container := os.Getenv("TEST_MYSQL_DSN"), os.Getenv("TEST_MYSQL_CONTAINER_ID")
+	path := os.Getenv(sharedFixtureEnv)
 	fixtureSnapshot.Lock()
 	defer fixtureSnapshot.Unlock()
-	if fixtureSnapshot.archive != nil && fixtureSnapshot.dsn == dsn && fixtureSnapshot.container == container && fixtureSnapshot.server == server {
+	if fixtureSnapshot.archive != nil && fixtureSnapshot.dsn == dsn && fixtureSnapshot.container == container && fixtureSnapshot.server == server && fixtureSnapshot.path == path {
 		return fixtureSnapshot.archive, false
+	}
+	if path != "" {
+		archive, err := loadSharedFixture(path, server)
+		if err != nil {
+			t.Fatal(err)
+		}
+		fixtureSnapshot.dsn, fixtureSnapshot.container, fixtureSnapshot.server, fixtureSnapshot.path = dsn, container, server, path
+		fixtureSnapshot.archive = archive
+		return archive, false
 	}
 	if err := db.MigrateMySQL(ctx, pool); err != nil {
 		t.Fatal(err)
 	}
-	archive := DumpMySQL(t, ctx, pool)
-	fixtureSnapshot.dsn, fixtureSnapshot.container, fixtureSnapshot.server = dsn, container, server
+	archive := dumpMySQL(t, ctx, name, server, true)
+	fixtureSnapshot.dsn, fixtureSnapshot.container, fixtureSnapshot.server, fixtureSnapshot.path = dsn, container, server, path
 	fixtureSnapshot.archive = archive
 	return archive, true
 }
@@ -130,31 +150,37 @@ func snapshotArchive(t testing.TB, ctx context.Context, pool *db.Database) ([]by
 // should use MySQL instead, so the historical migration path remains exercised.
 func MySQLSnapshot(t testing.TB) *db.Database {
 	t.Helper()
-	pool := emptyMySQL(t)
+	started := time.Now()
+	pool := emptyMySQL(t, true)
+	created := time.Now()
 	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Minute)
 	defer cancel()
-	archive, populated := snapshotArchive(t, ctx, pool)
+	var name, server string
+	var tables int
+	if err := pool.QueryRowContext(ctx, "SELECT DATABASE(),@@server_uuid,(SELECT COUNT(*) FROM information_schema.TABLES WHERE TABLE_SCHEMA=DATABASE())").Scan(&name, &server, &tables); err != nil {
+		t.Fatal(err)
+	}
+	if !disposableSchema.MatchString(name) || tables != 0 {
+		t.Fatal("expected an empty disposable MySQL fixture")
+	}
+	archive, populated := snapshotArchive(t, ctx, pool, name, server)
+	archiveReady := time.Now()
 	if !populated {
-		RestoreMySQL(t, ctx, pool, archive)
-		names, err := db.MySQLMigrationNames()
-		if err != nil {
+		// Identity and emptiness were checked before this exclusively owned schema
+		// was exposed to any test; still verify the client server independently.
+		mysqlClient(t, ctx, server)("mysql", []string{name}, archive)
+		imported := time.Now()
+		// The private schema is complete or it is rejected; no replay,
+		// metadata writes, migration lock or second fingerprint scan.
+		if err := db.ValidateRestoredMySQLFixture(ctx, pool); err != nil {
 			t.Fatal(err)
 		}
-		var completed, pending int
-		if err := pool.QueryRowContext(ctx, "SELECT COUNT(*) FROM schema_migrations WHERE schema_checksum<>''").Scan(&completed); err != nil {
-			t.Fatal(err)
+		if testing.Verbose() {
+			t.Logf("snapshot setup: create/open=%s archive=%s import=%s validate=%s",
+				created.Sub(started), archiveReady.Sub(created), imported.Sub(archiveReady), time.Since(imported))
 		}
-		if err := pool.QueryRowContext(ctx, "SELECT COUNT(*) FROM schema_migration_steps").Scan(&pending); err != nil {
-			t.Fatal(err)
-		}
-		if completed != len(names) || pending != 0 {
-			t.Fatalf("incomplete fixture migration ledger: completed=%d want=%d pending=%d", completed, len(names), pending)
-		}
-		// Recheck the ledger and full schema fingerprint using the production
-		// migrator; a corrupted or outdated archive must fail the test.
-		if err := db.MigrateMySQL(ctx, pool); err != nil {
-			t.Fatal(err)
-		}
+	} else if testing.Verbose() {
+		t.Logf("snapshot setup: create/open=%s cold migration/capture=%s", created.Sub(started), archiveReady.Sub(created))
 	}
 	return pool
 }
